@@ -49,11 +49,11 @@ flashduck:
 	-cd tools/gbxcart_duck; ./gbxcart_rw_megaduck_32kb_flasher ../../$(DIRDUCK)/$(ROMNAME_BASE).duck &
 
 
-rom-first-32k:
-	dd bs=32K count=1 if=$(REFERENCE_ROM) of=$(REFERENCE_ROM)_32k.duck
+# rom-first-32k:
+#	dd bs=32K count=1 if=$(REFERENCE_ROM) of=$(REFERENCE_ROM)_32k.duck
 
 # Split SYSTEM ROM into 32K bank chunks
-rom-split-banks:
+split-rom-banks:
 	split --verbose --bytes=32k --numeric-suffixes --suffix-length=2 $(REFERENCE_ROM) $(SPLIT_ROMS_DIR)/$(REFERENCE_ROM_NAME).
 
 
