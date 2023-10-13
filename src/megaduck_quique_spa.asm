@@ -278,7 +278,7 @@ _PORT_60_ EQU $60
 SECTION "rom0", ROM0[$0]
 _LABEL_0_:
     di
-    jp   _LABEL_100_
+    jp   _GB_ENTRY_POINT_100_
 
 ; Data from 4 to 4 (1 bytes)
 db $00
@@ -292,35 +292,43 @@ _LABEL_5_:
     di
     jp   $C940  ; Possibly invalid
 
-_LABEL_10_:
+_RST__10_:
     ei
     call _LABEL_A34_
     di
     jp   $C940  ; Possibly invalid
 
-_LABEL_18_:
-    jp   _LABEL_100_
+_RST__18_:
+    jp   _GB_ENTRY_POINT_100_
+    db $00, $00, $00, $00, $00
 
-; Data from 1B to 37 (29 bytes)
-db $00, $00, $00, $00, $00, $C3, $00, $01, $00, $00, $00, $00, $00, $C3, $00, $01
-db $00, $00, $00, $00, $00, $C3, $00, $01, $00, $00, $00, $00, $00
+_RST__20_:
+    jp   _GB_ENTRY_POINT_100_
+    db $00, $00, $00, $00, $00
 
-_LABEL_38_:
-    jp   _LABEL_100_
+_RST__28_:
+    jp   _GB_ENTRY_POINT_100_
+    db $00, $00, $00, $00, $00
 
-; Data from 3B to 3F (5 bytes)
-db $00, $00, $00, $00, $00
+_RST__30_:
+    jp   _GB_ENTRY_POINT_100_
+    db $00, $00, $00, $00, $00
 
-_LABEL_40_:
+_RST__38_:
+    jp   _GB_ENTRY_POINT_100_
+    db $00, $00, $00, $00, $00
+
+
+_INT_VBL__40_:
     di
-    call _LABEL_6D_
+    call _VBL_HANDLER__6D_
     ei
     reti
+    nop
+    nop
 
-; Data from 46 to 47 (2 bytes)
-db $00, $00
 
-_LABEL_48_:
+_INT_STAT__48_:
     nop
     nop
     nop
@@ -329,25 +337,27 @@ _LABEL_48_:
     nop
     nop
     nop
-_LABEL_50_:
+
+
+_INT_TIMER__50_:
     di
     call _LABEL_BB_
     ei
     reti
+    nop
+    nop    
 
-; Data from 56 to 57 (2 bytes)
-db $00, $00
 
-_LABEL_58_:
+_INT_SERIAL__58_:
     di
     call _LABEL_CE_
     ei
     reti
+    nop
+    nop
 
-; Data from 5E to 5F (2 bytes)
-db $00, $00
 
-_LABEL_60_:
+_INT_JOYPAD__60_:
     di
     push af
     ld   a, [_RAM_D020_]    ; _RAM_D020_ = $D020
@@ -357,7 +367,8 @@ _LABEL_60_:
     ei
     reti
 
-_LABEL_6D_:
+
+_VBL_HANDLER__6D_:
     push af
     push bc
     push de
@@ -368,47 +379,49 @@ _LABEL_6D_:
     ld   l, a
     ld   a, [_RAM_D195_]    ; _RAM_D195_ = $D195
     and  a
-    jr   z, _LABEL_AF_
+    jr   z, _VBL_HANDLER_TAIL__AF_
     cp   $01
-    jr   nz, _LABEL_88_
+    jr   nz, _VBL_HANDLER__88_
     call _LABEL_6A26_
-    jr   _LABEL_AF_
+    jr   _VBL_HANDLER_TAIL__AF_
 
-_LABEL_88_:
+_VBL_HANDLER__88_:
     cp   $02
-    jr   nz, _LABEL_91_
+    jr   nz, _VBL_HANDLER__91_
     call _LABEL_6F40_
-    jr   _LABEL_AF_
+    jr   _VBL_HANDLER_TAIL__AF_
 
-_LABEL_91_:
+_VBL_HANDLER__91_:
     cp   $03
-    jr   nz, _LABEL_9A_
+    jr   nz, _VBL_HANDLER__9A_
     call _LABEL_481A_
-    jr   _LABEL_AF_
+    jr   _VBL_HANDLER_TAIL__AF_
 
-_LABEL_9A_:
+_VBL_HANDLER__9A_:
     cp   $04
-    jr   nz, _LABEL_A3_
+    jr   nz, _VBL_HANDLER__A3_
     call _LABEL_4826_
-    jr   _LABEL_AF_
+    jr   _VBL_HANDLER_TAIL__AF_
 
-_LABEL_A3_:
+_VBL_HANDLER__A3_:
     cp   $05
-    jr   nz, _LABEL_AC_
+    jr   nz, _VBL_HANDLER__AC_
     call _LABEL_6CD7_
-    jr   _LABEL_AF_
+    jr   _VBL_HANDLER_TAIL__AF_
 
-_LABEL_AC_:
+_VBL_HANDLER__AC_:
     call _LABEL_6DAB_
-_LABEL_AF_:
+
+_VBL_HANDLER_TAIL__AF_:
     xor  a
     ld   [_RAM_D195_], a    ; _RAM_D195_ = $D195
-    call $FF80  ; Possibly invalid
+    call $FF80  ; TODO: Possibly OAM DMA Copy?
     pop  hl
     pop  de
     pop  bc
     pop  af
     ret
+
 
 _LABEL_BB_:
     push af
@@ -438,11 +451,10 @@ ds 33, $00
 _DATA_FF_:
 db $00
 
-_LABEL_100_:
+_GB_ENTRY_POINT_100_:
     di
     xor  a
-; Data from 102 to 104 (3 bytes)
-db $EA, $95, $D1
+    ld   [_RAM_D195_], a
 
 _LABEL_105_:
     call _LABEL_9CF_
@@ -1178,7 +1190,7 @@ _LABEL_770_:
     call _LABEL_7CA_
     ld   de, _LABEL_80C_
     call _LABEL_7CA_
-    ld   hl, _RAM_FF80_
+    ld   hl, _RAM_FF80_   ; TODO: Possible copy of OAM DMA routine to HRAM?
     ld   de, $07E3
     call _LABEL_7CA_
     ld   a, $00
@@ -2083,10 +2095,10 @@ _LABEL_EA3_:
     and  l
     sbc  $2B
     add  l
-    rst  $10    ; _LABEL_10_
+    rst  $10    ; _RST_10_
     dec  hl
     xor  c
-    rst  $18    ; _LABEL_18_
+    rst  $18    ; _RST_18_
     dec  hl
     adc  c
     ret  c
@@ -2124,7 +2136,7 @@ _LABEL_ECF_:
     cp   c
     xor  b
     scf
-    rst  $00    ; _LABEL_0_
+    rst  $00    ; _RSTL_0_
     or   l
     xor  d
     jr   c, @ - 54
@@ -2142,13 +2154,13 @@ _LABEL_EE5_:
     call c, _LABEL_6E3B_
     dec  hl
     cp   l
-    rst  $38    ; _LABEL_38_
+    rst  $38    ; _RST_38_
     pop  de
 ; Data from EF1 to EF2 (2 bytes)
 db $D3, $DB
 
 ; _LABEL_EF3_:
-;     rst  $38    ; _LABEL_38_
+;     rst  $38    ; _RST_38_
 ;     inc  l
 ;     ld   l, $FF
 ;     cp   d
