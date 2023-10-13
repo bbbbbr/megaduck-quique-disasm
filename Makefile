@@ -1,5 +1,5 @@
 
-all: duck gb
+all: gb duck
 
 DIRDUCK=build_duck
 DIRGB=build_gb
@@ -39,6 +39,7 @@ cleangb:
 $(DIRGB)/$(ROMNAME_BASE).gb: gbgfx $(SRCDIR)/megaduck_quique_spa.asm
 	rgbasm -Wno-obsolete --preserve-ld --halt-without-nop -i $(INCPATH) -o $(DIRGB)/$(ROMNAME_BASE).o $(SRCDIR)/megaduck_quique_spa.asm
 	rgblink -n $(DIRGB)/$(ROMNAME_BASE).sym -m $(DIRGB)/$(ROMNAME_BASE).map -o $(DIRGB)/$(ROMNAME_BASE).gb $(DIRGB)/$(ROMNAME_BASE).o
+#	rgbfix ..TODO..	(is rom header region free of code, or is there any to relocate?)
 	@if which md5sum &>/dev/null; then md5sum $@; else md5 $@; fi
 	@if which md5sum &>/dev/null; then md5sum $(REFERENCE_ROM); else md5 $(REFERENCE_ROM); fi
 
@@ -64,6 +65,12 @@ $(DIRDUCK)/$(ROMNAME_BASE).duck: duckgfx $(SRCDIR)/megaduck_quique_spa.asm
 duckgfx:
 #	rgbgfx $(GFXDIR)/megaduck_logo_9x_8x8.png -o src/megaduck_logo_9_tiles.2bpp -c "#FFFFFF,#A0A0A0,#4E4E4E,#000000;"
 
+
+bindiffduck:
+	vbindiff $(REFERENCE_ROM) $(DIRDUCK)/$(ROMNAME_BASE).duck
+
+bindiffgb:
+	vbindiff $(REFERENCE_ROM) $(DIRGB)/$(ROMNAME_BASE).gb
 
 
 usage:

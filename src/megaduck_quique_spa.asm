@@ -249,29 +249,29 @@ include "hardware.inc"
 ; rTMA EQU $06    
 ; rTAC EQU $07    
 ; rIF EQU $0F 
-; rAUD1SWEEP EQU $10  
-; rAUD1LEN EQU $11    
-; rAUD1LOW EQU $13    
-; rAUD1HIGH EQU $14   
-_PORT_15_ EQU $15   
-; rAUD2LEN EQU $16    
-; rAUD2ENV EQU $17    
-; rAUD2LOW EQU $18    
-; rAUD3ENA EQU $1A    
-; rAUD3LEN EQU $1B    
-; rAUD4LEN EQU $20    
-; rAUD4ENV EQU $21    
-; rAUD4POLY EQU $22   
-; rAUD4GO EQU $23 
-; rAUDVOL EQU $24 
-; rAUDTERM EQU $25    
-_PORT_2A_ EQU $2A   
-_PORT_2B_ EQU $2B   
+; rLCDC EQU $10  
+; rSTAT EQU $11    
+; rSCX EQU $13    
+; rOBP0 EQU $14   
+; rOBP1 EQU $15   
+; rWY EQU $16    
+; rWX EQU $17    
+; rLY EQU $18    
+; rDMA EQU $1A    
+; rBGP EQU $1B    
+; rAUD1SWEEP EQU $20    
+; rAUD1ENV EQU $21    
+; rAUD1LEN EQU $22   
+; rAUD1LOW EQU $23 
+; rAUD1HIGH EQU $24 
+; rAUD2LEN EQU $25    
+; rAUD3ENA EQU $2A   
+; rAUD3LEN EQU $2B   
 _PORT_3E_ EQU $3E   
 _PORT_3F_ EQU $3F   
-; rLY EQU $44 
-; rLYC EQU $45    
-; rDMA EQU $46    
+; rAUDVOL EQU $44 
+; rAUDENA EQU $45    
+; rAUDTERM EQU $46    
 _PORT_60_ EQU $60   
 ; rIE EQU $FF 
 
@@ -866,13 +866,13 @@ _LABEL_44A_:
     bit  0, a
     jp   z, _LABEL_4C0_
     ld   a, [_RAM_CC13_]    ; _RAM_CC13_ = $CC13
-    ldh  [rAUD4LEN], a
+    ldh  [rAUD1SWEEP], a
     ld   a, [_RAM_CC14_]    ; _RAM_CC14_ = $CC14
-    ldh  [rAUD4POLY], a
+    ldh  [rAUD1LEN], a
     ld   a, [_RAM_CC28_]    ; _RAM_CC28_ = $CC28
-    ldh  [rAUD4GO], a
+    ldh  [rAUD1LOW], a
     ld   a, $FF
-    ldh  [rLY], a
+    ldh  [rAUDVOL], a
     ld   a, [_RAM_CC2F_]    ; _RAM_CC2F_ = $CC2F
     ld   a, [_RAM_CC27_]    ; _RAM_CC27_ = $CC27
     cp   $07
@@ -886,7 +886,7 @@ _LABEL_44A_:
 _LABEL_486_:
     ld   a, $0F
 _LABEL_488_:
-    ldh  [rAUD4ENV], a
+    ldh  [rAUD1ENV], a
     ld   a, [_RAM_CC27_]    ; _RAM_CC27_ = $CC27
     res  6, a
     set  7, a
@@ -909,12 +909,12 @@ _LABEL_49F_:
     cp   $FF
     jr   nz, _LABEL_4B5_
     xor  a
-    ldh  [rLYC], a
+    ldh  [rAUDENA], a
     ld   a, $80
-    ldh  [rLYC], a
+    ldh  [rAUDENA], a
 _LABEL_4B5_:
     ld   a, b
-    ldh  [rAUDVOL], a
+    ldh  [rAUD1HIGH], a
     ld   a, [_RAM_CC02_]    ; _RAM_CC02_ = $CC02
     res  0, a
     ld   [_RAM_CC02_], a    ; _RAM_CC02_ = $CC02
@@ -947,7 +947,7 @@ _LABEL_4E9_:
     jr   z, _LABEL_4F4_
 _LABEL_4F4_:
     ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
-    ldh  [rDMA], a
+    ldh  [rAUDTERM], a
     ld   a, $20
     ldh  [rP1], a
     ldh  a, [rP1]
@@ -1018,7 +1018,7 @@ _LABEL_56E_:
     ld   bc, $0800
     call _RAM_C900_ ; Possibly invalid
     ld   a, $A0
-    ldh  [rAUD2LEN], a
+    ldh  [rWY], a
     call _LABEL_488F_
     ld   hl, _DATA_630_
     ld   a, [_RAM_D06E_]    ; _RAM_D06E_ = $D06E
@@ -1050,9 +1050,9 @@ _LABEL_5B0_:
     jr   _LABEL_5A3_
 
 _LABEL_5B5_:
-    ldh  a, [rAUD1SWEEP]
+    ldh  a, [rLCDC]
     or   $A1
-    ldh  [rAUD1SWEEP], a
+    ldh  [rLCDC], a
     call _LABEL_967_
     ld   a, $0A
     jp   _LABEL_4A72_
@@ -1095,10 +1095,10 @@ _LABEL_623_:
     ret
 
 _LABEL_627_:
-    ldh  a, [rAUD1SWEEP]
+    ldh  a, [rLCDC]
     and  $CF
     or   $C1
-    ldh  [rAUD1SWEEP], a
+    ldh  [rLCDC], a
     ret
 
 ; Data from 630 to 733 (260 bytes)
@@ -1129,7 +1129,7 @@ db $BE, $85, $8E, $83, $8F, $8E, $93, $92, $81, $84, $8F, $93, $00, $C9
 _LABEL_752_:
     ld   a, $00
     ld   [_RAM_C8D7_], a
-    ldh  [rAUD1SWEEP], a
+    ldh  [rLCDC], a
     ld   hl, $8000
 _LABEL_75C_:
     xor  a
@@ -1150,23 +1150,23 @@ _LABEL_770_:
     ldi  [hl], a
     dec  b
     jr   nz, _LABEL_770_
-    ldh  [rAUD1SWEEP], a
+    ldh  [rLCDC], a
     nop
     nop
     nop
     nop
     ld   a, $C8
-    ldh  [rAUD1SWEEP], a
+    ldh  [rLCDC], a
     call _LABEL_7E3_
     ld   a, $E4
-    ldh  [rAUD1HIGH], a
-    ldh  [rAUD3LEN], a
+    ldh  [rOBP0], a
+    ldh  [rBGP], a
     ld   a, $1B
-    ldh  [_PORT_15_], a
+    ldh  [rOBP1], a
     ld   a, $07
-    ldh  [rAUD2ENV], a
+    ldh  [rWX], a
     ld   a, $FF
-    ldh  [rAUD1LOW], a
+    ldh  [rSCX], a
     ld   hl, _RAM_C900_
     ld   de, _LABEL_7D3_
     call _LABEL_7CA_
@@ -1208,7 +1208,7 @@ db $22, $13, $0B, $78, $B1, $20, $F8, $C9, $F0, $10, $F6, $80, $E0, $10, $C9
 _LABEL_7E3_:
     di
     ld   a, $C8
-    ldh  [rAUD3ENA], a
+    ldh  [rDMA], a
     ld   a, $28
 _LABEL_7EA_:
     dec  a
@@ -1334,9 +1334,9 @@ _LABEL_8D2_:
     ld   h, a
     dec  b
     jr   nz, _LABEL_8D0_
-    ldh  a, [rAUD1SWEEP]
+    ldh  a, [rLCDC]
     or   $80
-    ldh  [rAUD1SWEEP], a
+    ldh  [rLCDC], a
     ret
 
 ; Data from 8EA to 92B (66 bytes)
@@ -1347,13 +1347,13 @@ db $CB, $23, $CB, $12, $CB, $23, $CB, $12, $CB, $23, $CB, $12, $19, $FA, $CC, $C
 db $77, $C9
 
 _LABEL_92C_:
-    ldh  a, [rAUD1SWEEP]
+    ldh  a, [rLCDC]
     bit  7, a
     jr   nz, _LABEL_933_
     ret
 
 _LABEL_933_:
-    ldh  a, [rAUD1LEN]
+    ldh  a, [rSTAT]
     and  $03
     jr   nz, _LABEL_933_
     ldh  a, [rIE]
@@ -1361,7 +1361,7 @@ _LABEL_933_:
     res  0, a
     ldh  [rIE], a
 _LABEL_941_:
-    ldh  a, [rAUD2LOW]
+    ldh  a, [rLY]
     cp   $91
     jr   nz, _LABEL_941_
     ldh  a, [_RAM_FFA1_]    ; _RAM_FFA1_ = $FFA1
@@ -1369,9 +1369,9 @@ _LABEL_941_:
     ret
 
 _LABEL_94C_:
-    ldh  a, [rAUD1SWEEP]
+    ldh  a, [rLCDC]
     and  $7F
-    ldh  [rAUD1SWEEP], a
+    ldh  [rLCDC], a
     ret
 
 _LABEL_953_:
@@ -1390,11 +1390,11 @@ _LABEL_953_:
 _LABEL_967_:
     ld   a, $A0
 _LABEL_969_:
-    ldh  [rAUD2LEN], a
+    ldh  [rWY], a
     ei
     call _LABEL_289_
     di
-    ldh  a, [rAUD2LEN]
+    ldh  a, [rWY]
     and  a
     jr   z, _LABEL_979_
     sub  $08
@@ -1410,19 +1410,19 @@ _LABEL_97A_:
     xor  a
     ldh  [rSB], a
     ldh  [rSC], a
-    ldh  [rLYC], a
-    ldh  [rAUD1SWEEP], a
+    ldh  [rAUDENA], a
+    ldh  [rLCDC], a
     ld   a, $80
-    ldh  [rAUD1SWEEP], a
+    ldh  [rLCDC], a
     ld   a, $E4
-    ldh  [rAUD3LEN], a
-    ldh  [rAUD1HIGH], a
+    ldh  [rBGP], a
+    ldh  [rOBP0], a
     ld   a, $1B
-    ldh  [_PORT_15_], a
+    ldh  [rOBP1], a
     xor  a
-    ldh  [_PORT_2A_], a
+    ldh  [rAUD3ENA], a
     ld   a, $FF
-    ldh  [_PORT_2B_], a
+    ldh  [rAUD3LEN], a
     ld   a, $55
     ld   bc, $0800 | _PORT_3F_
 _LABEL_9A3_:
@@ -1430,7 +1430,7 @@ _LABEL_9A3_:
     dec  c
     dec  b
     jr   nz, _LABEL_9A3_
-    ld   hl, $FF00 | rLYC
+    ld   hl, $FF00 | rAUDENA
     ld   a, $80
     ldd  [hl], a
     ld   [hl], $77
@@ -1443,8 +1443,8 @@ _LABEL_9A3_:
     ld   [_RAM_CC00_], a    ; _RAM_CC00_ = $CC00
     ld   [_RAM_CC01_], a    ; _RAM_CC01_ = $CC01
     ld   a, $28
-    ldh  [rAUD4POLY], a
-    ldh  [rAUDTERM], a
+    ldh  [rAUD1LEN], a
+    ldh  [rAUD2LEN], a
     ld   a, $37
     ldh  [rTMA], a
     ldh  [rTIMA], a
@@ -2092,7 +2092,7 @@ _LABEL_EA3_:
     ret  c
     dec  hl
     xor  a
-    ldh  [_PORT_2B_], a
+    ldh  [rAUD3LEN], a
     adc  a
     reti
 
@@ -3320,10 +3320,10 @@ _LABEL_487E_:
     ld   a, h
     cp   $9C
     jr   nz, _LABEL_487E_
-    ldh  a, [rAUD1SWEEP]
+    ldh  a, [rLCDC]
     and  $CF
     or   $C1
-    ldh  [rAUD1SWEEP], a
+    ldh  [rLCDC], a
     ret
 
 _LABEL_488F_:
@@ -3336,9 +3336,9 @@ _LABEL_4898_:
     ld   a, h
     cp   $A0
     jr   nz, _LABEL_4898_
-    ldh  a, [rAUD1SWEEP]
+    ldh  a, [rLCDC]
     or   $A1
-    ldh  [rAUD1SWEEP], a
+    ldh  [rLCDC], a
     ret
 
 ; Data from 48A7 to 48B6 (16 bytes)
@@ -3734,10 +3734,10 @@ _LABEL_4AE6_:
     ld   a, $09
     ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
     call _LABEL_4CD1_
-    ldh  a, [rAUD1SWEEP]
+    ldh  a, [rLCDC]
     and  $CF
     or   $C1
-    ldh  [rAUD1SWEEP], a
+    ldh  [rLCDC], a
     xor  a
     ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
     ld   [_RAM_D05D_], a    ; _RAM_D05D_ = $D05D
@@ -4245,9 +4245,9 @@ _LABEL_5505_:
         ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
         cp   $F9
         jr   nz, _LABEL_5505_
-        ldh  a, [rAUD1SWEEP]
+        ldh  a, [rLCDC]
         or   $02
-        ldh  [rAUD1SWEEP], a
+        ldh  [rLCDC], a
         xor  a
         ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
         ld   a, $03
@@ -4309,9 +4309,9 @@ _LABEL_557B_:
         jr   _LABEL_5549_
     
 _LABEL_5599_:   
-        ldh  a, [rAUD1SWEEP]
+        ldh  a, [rLCDC]
         and  $FD
-        ldh  [rAUD1SWEEP], a
+        ldh  [rLCDC], a
         ret
     
 _LABEL_55A0_:   
@@ -4622,9 +4622,9 @@ _LABEL_57C9_:
 _LABEL_57D5_:   
         xor  a
         ld   [_RAM_D06C_], a    ; _RAM_D06C_ = $D06C
-        ldh  a, [rAUD1SWEEP]
+        ldh  a, [rLCDC]
         and  $FD
-        ldh  [rAUD1SWEEP], a
+        ldh  [rLCDC], a
         call _LABEL_5774_
         call _LABEL_92C_
         call _LABEL_94C_
@@ -4728,9 +4728,9 @@ _LABEL_58AD_:
         and  a
         jr   z, _LABEL_58C3_
         call _LABEL_58DC_
-        ldh  a, [rAUD1SWEEP]
+        ldh  a, [rLCDC]
         or   $02
-        ldh  [rAUD1SWEEP], a
+        ldh  [rLCDC], a
         ret
     
 _LABEL_58C3_:   
@@ -5471,9 +5471,9 @@ _DATA_5E31_:
     db $96, $84, $89, $83
     
 _LABEL_5E55_:   
-        ldh  a, [rAUD1SWEEP]
+        ldh  a, [rLCDC]
         and  $FD
-        ldh  [rAUD1SWEEP], a
+        ldh  [rLCDC], a
         call _LABEL_620A_
         ld   hl, $8800
 _LABEL_5E61_:   
@@ -5907,9 +5907,9 @@ _LABEL_61B8_:
         dec  a
         ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
         jr   nz, _LABEL_61B4_
-        ldh  a, [rAUD1SWEEP]
+        ldh  a, [rLCDC]
         or   $80
-        ldh  [rAUD1SWEEP], a
+        ldh  [rLCDC], a
         ret
     
 _LABEL_61D8_:   
@@ -6119,9 +6119,9 @@ _LABEL_6369_:
         ld   a, $FF
         ld   de, _DATA_1A92_
         call _LABEL_8C4_
-        ldh  a, [rAUD1SWEEP]
+        ldh  a, [rLCDC]
         or   $A1
-        ldh  [rAUD1SWEEP], a
+        ldh  [rLCDC], a
         xor  a
         ld   [_RAM_D192_], a
         ld   [_RAM_D195_ + 1], a    ; _RAM_D195_ + 1 = $D196
@@ -7603,10 +7603,10 @@ _LABEL_777C_:
         inc  l
         dec  b
         jr   nz, _LABEL_777C_
-        ldh  a, [rAUD1SWEEP]
+        ldh  a, [rLCDC]
         and  $CF
         or   $C1
-        ldh  [rAUD1SWEEP], a
+        ldh  [rLCDC], a
         call _LABEL_4B84_
         call _LABEL_7721_
         call _LABEL_92C_
@@ -7717,11 +7717,11 @@ _LABEL_7833_:
     
 _LABEL_784F_:   
         xor  a
-        ldh  [rLYC], a
+        ldh  [rAUDENA], a
         xor  a
-        ldh  [_PORT_2A_], a
+        ldh  [rAUD3ENA], a
         ld   a, $FF
-        ldh  [_PORT_2B_], a
+        ldh  [rAUD3LEN], a
         ld   a, $55
         ld   bc, $0800 | _PORT_3F_
 _LABEL_785E_:   
@@ -7730,14 +7730,14 @@ _LABEL_785E_:
         dec  b
         jr   nz, _LABEL_785E_
         ld   a, $80
-        ldh  [rLYC], a
+        ldh  [rAUDENA], a
         ld   a, $77
-        ldh  [rLY], a
+        ldh  [rAUDVOL], a
         xor  a
-        ldh  [_PORT_2A_], a
+        ldh  [rAUD3ENA], a
         ld   a, $28
-        ldh  [rAUD4POLY], a
-        ldh  [rAUDTERM], a
+        ldh  [rAUD1LEN], a
+        ldh  [rAUD2LEN], a
         xor  a
         ld   [_RAM_CC00_], a    ; _RAM_CC00_ = $CC00
         call _LABEL_289_
@@ -7745,11 +7745,11 @@ _LABEL_785E_:
     
 _LABEL_787C_:   
         xor  a
-        ldh  [rLYC], a
+        ldh  [rAUDENA], a
         ld   a, $80
-        ldh  [rLYC], a
+        ldh  [rAUDENA], a
         ld   a, $77
-        ldh  [rLY], a
+        ldh  [rAUDVOL], a
         ret
     
 ; Data from 7888 to 788D (6 bytes)  
