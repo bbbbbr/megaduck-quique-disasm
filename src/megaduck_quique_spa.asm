@@ -239,39 +239,41 @@ _RAM_FFA1_: db
 SECTION "hram_fff0", HRAM[$fff0]
 _RAM_FFF0_: db
 
+include "hardware.inc"
+
 ; Ports 
-rP1 EQU $00 
-rSB EQU $01 
-rSC EQU $02 
-rTIMA EQU $05   
-rTMA EQU $06    
-rTAC EQU $07    
-rIF EQU $0F 
-rAUD1SWEEP EQU $10  
-rAUD1LEN EQU $11    
-rAUD1LOW EQU $13    
-rAUD1HIGH EQU $14   
+; rP1 EQU $00 
+; rSB EQU $01 
+; rSC EQU $02 
+; rTIMA EQU $05   
+; rTMA EQU $06    
+; rTAC EQU $07    
+; rIF EQU $0F 
+; rAUD1SWEEP EQU $10  
+; rAUD1LEN EQU $11    
+; rAUD1LOW EQU $13    
+; rAUD1HIGH EQU $14   
 _PORT_15_ EQU $15   
-rAUD2LEN EQU $16    
-rAUD2ENV EQU $17    
-rAUD2LOW EQU $18    
-rAUD3ENA EQU $1A    
-rAUD3LEN EQU $1B    
-rAUD4LEN EQU $20    
-rAUD4ENV EQU $21    
-rAUD4POLY EQU $22   
-rAUD4GO EQU $23 
-rAUDVOL EQU $24 
-rAUDTERM EQU $25    
+; rAUD2LEN EQU $16    
+; rAUD2ENV EQU $17    
+; rAUD2LOW EQU $18    
+; rAUD3ENA EQU $1A    
+; rAUD3LEN EQU $1B    
+; rAUD4LEN EQU $20    
+; rAUD4ENV EQU $21    
+; rAUD4POLY EQU $22   
+; rAUD4GO EQU $23 
+; rAUDVOL EQU $24 
+; rAUDTERM EQU $25    
 _PORT_2A_ EQU $2A   
 _PORT_2B_ EQU $2B   
 _PORT_3E_ EQU $3E   
 _PORT_3F_ EQU $3F   
-rLY EQU $44 
-rLYC EQU $45    
-rDMA EQU $46    
+; rLY EQU $44 
+; rLYC EQU $45    
+; rDMA EQU $46    
 _PORT_60_ EQU $60   
-rIE EQU $FF 
+; rIE EQU $FF 
 
 SECTION "rom0", ROM0[$0]
 _LABEL_0_:

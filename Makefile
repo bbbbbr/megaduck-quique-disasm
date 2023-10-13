@@ -1,7 +1,8 @@
 
-all: duck
+all: duck gb
 
 DIRDUCK=build_duck
+DIRGB=build_gb
 GFXDIR=gfx
 SRCDIR=src
 INCPATH=$(SRCDIR)
@@ -13,15 +14,39 @@ ROMNAME_BASE=quique
 
 SPLIT_ROMS_DIR=$(REF_ROM_DIR)/split_roms
 
-
 UPS_PATCHTOOL_PATH=tools/ups_patch
 
-MKDIRS = $(DIRDUCK) $(REF_ROM_DIR) $(SPLIT_ROMS_DIR)
+MKDIRS = $(DIRDUCK) $(DIRGB) $(REF_ROM_DIR) $(SPLIT_ROMS_DIR)
+
 
 ifeq ($(wildcard $(REFERENCE_ROM)),)
 #ifeq (,$(wildcard $(REFERENCE_ROM))
 $(error Original ROM not found at "$(REFERENCE_ROM)".)
 endif
+
+
+gb: $(DIRGB)/$(ROMNAME_BASE).gb
+duck: $(DIRDUCK)/$(ROMNAME_BASE).duck
+
+clean: cleanduck cleangb
+
+
+# == Game Boy ==
+
+cleangb:
+	rm -f $(DIRGB)/*
+
+$(DIRGB)/$(ROMNAME_BASE).gb: gbgfx $(SRCDIR)/megaduck_quique_spa.asm
+	rgbasm -Wno-obsolete --preserve-ld --halt-without-nop -i $(INCPATH) -o $(DIRGB)/$(ROMNAME_BASE).o $(SRCDIR)/megaduck_quique_spa.asm
+	rgblink -n $(DIRGB)/$(ROMNAME_BASE).sym -m $(DIRGB)/$(ROMNAME_BASE).map -o $(DIRGB)/$(ROMNAME_BASE).gb $(DIRGB)/$(ROMNAME_BASE).o
+	@if which md5sum &>/dev/null; then md5sum $@; else md5 $@; fi
+	@if which md5sum &>/dev/null; then md5sum $(REFERENCE_ROM); else md5 $(REFERENCE_ROM); fi
+
+gbgfx:
+#	rgbgfx $(GFXDIR)/megaduck_logo_9x_8x8.png -o src/megaduck_logo_9_tiles.2bpp -c "#FFFFFF,#A0A0A0,#4E4E4E,#000000;"
+
+
+# == Mega Duck ==
 
 duck: $(DIRDUCK)/$(ROMNAME_BASE).duck
 
@@ -36,9 +61,10 @@ $(DIRDUCK)/$(ROMNAME_BASE).duck: duckgfx $(SRCDIR)/megaduck_quique_spa.asm
 	@if which md5sum &>/dev/null; then md5sum $@; else md5 $@; fi
 	@if which md5sum &>/dev/null; then md5sum $(REFERENCE_ROM); else md5 $(REFERENCE_ROM); fi
 
-
 duckgfx:
 #	rgbgfx $(GFXDIR)/megaduck_logo_9x_8x8.png -o src/megaduck_logo_9_tiles.2bpp -c "#FFFFFF,#A0A0A0,#4E4E4E,#000000;"
+
+
 
 usage:
 	romusage $(DIRDUCK)/$(ROMNAME_BASE).map -g
