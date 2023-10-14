@@ -70,8 +70,6 @@ _RAM_D037_: ds $3
 SECTION "wram_d03a", WRAMX[$d03a], BANK[$1]
 _RAM_D03A_: db
 _RAM_D03B_: db
-
-; EMPTY space from 503C to 505A (31 bytes)
 _RAM_D03C_: db
 _RAM_D03D_: db
 _RAM_D03E_: db
@@ -115,8 +113,6 @@ _RAM_D074_: db
 
 SECTION "wram_d078", WRAMX[$d078], BANK[$1]
 _RAM_D078_: db
-
-; EMPTY space from 5079 to 5180 (264 bytes)
 _RAM_D079_: db
 _RAM_D07A_: db
 _RAM_D07B_: db
@@ -138,8 +134,6 @@ SECTION "wram_d193", WRAMX[$d193], BANK[$1]
 _RAM_D193_: db
 _RAM_D194_: db
 _RAM_D195_: db
-
-; EMPTY space from 5196 to 519B (6 bytes)
 _RAM_D196_: db
 _RAM_D197_: ds $5
 
@@ -245,38 +239,11 @@ _RAM_FFF0_: db
 include "hardware.inc"
 
 ; Ports 
-; rP1 EQU $00 
-; rSB EQU $01 
-; rSC EQU $02 
-; rTIMA EQU $05   
-; rTMA EQU $06    
-; rTAC EQU $07    
-; rIF EQU $0F 
-; rLCDC EQU $10  
-; rSTAT EQU $11    
-; rSCX EQU $13    
-; rOBP0 EQU $14   
-; rOBP1 EQU $15   
-; rWY EQU $16    
-; rWX EQU $17    
-; rLY EQU $18    
-; rDMA EQU $1A    
-; rBGP EQU $1B    
-; rAUD1SWEEP EQU $20    
-; rAUD1ENV EQU $21    
-; rAUD1LEN EQU $22   
-; rAUD1LOW EQU $23 
-; rAUD1HIGH EQU $24 
-; rAUD2LEN EQU $25    
-; rAUD3ENA EQU $2A   
-; rAUD3LEN EQU $2B   
+; Wave pattern
 _PORT_3E_ EQU $3E   
 _PORT_3F_ EQU $3F   
-; rAUDVOL EQU $44 
-; rAUDENA EQU $45    
-; rAUDTERM EQU $46    
+
 _PORT_60_ EQU $60   
-; rIE EQU $FF 
 
 SECTION "rom0", ROM0[$0]
 _LABEL_0_:
@@ -479,7 +446,7 @@ _LABEL_10F_:
     ldi  a, [hl]
     cp   $55
     jr   nz, @ + 4
-    jr   @ + 28
+    jr   _LABEL_14E_
     xor  a
     ld   [_RAM_DBFB_], a    ; _RAM_DBFB_ = $DBFB
 
@@ -493,6 +460,8 @@ _LABEL_138_:
     ld   a, $AA
     ld   [_RAM_D400_], a
     jr   _LABEL_152_
+
+_LABEL_14E_:
     xor  a
     ld   [_RAM_D400_], a    ; _RAM_D400_ = $D400
 
@@ -1493,7 +1462,6 @@ db $CB, $47, $20, $04, $3E, $01, $18, $02
 _LABEL_A0E_:
 db $3E, $04
 
-; Data from A10 to A16 (7 bytes)
 _LABEL_A10_:
     ld   [_RAM_D023_], a
     call _LABEL_B64_
@@ -1619,7 +1587,7 @@ _LABEL_AEF_:
     ldh  [rIE], a
     ld   d, $00
     call _LABEL_BD6_
-    ld   a, [_RAM_D035_ + 1]    ; _RAM_D035_ + 1 = $D036
+    ld   a, [_RAM_D036_]    ; _RAM_D036_ = $D036
     ld   [_RAM_D023_], a    ; _RAM_D023_ = $D023
     call _LABEL_B64_
     call _LABEL_B9E_
@@ -3074,6 +3042,7 @@ db $10, $10, $30, $30, $20, $20, $60, $60, $C0, $C0, $C0, $C0, $FE, $FE, $FE, $F
 db $00, $00, $00, $00, $82, $82, $00, $00
 
 SECTION "rom1", ROMX[$4000], BANK[$1]
+_LABEL_4000_:
     jr   c, _LABEL_403A_
     ld   a, h
     ld   a, h
@@ -4257,7 +4226,7 @@ _LABEL_54F9_:
         cp   $9C
         jr   nz, _LABEL_54F9_
         ld   a, $0C
-        ld   [_RAM_D035_ + 1], a    ; _RAM_D035_ + 1 = $D036
+        ld   [_RAM_D036_], a    ; _RAM_D036_ = $D036
 _LABEL_5505_:   
         call _LABEL_AEF_
         call _LABEL_289_
@@ -4275,7 +4244,7 @@ _LABEL_5505_:
         ld   a, $5F
         call _LABEL_57BC_
         call _LABEL_627_
-        ld   hl, _RAM_D03B_ + 1 ; _RAM_D03B_ + 1 = $D03C
+        ld   hl, _RAM_D03C_    ; _RAM_D03C_ = $D03C
         ld   b, $0C
         xor  a
 _LABEL_5532_:   
@@ -4837,7 +4806,7 @@ _LABEL_5950_:
         sub  b
         ld   c, a
         ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
-        ld   hl, _DATA_5D9F_ + 2
+        ld   hl, _DATA_5DA1_
         call _LABEL_486E_
         ld   a, [hl]
         ld   hl, _RAM_D051_
@@ -5217,7 +5186,7 @@ _LABEL_5BCD_:
         ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
         sla  a
         sla  a
-        ld   [_RAM_D035_ + 2], a    ; _RAM_D035_ + 2 = $D037
+        ld   [_RAM_D037_], a
         ld   hl, _DATA_5D9F_
         ldi  a, [hl]
         sub  $10
@@ -5235,7 +5204,7 @@ _LABEL_5C0D_:
         ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
         sla  a
         sla  a
-        ld   [_RAM_D035_ + 2], a    ; _RAM_D035_ + 2 = $D037
+        ld   [_RAM_D037_], a
         ld   hl, _DATA_5D9F_
         ldi  a, [hl]
         sub  $10
@@ -5252,7 +5221,7 @@ _LABEL_5C2B_:
         ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
         sla  a
         sla  a
-        ld   [_RAM_D035_ + 2], a    ; _RAM_D035_ + 2 = $D037
+        ld   [_RAM_D037_], a
         ld   hl, _DATA_5D9F_
         ldi  a, [hl]
         add  $08
@@ -5267,7 +5236,7 @@ _LABEL_5C49_:
         ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
         sla  a
         sla  a
-        ld   [_RAM_D035_ + 2], a    ; _RAM_D035_ + 2 = $D037
+        ld   [_RAM_D037_], a
         ld   hl, _DATA_5D9F_
         ldi  a, [hl]
         add  $08
@@ -5275,12 +5244,12 @@ _LABEL_5C49_:
         ldi  a, [hl]
 _LABEL_5C61_:   
         ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
-        ld   hl, _RAM_D035_ + 2 ; _RAM_D035_ + 2 = $D037
+        ld   hl, _RAM_D037_
         ld   a, $00
         add  [hl]
         ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
         add  $02
-        ld   [_RAM_D035_ + 2], a    ; _RAM_D035_ + 2 = $D037
+        ld   [_RAM_D037_], a
         ld   a, [_RAM_D04A_]
         bit  3, a
         jr   z, _LABEL_5C7C_
@@ -5319,7 +5288,7 @@ _LABEL_5CA7_:
         add  $08
 _LABEL_5CAC_:   
         ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
-        ld   a, [_RAM_D035_ + 2]    ; _RAM_D035_ + 2 = $D037
+        ld   a, [_RAM_D037_]
         ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
         push hl
         call _LABEL_623_
@@ -5360,7 +5329,7 @@ _LABEL_5CF3_:
         sub  b
 _LABEL_5CF7_:   
         ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
-        ld   a, [_RAM_D035_ + 2]    ; _RAM_D035_ + 2 = $D037
+        ld   a, [_RAM_D037_]
         ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
         call _LABEL_623_
         call _LABEL_5D30_
@@ -5380,7 +5349,7 @@ _LABEL_5D18_:
         sub  $08
 _LABEL_5D1D_:   
         ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
-        ld   a, [_RAM_D035_ + 2]    ; _RAM_D035_ + 2 = $D037
+        ld   a, [_RAM_D037_]
         sub  $02
         ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
         push hl
@@ -5392,7 +5361,7 @@ _LABEL_5D2F_:
         ret
     
 _LABEL_5D30_:   
-        ld   hl, _RAM_D03B_ + 1 ; _RAM_D03B_ + 1 = $D03C
+        ld   hl, _RAM_D03C_
         ld   a, [_RAM_D048_]
         sla  a
         sla  a
@@ -5448,7 +5417,10 @@ db $00, $01, $02, $02, $03, $04, $05, $05, $06, $06, $07, $07, $08, $08, $08, $0
     
 ; Data from 5D9F to 5DA5 (7 bytes)  
 _DATA_5D9F_:    
-    db $68, $42, $05, $06, $01, $02, $00
+    db $68, $42
+
+_DATA_5DA1_:   
+    db $05, $06, $01, $02, $00
     
 ; Data from 5DA6 to 5DB1 (12 bytes) 
 _DATA_5DA6_:    
@@ -5827,7 +5799,7 @@ _LABEL_60F3_:
         ld   de, _DATA_62ED_
         ld   c, $50
         ld   b, $02
-        ld   hl, $0209
+        ld   hl, _DATA_20A_ - 1
         call _LABEL_4944_
         ret
     
@@ -6312,10 +6284,10 @@ _LABEL_667F_:
     db $EA, $9F, $D1, $7E, $EA, $A1, $D1, $CD, $92, $69
     
 _LABEL_694E_:   
-        ld   a, [_RAM_D195_ + 2]    ; _RAM_D195_ + 2 = $D197
+        ld   a, [_RAM_D197_]
         ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
         call _LABEL_953_
-        ld   hl, _RAM_D195_ + 2 ; _RAM_D195_ + 2 = $D197
+        ld   hl, _RAM_D197_
         ld   b, $03
 _LABEL_695C_:   
         ldi  a, [hl]
@@ -6331,7 +6303,7 @@ _LABEL_695C_:
         ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
         call _LABEL_89B_
         xor  a
-        ld   [_RAM_D195_ + 1], a    ; _RAM_D195_ + 1 = $D196
+        ld   [_RAM_D196_], a
         ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
         add  $04
         ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
@@ -6799,9 +6771,9 @@ _LABEL_711A_:
         ld   bc, $0800
         call _RAM_C900_ ; Possibly invalid
         xor  a
-        ld   [_RAM_D03B_ + 1], a    ; _RAM_D03B_ + 1 = $D03C
-        ld   [_RAM_D03B_ + 2], a    ; _RAM_D03B_ + 2 = $D03D
-        ld   [_RAM_D03B_ + 3], a    ; _RAM_D03B_ + 3 = $D03E
+        ld   [_RAM_D03B_ + 1], a
+        ld   [_RAM_D03B_ + 2], a
+        ld   [_RAM_D03B_ + 3], a
         ld   [_RAM_D03F_], a
         ld   a, $01
         ld   [_RAM_D06C_], a    ; _RAM_D06C_ = $D06C
@@ -6852,7 +6824,7 @@ _LABEL_7185_:
         xor  a
         ld   [_RAM_D04B_], a
         ld   a, $FF
-        ld   [_RAM_D078_ + 1], a    ; _RAM_D078_ + 1 = $D079
+        ld   [_RAM_D079_], a
 _LABEL_71BB_:   
         call _LABEL_289_
         call _LABEL_C8D_
@@ -6867,7 +6839,7 @@ _LABEL_71BB_:
 _LABEL_71D1_:   
         cp   $18
         jr   nc, _LABEL_71F6_
-        ld   hl, _RAM_D078_ + 1 ; _RAM_D078_ + 1 = $D079
+        ld   hl, _RAM_D079_
         cp   [hl]
         jr   nz, _LABEL_71E2_
         ld   a, $F9
@@ -6886,7 +6858,7 @@ _LABEL_71E2_:
     
 _LABEL_71F6_:   
         ld   a, $FF
-        ld   [_RAM_D078_ + 1], a    ; _RAM_D078_ + 1 = $D079
+        ld   [_RAM_D079_], a
         call _LABEL_77B0_
         xor  a
         ld   [_RAM_CC00_], a    ; _RAM_CC00_ = $CC00
@@ -6906,7 +6878,7 @@ _LABEL_720B_:
         call _LABEL_765B_
         call _LABEL_627_
         xor  a
-        ld   [_RAM_D078_ + 3], a    ; _RAM_D078_ + 3 = $D07B
+        ld   [_RAM_D07B_], a
         call _LABEL_7310_
         jr   _LABEL_720B_
     
@@ -6919,7 +6891,7 @@ _LABEL_7226_:
         call _LABEL_766D_
         call _LABEL_627_
         ld   a, $01
-        ld   [_RAM_D078_ + 3], a    ; _RAM_D078_ + 3 = $D07B
+        ld   [_RAM_D07B_], a
         call _LABEL_7310_
         jr   _LABEL_7226_
     
@@ -7061,7 +7033,7 @@ _LABEL_7334_:
         ld   b, a
         cp   $54
         jr   nz, _LABEL_7354_
-        ld   a, [_RAM_D078_ + 3]    ; _RAM_D078_ + 3 = $D07B
+        ld   a, [_RAM_D07B_]
         and  a
         jr   nz, _LABEL_7354_
         inc  hl
@@ -7077,7 +7049,7 @@ _LABEL_7354_:
         jr   nz, _LABEL_7377_
         push hl
         push bc
-        ld   a, [_RAM_D078_ + 3]    ; _RAM_D078_ + 3 = $D07B
+        ld   a, [_RAM_D07B_]
         and  a
         jr   nz, _LABEL_7375_
 _LABEL_7366_:   
@@ -7098,7 +7070,7 @@ _LABEL_7377_:
         ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
         ldi  a, [hl]
         push hl
-        ld   [_RAM_D078_ + 2], a    ; _RAM_D078_ + 2 = $D07A
+        ld   [_RAM_D07A_], a
         xor  a
         ld   [_RAM_D400_], a
         call _LABEL_77D3_
@@ -7114,7 +7086,7 @@ _LABEL_738C_:
         jp   _LABEL_738C_
     
 _LABEL_73A4_:   
-        ld   a, [_RAM_D078_ + 3]    ; _RAM_D078_ + 3 = $D07B
+        ld   a, [_RAM_D07B_]
         and  a
         jr   nz, _LABEL_73C5_
         ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
@@ -7151,13 +7123,13 @@ _LABEL_73DF_:
 _LABEL_73E8_:   
         ld   a, $01
         ld   [_RAM_D400_], a
-        ld   a, [_RAM_D078_ + 2]    ; _RAM_D078_ + 2 = $D07A
+        ld   a, [_RAM_D07A_]
         dec  a
-        ld   [_RAM_D078_ + 2], a    ; _RAM_D078_ + 2 = $D07A
+        ld   [_RAM_D07A_], a
         jp   z, _LABEL_7334_
         cp   $01
         jr   nz, _LABEL_738C_
-        ld   a, [_RAM_D078_ + 3]    ; _RAM_D078_ + 3 = $D07B
+        ld   a, [_RAM_D07B_]
         and  a
         jr   z, _LABEL_738C_
         call _LABEL_77B0_
@@ -7197,12 +7169,12 @@ _LABEL_741D_:
         call _LABEL_627_
         xor  a
         ld   [_RAM_D04B_], a
-        ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
-        ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
+        ld   [_RAM_D03A_], a
+        ld   [_RAM_D03B_], a
         ld   [_RAM_D07D_], a
         ld   [_RAM_D07F_], a
         ld   a, $3C
-        ld   [_RAM_D078_ + 1], a    ; _RAM_D078_ + 1 = $D079
+        ld   [_RAM_D079_], a
 _LABEL_7465_:   
         ld   e, $00
 _LABEL_7467_:   
@@ -7221,7 +7193,7 @@ _LABEL_7473_:
     
 _LABEL_747B_:   
         ld   b, a
-        ld   a, [_RAM_D078_ + 1]    ; _RAM_D078_ + 1 = $D079
+        ld   a, [_RAM_D079_]
         cp   $3C
         jr   nz, _LABEL_74BD_
         ld   a, b
@@ -7268,7 +7240,7 @@ _LABEL_74D9_:
         ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
         cp   $18
         jp   nc, _LABEL_756E_
-        ld   hl, _RAM_D078_ + 1 ; _RAM_D078_ + 1 = $D079
+        ld   hl, _RAM_D079_
         cp   [hl]
         jr   nz, _LABEL_74EF_
         ld   a, $F9
@@ -7282,7 +7254,7 @@ _LABEL_74EF_:
         ld   [hl], b
         ld   a, b
         sla  a
-        ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+        ld   [_RAM_D03A_], a
         ld   hl, $7980
         call _LABEL_486E_
         call _LABEL_2A2_
@@ -7293,7 +7265,7 @@ _LABEL_750C_:
         ld   a, [_RAM_D07D_]
         bit  7, a
         jr   nz, _LABEL_7532_
-        ld   hl, $D080
+        ld   hl, _RAM_D080_
         inc  a
         ld   [_RAM_D07D_], a
         dec  a
@@ -7319,7 +7291,7 @@ _LABEL_7532_:
         ld   a, $FF
         ld   [_RAM_D180_], a
         ld   a, $3C
-        ld   [_RAM_D078_ + 1], a    ; _RAM_D078_ + 1 = $D079
+        ld   [_RAM_D079_], a
         call _LABEL_77B0_
         call _LABEL_4B84_
         ld   b, $32
@@ -7345,11 +7317,11 @@ _LABEL_756E_:
         xor  a
         ld   [_RAM_CC00_], a    ; _RAM_CC00_ = $CC00
         call _LABEL_787C_
-        ld   a, [_RAM_D078_ + 1]    ; _RAM_D078_ + 1 = $D079
+        ld   a, [_RAM_D079_]
         cp   $3C
         ld   [_RAM_D07E_], a
         ld   a, $3C
-        ld   [_RAM_D078_ + 1], a    ; _RAM_D078_ + 1 = $D079
+        ld   [_RAM_D079_], a
         jp   nz, _LABEL_750C_
         ld   [_RAM_D07E_], a
 _LABEL_7593_:   
@@ -7383,7 +7355,7 @@ _LABEL_75BD_:
         jp   _LABEL_7465_
     
 _LABEL_75CF_:   
-        ld   hl, $D080
+        ld   hl, _RAM_D080_
         ld   a, [_RAM_D07D_]
         bit  7, a
         jr   nz, _LABEL_75E0_
@@ -7408,7 +7380,7 @@ _LABEL_75F0_:
         jr   z, _LABEL_760A_
         call _LABEL_75CF_
         ld   a, $01
-        ld   [_RAM_D078_ + 3], a    ; _RAM_D078_ + 3 = $D07B
+        ld   [_RAM_D07B_], a
         ld   hl, _RAM_D080_
         call _LABEL_7326_
         call _LABEL_4B84_
@@ -7650,7 +7622,7 @@ _LABEL_77B0_:
         xor  a
         ld   [_RAM_D04B_], a
         ld   b, $04
-        ld   hl, _RAM_D03B_ + 1 ; _RAM_D03B_ + 1 = $D03C
+        ld   hl, _RAM_D03C_
 _LABEL_77C2_:   
         ld   a, [hl]
         ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
