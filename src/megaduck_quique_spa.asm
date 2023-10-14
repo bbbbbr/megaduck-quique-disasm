@@ -2,8 +2,8 @@
 ; If you want to reassemble this disassembly make sure to disable RGBDS optimizations.
 ; To disable them use the -h and -L commandline flags when invoking rgbasm.
 
-SECTION "wram_c800", WRAM0[$C800]
-_RAM_C800_: db
+SECTION "wram_c800__shadow_oam_", WRAM0[$C800]
+_RAM_SHADOW_OAM_BASE__C800_: DS 160
 
 SECTION "wram_c8a0", WRAM0[$c8a0]
 _RAM_C8A0_: db
@@ -16,8 +16,9 @@ _RAM_C8CA_: db
 _RAM_C8CB_: db
 _RAM_C8CC_: db
 _RAM_C8CD_: ds $a
-_RAM_C8D7_: ds $29
-_RAM_C900_: ds $300
+_RAM_C8D7_: db
+_RAM_C8D8_: ds $28
+_memcopy_in_RAM__C900_: ds $300
 _RAM_CC00_: db
 _RAM_CC01_: db
 _RAM_CC02_: ds $e
@@ -196,6 +197,9 @@ _RAM_D6E0_: db
 _RAM_D6E1_: db
 _RAM_D6E2_: db
 _RAM_D6E3_: db
+_RAM_D6E4_: db
+_RAM_D6E5_: db
+_RAM_D6E6_: db
 
 SECTION "wram_d6e7", WRAMX[$D6E7]
 _RAM_D6E7_: db
@@ -228,7 +232,7 @@ SECTION "wram_dcf0", WRAMX[$dcf0], BANK[$1]
 _RAM_DCF0_: db
 
 SECTION "hram_ff80", HRAM[$FF80]
-_RAM_FF80_: db
+_oam_dma_routine_in_HRAM__FF80_: db
 
 SECTION "hram_ffa1", HRAM[$ffa1]
 _RAM_FFA1_: db
@@ -468,8 +472,16 @@ _LABEL_14E_:
 _LABEL_152_:
     di
     ld   sp, $C400
-    call _LABEL_97A_
-    call _LABEL_752_
+    ; TODO: For now skip over this hardware init on GB
+    ; Might be related to the synthesized speech on first power + maybe keyboard, etc
+    if def(TARGET_MEGADUCK)
+        call _LABEL_97A_
+    else
+        nop
+        nop
+        nop
+    endc
+    call _vram_init__752_
 
 _LABEL_15C_:
     ld   a, [_RAM_D400_]
@@ -477,16 +489,20 @@ _LABEL_15C_:
     call z, _LABEL_25E_
     call _LABEL_92C_
     call _LABEL_94C_
+
     ld   hl, $9000
     ld   de, _DATA_11F2_
     ld   bc, $0800
-    call _RAM_C900_ ; Possibly invalid
+    call _memcopy_in_RAM__C900_
+
     call _LABEL_92C_
     call _LABEL_94C_
+
     ld   hl, $8800
     ld   de, $2F2A
     ld   bc, $0800
-    call _RAM_C900_ ; Possibly invalid
+    call _memcopy_in_RAM__C900_
+
     xor  a
     ld   [_RAM_D06C_], a    ; _RAM_D06C_ = $D06C
     ld   a, $0C
@@ -1004,7 +1020,7 @@ _LABEL_56E_:
     ld   hl, $8800
     ld   de, $2F2A
     ld   bc, $0800
-    call _RAM_C900_ ; Possibly invalid
+    call _memcopy_in_RAM__C900_
     ld   a, $A0
     ldh  [rWY], a
     call _LABEL_488F_
@@ -1026,7 +1042,7 @@ _LABEL_59A_:
 _LABEL_5A3_:
     ldi  a, [hl]
     cp   $00
-    jr   z, _LABEL_5B5_
+    jr   z, _display_win_obj_on__5B5_
     cp   $01
     jr   z, _LABEL_5B0_
     ld   [de], a
@@ -1037,9 +1053,10 @@ _LABEL_5B0_:
     ld   de, $9D40
     jr   _LABEL_5A3_
 
-_LABEL_5B5_:
+; Turn on display, Window, Sprites
+_display_win_obj_on__5B5_:
     ldh  a, [rLCDC]
-    or   $A1
+    or   (LCDCF_ON | LCDCF_WINON | LCDCF_OBJON) ; $A1
     ldh  [rLCDC], a
     call _LABEL_967_
     ld   a, $0A
@@ -1082,10 +1099,12 @@ _LABEL_623_:
     call _LABEL_86F_
     ret
 
-_LABEL_627_:
+; Masks out: LCDCF_WINON, LCDCF_BG8000
+; Turns Display, BG and sprites on
+_display_bg_sprites_on__627_:
     ldh  a, [rLCDC]
-    and  $CF
-    or   $C1
+    and  (LCDCF_ON | LCDCF_BGON | LCDCF_WIN9C00 | LCDCF_BG9C00 | LCDCF_OBJ16 | LCDCF_OBJON) ; $CF
+    or   (LCDCF_ON | LCDCF_BGON | LCDCF_OBJON) ; $C1
     ldh  [rLCDC], a
     ret
 
@@ -1114,127 +1133,216 @@ _DATA_734_:
 db $86, $89, $83, $88, $81, $F1, $86, $89, $83, $88, $85, $92, $8F, $00, $8E, $8F
 db $BE, $85, $8E, $83, $8F, $8E, $93, $92, $81, $84, $8F, $93, $00, $C9
 
-_LABEL_752_:
+_vram_init__752_:
     ld   a, $00
     ld   [_RAM_C8D7_], a
-    ldh  [rLCDC], a
-    ld   hl, $8000
-_LABEL_75C_:
-    xor  a
-    ldi  [hl], a
-    ld   a, h
-    cp   $98
-    jr   nz, _LABEL_75C_
-_LABEL_763_:
-    ld   a, $BE
-    ldi  [hl], a
-    ld   a, h
-    cp   $9C
-    jr   nz, _LABEL_763_
-    ld   hl, _RAM_C800_
-    ld   b, $A0
-_LABEL_770_:
-    xor  a
-    ldi  [hl], a
-    dec  b
-    jr   nz, _LABEL_770_
-    ldh  [rLCDC], a
-    nop
-    nop
-    nop
-    nop
-    ld   a, $C8
-    ldh  [rLCDC], a
-    call _LABEL_7E3_
-    ld   a, $E4
-    ldh  [rOBP0], a
-    ldh  [rBGP], a
-    ld   a, $1B
-    ldh  [rOBP1], a
-    ld   a, $07
-    ldh  [rWX], a
-    ld   a, $FF
-    ldh  [rSCX], a
-    ld   hl, _RAM_C900_
-    ld   de, _LABEL_7D3_
-    call _LABEL_7CA_
-    ld   de, _LABEL_82C_
-    call _LABEL_7CA_
-    ld   de, _LABEL_841_
-    call _LABEL_7CA_
-    ld   de, _LABEL_7EF_
-    call _LABEL_7CA_
-    ld   de, _LABEL_80C_
-    call _LABEL_7CA_
-    ld   hl, _RAM_FF80_   ; TODO: Possible copy of OAM DMA routine to HRAM?
-    ld   de, $07E3
-    call _LABEL_7CA_
-    ld   a, $00
-    ld   b, $2A
-    ld   hl, _RAM_C8A0_ ; _RAM_C8A0_ = $C8A0
-_LABEL_7C5_:
-    ldi  [hl], a
-    dec  b
-    jr   nz, _LABEL_7C5_
-    ret
+    ldh  [rLCDC], a  ; clear all LCDC bits
 
-_LABEL_7CA_:
+        ld   hl, _VRAM8000  ; $8000
+    _loop_clear_vram_all_tile_patterns__75C_:
+        xor  a
+        ldi  [hl], a
+        ld   a, h
+        cp   HIGH(_SCRN0)  ; $98
+        jr   nz, _loop_clear_vram_all_tile_patterns__75C_
+
+    ; hl now at $9800
+    ; Fill Tile Map 0 with tile id $BE
+    _loop_fill_tile_map0__763_:
+        ld   a, $BE
+        ldi  [hl], a
+        ld   a, h
+        cp   HIGH(_SCRN1) ; $9C
+        jr   nz, _loop_fill_tile_map0__763_
+
+    ; Fill RAM from _RAM_SHADOW_OAM_BASE__C800_ -> _RAM_C8BF_ ($A0 / 160 bytes)
+        ld   hl, _RAM_SHADOW_OAM_BASE__C800_
+        ld   b, $A0
+    _LABEL_770_:
+        xor  a  ; This doesn't need to be re-zeroed each loop iteration...
+        ldi  [hl], a
+        dec  b
+        jr   nz, _LABEL_770_
+
+        ; Turn screen/etc off
+        ldh  [rLCDC], a
+        nop
+        nop
+        nop
+        nop
+
+        ; LCD on
+        ld   a, (LCDCF_ON | LCDCF_BGON | LCDCF_WIN9C00) ; $C8
+        ldh  [rLCDC], a
+
+        ; Clear OAM via cleared shadow OAM
+        ; TODO: Is there no bus conflict when oam DMA is run from ROM on the Quique with interrupts disabled?
+        call _oam_dma_routine_in_ROM__7E3_
+
+        ; Set the BG & Sprite color palettes
+        ld   a, $E4
+        ldh  [rOBP0], a
+        ldh  [rBGP], a
+        ld   a, $1B
+        ldh  [rOBP1], a
+
+        ; Init Window and BG Map Scroll X
+        ld   a, $07
+        ldh  [rWX], a
+        ld   a, $FF    ; Why not 0 for SCX?
+        ldh  [rSCX], a
+
+        ; TODO: Find out what all these copied functions are
+        ; If they're loaded to RAm it's probably so they can persist across 32K banks witches
+
+        ; Copy
+        ld   hl, _memcopy_in_RAM__C900_
+        ld   de, _memcopy__7D3_
+        call _memcpy_32_bytes__7CA_
+
+        ; HL now at 0x9C20
+        ld   de, _LABEL_82C_
+        call _memcpy_32_bytes__7CA_
+
+        ; HL now at 0x9C40
+        ld   de, _LABEL_841_
+        call _memcpy_32_bytes__7CA_
+
+        ; HL now at 0x9C60
+        ld   de, _LABEL_7EF_
+        call _memcpy_32_bytes__7CA_
+
+        ; HL now at 0x9C80
+        ld   de, _LABEL_80C_
+        call _memcpy_32_bytes__7CA_
+
+        ; Load OAM DMA Copy routine into HRAM
+        ld   hl, _oam_dma_routine_in_HRAM__FF80_
+        ld   de, _oam_dma_routine_in_ROM__7E3_ ; $07E3
+        call _memcpy_32_bytes__7CA_
+
+        ; Clear 42 bytes of RAM starting at 0xC8A0 (Right after Shadow OAM)
+        ld   a, $00
+        ld   b, $2A
+        ld   hl, _RAM_C8A0_
+    _LABEL_7C5_:
+        ldi  [hl], a
+        dec  b
+        jr   nz, _LABEL_7C5_
+        ret
+
+; Always copies 32 bytes
+; Source in DE
+; Dest in HL
+_memcpy_32_bytes__7CA_:
     ld   b, $20
-_LABEL_7CC_:
+_memcpy_32bytes_loop_7CC_:
     ld   a, [de]
     ldi  [hl], a
     inc  de
     dec  b
-    jr   nz, _LABEL_7CC_
+    jr   nz, _memcpy_32bytes_loop_7CC_
     ret
 
-_LABEL_7D3_:
+; Memcopy 
+; - Source in DE
+; - Dest   in HL
+; - Length in BC
+; Gets copied to and run from _memcopy_in_RAM__C900_
+_memcopy__7D3_:
     ld   a, [de]
-; Data from 7D4 to 7E2 (15 bytes)
-db $22, $13, $0B, $78, $B1, $20, $F8, $C9, $F0, $10, $F6, $80, $E0, $10, $C9
-
-_LABEL_7E3_:
-    di
-    ld   a, $C8
-    ldh  [rDMA], a
-    ld   a, $28
-_LABEL_7EA_:
-    dec  a
-    jr   nz, _LABEL_7EA_
-    ei
+    ldi  [hl], a
+    inc  de
+    dec  bc
+    ld   a, b
+    or   c
+    jr   nz, _memcopy__7D3_
     ret
 
+; TODO: does excecution ever reach here?
+    ldh  a, [rLCDC]
+    or   LCDCF_ON  ; $80
+    ldh  [rLCDC], a
+    ret
+
+; Gets copied to and run from _oam_dma_routine_in_HRAM__FF80_
+_oam_dma_routine_in_ROM__7E3_:
+    di
+    ld   a, HIGH(_RAM_SHADOW_OAM_BASE__C800_)  ; $C8
+    ldh  [rDMA], a
+    ld   a, $28  ; Wait 160 nanosec
+    _oam_dma_copy_wait_loop_7EA_:
+        dec  a
+        jr   nz, _oam_dma_copy_wait_loop_7EA_
+        ei
+        ret
+
+; RESEARCH
+; TODO: Interesting... Is this the System ROM de-map routine, or a 32K bank switch?
+; - Gets copied to HRAM... called from anywhere?
+; - Turns off interrupts
+; - Adjusts some variables
+; - Writes one of those variables to 0x1000 (bank switch? system rom de-map?)
+; - Waits briefly (Call is executed 41 M-Cycles after write to 0x1000)
+; - Then executes a memcopy?
+;
+;
+; Expects caller to set the following for a call to the wram memcopy at 0x9C00
+; - Source in DE
+; - Dest   in HL
+; - Length in BC
+; 
+; Gets copied to and run from _RAM_C960_
 _LABEL_7EF_:
     di
-; Data from 7F0 to 80B (28 bytes)
-db $FA, $E6, $D6, $F5, $FA, $D7, $C8, $EA, $D8, $C8, $F1, $EA, $D7, $C8, $EA, $00
-db $10, $3E, $0A, $3D, $20, $FD, $CD, $00, $C9, $C3, $40, $C9
-
-_LABEL_80C_:
-    di
-    ld   a, [$D6E6]
+    ld   a, [_RAM_D6E6_]
     push af
-    ld   a, [$C8D7]
-    ld   [$C8D8], a
+    ld   a, [_RAM_C8D7_]
+    ld   [_RAM_C8D8_], a
     pop  af
-    ld   [$C8D7], a
+    ld   [_RAM_C8D7_], a
     ld   [$1000], a
     ld   a, $0A
-_LABEL_820_:
-    dec  a
-    jr   nz, _LABEL_820_
+    _wait_loop__03_:        
+        dec  a
+        jr   nz, _wait_loop__03_
+    call _memcopy_in_RAM__C900_  ; TODO: memcopy needs HL, DE, BC set up for it, when does that happen?
+    jp   $C940
+
+
+; RESEARCH
+; TODO: Interesting... Similar to above
+; Gets copied to and run from _RAM_C980_
+_LABEL_80C_:
+    di
+    ld   a, [_RAM_D6E6_]
+    push af
+    ld   a, [_RAM_C8D7_]
+    ld   [_RAM_C8D8_], a
+    pop  af
+    ld   [_RAM_C8D7_], a
+    ld   [$1000], a
+    ld   a, $0A
+    _wait_loop__820_:
+        dec  a
+        jr   nz, _wait_loop__820_
     nop
     nop
     ld   a, [hl]
     ld   [$D6E7], a
     jp   $C940  ; Possibly invalid
 
+; TODO
+; Gets copied to and run from _RAM_C920_
 _LABEL_82C_:
     di
 ; Data from 82D to 840 (20 bytes)
 db $F5, $FA, $D7, $C8, $EA, $D8, $C8, $F1, $EA, $D7, $C8, $EA, $00, $10, $3E, $0A
 db $3D, $20, $FD, $E9
 
+
+; TODO
+; Gets copied to and run from _RAM_C940_
 _LABEL_841_:
     di
 ; Data from 842 to 86E (45 bytes)
@@ -4243,7 +4351,7 @@ _LABEL_5505_:
         ld   [_RAM_D20C_], a
         ld   a, $5F
         call _LABEL_57BC_
-        call _LABEL_627_
+        call _display_bg_sprites_on__627_
         ld   hl, _RAM_D03C_    ; _RAM_D03C_ = $D03C
         ld   b, $0C
         xor  a
@@ -4703,7 +4811,7 @@ _LABEL_5841_:
         ld   b, $02
         ld   hl, $020B
         call _LABEL_4944_
-        call _LABEL_627_
+        call _display_bg_sprites_on__627_
         xor  a
         ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
         ld   a, $04
@@ -5480,7 +5588,7 @@ _LABEL_5E61_:
         ld   a, $01
         call _LABEL_48CD_
         call _LABEL_60F3_
-        call _LABEL_627_
+        call _display_bg_sprites_on__627_
         xor  a
         ld   [_RAM_D20D_], a
         ld   [_RAM_D04B_], a
@@ -5675,7 +5783,7 @@ _LABEL_5FF7_:
         call _LABEL_620A_
         call _LABEL_62BD_
         call _LABEL_60F3_
-        call _LABEL_627_
+        call _display_bg_sprites_on__627_
 _LABEL_6007_:   
         ld   a, [_RAM_D03B_]    ; _RAM_D03B_ = $D03B
         add  $08
@@ -5714,7 +5822,7 @@ _LABEL_6044_:
         ld   hl, _RAM_D6D0_
         call _LABEL_481F_
         call _LABEL_62BD_
-        call _LABEL_627_
+        call _display_bg_sprites_on__627_
         jp   _LABEL_5E9A_
     
 _LABEL_605F_:   
@@ -5753,7 +5861,7 @@ _LABEL_6080_:
         ld   hl, _RAM_D6D0_
         call _LABEL_481F_
         call _LABEL_62BD_
-        call _LABEL_627_
+        call _display_bg_sprites_on__627_
         jp   _LABEL_5E9A_
     
 _LABEL_60B7_:   
@@ -6014,7 +6122,7 @@ _LABEL_6291_:
         ld   b, $02
         ld   hl, $0507
         call _LABEL_4944_
-        call _LABEL_627_
+        call _display_bg_sprites_on__627_
         ld   b, $19
 _LABEL_62AA_:   
         push bc
@@ -6763,13 +6871,13 @@ _LABEL_711A_:
         ld   hl, $9000
         ld   de, $40BA
         ld   bc, $0800
-        call _RAM_C900_ ; Possibly invalid
+        call _memcopy_in_RAM__C900_
         call _LABEL_92C_
         call _LABEL_94C_
         ld   hl, $8800
         ld   de, $2F2A
         ld   bc, $0800
-        call _RAM_C900_ ; Possibly invalid
+        call _memcopy_in_RAM__C900_
         xor  a
         ld   [_RAM_D03B_ + 1], a
         ld   [_RAM_D03B_ + 2], a
@@ -6811,16 +6919,16 @@ _LABEL_7185_:
         ld   hl, $8800
         ld   de, $2F2A
         ld   bc, $0800
-        call _RAM_C900_ ; Possibly invalid
+        call _memcopy_in_RAM__C900_
         call _LABEL_92C_
         call _LABEL_94C_
         ld   hl, $9000
         ld   de, $27FA
         ld   bc, $0800
-        call _RAM_C900_ ; Possibly invalid
+        call _memcopy_in_RAM__C900_
         call _LABEL_7691_
         call _LABEL_761F_
-        call _LABEL_627_
+        call _display_bg_sprites_on__627_
         xor  a
         ld   [_RAM_D04B_], a
         ld   a, $FF
@@ -6876,7 +6984,7 @@ _LABEL_720B_:
         call _LABEL_7691_
         call _LABEL_761F_
         call _LABEL_765B_
-        call _LABEL_627_
+        call _display_bg_sprites_on__627_
         xor  a
         ld   [_RAM_D07B_], a
         call _LABEL_7310_
@@ -6889,7 +6997,7 @@ _LABEL_7226_:
         call _LABEL_7691_
         call _LABEL_761F_
         call _LABEL_766D_
-        call _LABEL_627_
+        call _display_bg_sprites_on__627_
         ld   a, $01
         ld   [_RAM_D07B_], a
         call _LABEL_7310_
@@ -6902,13 +7010,13 @@ _LABEL_7242_:
         ld   hl, $8800
         ld   de, $2F2A
         ld   bc, $0800
-        call _RAM_C900_ ; Possibly invalid
+        call _memcopy_in_RAM__C900_
         call _LABEL_92C_
         call _LABEL_94C_
         ld   hl, $9000
         ld   de, $27FA
         ld   bc, $0800
-        call _RAM_C900_ ; Possibly invalid
+        call _memcopy_in_RAM__C900_
         call _LABEL_4875_
         call _LABEL_92C_
         call _LABEL_94C_
@@ -6922,7 +7030,7 @@ _LABEL_7242_:
 _LABEL_727D_:   
         call _LABEL_766D_
 _LABEL_7280_:   
-        call _LABEL_627_
+        call _display_bg_sprites_on__627_
         ld   de, _DATA_78FF_
         ld   hl, $0109
         ld   c, $01
@@ -7155,18 +7263,18 @@ _LABEL_741D_:
         ld   hl, $8800
         ld   de, $2F2A
         ld   bc, $0800
-        call _RAM_C900_ ; Possibly invalid
+        call _memcopy_in_RAM__C900_
         call _LABEL_92C_
         call _LABEL_94C_
         ld   hl, $9000
         ld   de, $27FA
         ld   bc, $0800
-        call _RAM_C900_ ; Possibly invalid
+        call _memcopy_in_RAM__C900_
         call _LABEL_7691_
         call _LABEL_7631_
         call _LABEL_7704_
         call _LABEL_767F_
-        call _LABEL_627_
+        call _display_bg_sprites_on__627_
         xor  a
         ld   [_RAM_D04B_], a
         ld   [_RAM_D03A_], a
@@ -7560,7 +7668,7 @@ _LABEL_7733_:
         ld   hl, $8800
         ld   de, $2F2A
         ld   bc, $0800
-        call _RAM_C900_ ; Possibly invalid
+        call _memcopy_in_RAM__C900_
         call _LABEL_92C_
         call _LABEL_94C_
         ld   hl, $9800
@@ -7611,7 +7719,7 @@ _LABEL_77A1_:
         ld   a, h
         cp   $A0
         jr   nz, _LABEL_77A1_
-        call _LABEL_627_
+        call _display_bg_sprites_on__627_
         call _LABEL_4B84_
         ret
     
