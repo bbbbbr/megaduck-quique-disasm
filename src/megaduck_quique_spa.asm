@@ -170,6 +170,9 @@ _RAM_D222_: db
 SECTION "wram_d226", WRAMX[$d226], BANK[$1]
 _RAM_D226_: db
 
+SECTION "wram_d2e4", WRAMX[$d2e4], BANK[$1]
+_RAM_D2E4_: db
+
 SECTION "wram_d400", WRAMX[$D400]
 _RAM_D400_: db
 _RAM_D401_: db
@@ -455,26 +458,30 @@ _GB_ENTRY_POINT_100_:
     di
     xor  a
     ld   [_RAM_D195_], a
-
-_LABEL_105_:
     call _LABEL_9CF_
-; Data from 108 to 10A (3 bytes)
-db $FA, $24, $D0
-
-; Data from 10B to 10E (4 bytes)
-_DATA_10B_:
-db $CB, $47, $20, $F9
-
-; Data from 10F to 113 (5 bytes)
-_DATA_10F_:
-db $3E, $09, $EA, $23, $D0
-
-_LABEL_114_:
+    ld   a, [_RAM_D024_]    ; _RAM_D024_ = $D024
+    bit  0, a
+    jr   nz, @ - 5
+_LABEL_10F_:    
+    ld   a, $09
+    ld   [_RAM_D023_], a    ; _RAM_D023_ = $D023
     call _LABEL_B64_
-; Data from 117 to 137 (33 bytes)
-db $CD, $7D, $0B, $FA, $21, $D0, $EA, $E4, $D2, $21, $FC, $DB, $2A, $FE, $AA, $20
-db $0C, $2A, $FE, $E4, $20, $07, $2A, $FE, $55, $20, $02, $18, $1A, $AF, $EA, $FB
-db $DB
+    call _LABEL_B7D_
+    ld   a, [_RAM_D021_]    ; _RAM_D021_ = $D021
+    ld   [_RAM_D2E4_], a
+    ld   hl, _RAM_DBFC_ ; _RAM_DBFC_ = $DBFC
+    ldi  a, [hl]
+    cp   $AA
+    jr   nz, @ + 14
+    ldi  a, [hl]
+    cp   $E4
+    jr   nz, @ + 9
+    ldi  a, [hl]
+    cp   $55
+    jr   nz, @ + 4
+    jr   @ + 28
+    xor  a
+    ld   [_RAM_DBFB_], a    ; _RAM_DBFB_ = $DBFB
 
 _LABEL_138_:
     ld   a, $AA
@@ -486,15 +493,15 @@ _LABEL_138_:
     ld   a, $AA
     ld   [_RAM_D400_], a
     jr   _LABEL_152_
-
-; Data from 14E to 151 (4 bytes)
-db $AF, $EA, $00, $D4
+    xor  a
+    ld   [_RAM_D400_], a    ; _RAM_D400_ = $D400
 
 _LABEL_152_:
     di
     ld   sp, $C400
     call _LABEL_97A_
     call _LABEL_752_
+
 _LABEL_15C_:
     ld   a, [_RAM_D400_]
     cp   $AA
@@ -5092,11 +5099,11 @@ _LABEL_5B03_:
     
 _LABEL_5B12_:   
         ld   de, _DATA_5DE1_
-        ld   hl, _DATA_10F_
+        ld   hl, _LABEL_10F_
         ld   c, $01
         call _LABEL_4A46_
         ld   de, _DATA_5DF4_
-        ld   hl, _DATA_10F_ + 1
+        ld   hl, _LABEL_10F_ + 1
         ld   c, $01
         call _LABEL_4A46_
         ld   de, _DATA_5E08_
