@@ -1283,7 +1283,8 @@ _oam_dma_routine_in_ROM__7E3_:
         ret
 
 ; RESEARCH
-; TODO: Interesting... Is this the System ROM de-map routine, or a 32K bank switch?
+; TODO: Interesting... Are these for bank switching?
+;
 ; - Gets copied to HRAM... called from anywhere?
 ; - Turns off interrupts
 ; - Adjusts some variables
@@ -1340,20 +1341,55 @@ _LABEL_80C_:
 ; TODO
 ; Gets copied to and run from _RAM_C920_
 _LABEL_82C_:
-    di
-; Data from 82D to 840 (20 bytes)
-db $F5, $FA, $D7, $C8, $EA, $D8, $C8, $F1, $EA, $D7, $C8, $EA, $00, $10, $3E, $0A
-db $3D, $20, $FD, $E9
-
+    di    
+    push af
+    ld   a, [_RAM_C8D7_]
+    ld   [_RAM_C8D8_], a
+    pop  af
+    ld   [_RAM_C8D7_], a
+    ld   [$1000], a
+    ld   a, $0A
+_LABEL_83D_:    
+    dec  a
+    jr   nz, _LABEL_83D_
+    jp   hl
 
 ; TODO
 ; Gets copied to and run from _RAM_C940_
 _LABEL_841_:
     di
-; Data from 842 to 86E (45 bytes)
-db $FA, $D8, $C8, $EA, $D7, $C8, $EA, $00, $10, $3E, $0A, $3D, $20, $FD, $C9, $FA
-db $CC, $C8, $3D, $CB, $27, $CB, $27, $6F, $26, $C8, $FA, $CA, $C8, $86, $5F, $77
-db $23, $FA, $CB, $C8, $86, $57, $77, $3E, $00, $C9, $3E, $02, $C9
+    ld   a, [_RAM_C8D8_]
+    ld   [_RAM_C8D7_], a
+    ld   [$1000], a
+    ld   a, $0A
+_LABEL_84D_:    
+    dec  a
+    jr   nz, _LABEL_84D_
+    ret
+
+_LABEL_851_:    
+        ld   a, [_RAM_C8CC_]
+        dec  a
+        sla  a
+        sla  a
+        ld   l, a
+        ld   h, $C8
+        ld   a, [_RAM_C8CA_]
+        add  [hl]
+        ld   e, a
+        ld   [hl], a
+        inc  hl
+        ld   a, [_RAM_C8CB_]
+        add  [hl]
+        ld   d, a
+        ld   [hl], a
+        ld   a, $00
+        ret
+    
+_LABEL_86C_:    
+        ld   a, $02
+        ret
+    
 
 _LABEL_86F_:
     ld   c, $00
