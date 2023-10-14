@@ -2,6 +2,18 @@
 ; If you want to reassemble this disassembly make sure to disable RGBDS optimizations.
 ; To disable them use the -h and -L commandline flags when invoking rgbasm.
 
+include "hardware.inc"
+
+; Ports 
+; Wave pattern
+_PORT_3E_ EQU $3E   
+_PORT_3F_ EQU $3F   
+
+_PORT_60_ EQU $60   
+
+; Turn on to enable skipping some Megaduck QuiQue hardware specific code
+; def GB_DEBUG = 1
+
 SECTION "wram_c800__shadow_oam_", WRAM0[$C800]
 _RAM_SHADOW_OAM_BASE__C800_: DS 160
 
@@ -240,14 +252,7 @@ _RAM_FFA1_: db
 SECTION "hram_fff0", HRAM[$fff0]
 _RAM_FFF0_: db
 
-include "hardware.inc"
 
-; Ports 
-; Wave pattern
-_PORT_3E_ EQU $3E   
-_PORT_3F_ EQU $3F   
-
-_PORT_60_ EQU $60   
 
 SECTION "rom0", ROM0[$0]
 _LABEL_0_:
@@ -474,12 +479,12 @@ _LABEL_152_:
     ld   sp, $C400
     ; TODO: For now skip over this hardware init on GB
     ; Might be related to the synthesized speech on first power + maybe keyboard, etc
-    if def(TARGET_MEGADUCK)
-        call _LABEL_97A_
+    if ((!def(TARGET_MEGADUCK)) && def(GB_DEBUG))
+        nop
+        nop
+        nop
     else
-        nop
-        nop
-        nop
+        call _LABEL_97A_
     endc
     call _vram_init__752_
 
