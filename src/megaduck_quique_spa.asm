@@ -9,7 +9,15 @@ include "hardware.inc"
 _PORT_3E_ EQU $3E   
 _PORT_3F_ EQU $3F   
 
+; Maybe Serial IO related
 _PORT_60_ EQU $60   
+
+; MegaDuck QuiQue specific defines
+; Megaduck QuiQue System ROM Bank Switching
+; 32K bank selected by writing to 0x1000
+DEF rROMB_SWITCH_MEGADUCK_QUIQUE  EQU $1000
+DEF ROM_SWITCH_DELAY              EQU $0A  ; Delay of ~41 M-Cycles after write to bank switch (TODO: re-check)
+
 
 ; Turn on to enable skipping some Megaduck QuiQue hardware specific code
 ; def GB_DEBUG = 1
@@ -28,9 +36,18 @@ _RAM_C8CA_: db
 _RAM_C8CB_: db
 _RAM_C8CC_: db
 _RAM_C8CD_: ds $a
-_RAM_C8D7_: db
-_RAM_C8D8_: ds $28
-_memcopy_in_RAM__C900_: ds $300
+_rombank_currrent__C8D7_: db
+_rombank_saved__C8D8_: ds $28
+
+SECTION "wram_functions_start_c900", WRAM0[$c900]
+_memcopy_in_RAM__C900_:                           ds $20
+_switch_bank_jump_hl_RAM__C920_:                  ds $20
+_switch_bank_return_to_saved_bank_RAM__C940_:     ds $20
+_switch_bank_memcopy_hl_to_de_len_bc_RAM__C960_:  ds $20
+_switch_bank_read_byte_at_hl_RAM__C980_:          ds $20
+
+
+SECTION "wram_cc00", WRAM0[$cc00]
 _RAM_CC00_: db
 _RAM_CC01_: db
 _RAM_CC02_: ds $e
@@ -211,10 +228,10 @@ _RAM_D6E2_: db
 _RAM_D6E3_: db
 _RAM_D6E4_: db
 _RAM_D6E5_: db
-_RAM_D6E6_: db
+_rombank_switch_to__D6E6_: db
 
 SECTION "wram_d6e7", WRAMX[$D6E7]
-_RAM_D6E7_: db
+_rombank_readbyte_result__D6E7_: db  ; Read by calling _switch_bank_read_byte_at_hl_ROM__80C_ / _RAM_C980_
 
 SECTION "wram_d6f0", WRAMX[$D6F0]
 _RAM_D6F0_: db
@@ -269,13 +286,13 @@ _LABEL_5_:
     ei
     call _LABEL_4A7B_
     di
-    jp   $C940  ; Possibly invalid
+    jp   _switch_bank_return_to_saved_bank_RAM__C940_
 
 _RST__10_:
     ei
     call _LABEL_A34_
     di
-    jp   $C940  ; Possibly invalid
+    jp   _switch_bank_return_to_saved_bank_RAM__C940_
 
 _RST__18_:
     jp   _GB_ENTRY_POINT_100_
@@ -573,7 +590,7 @@ _LABEL_20D_:
     ld   hl, $0010
     res  7, h
     ld   a, $02
-    call $C920  ; Possibly invalid
+    call _switch_bank_jump_hl_RAM__C920_
     call _LABEL_54B_
     ei
     jp   _LABEL_15C_
@@ -592,7 +609,7 @@ _LABEL_230_:
     ld   hl, $0008
     res  7, h
     ld   a, $02
-    call $C920  ; Possibly invalid
+    call _switch_bank_jump_hl_RAM__C920_
     call _LABEL_54B_
     ei
     jp   _LABEL_15C_
@@ -982,12 +999,15 @@ _LABEL_4F4_:
     ld   [_RAM_D007_], a    ; _RAM_D007_ = $D007
     ret
 
+; TODO: RESEARCH
+; Interesting...
+; TODO: ? Switch to Bank 2 and jump to an RST 30 ? ... Why the res 7, h ?
 _LABEL_522_:
     di
     ld   hl, $0030
     res  7, h
     ld   a, $02
-    call $C920  ; Possibly invalid
+    call _switch_bank_jump_hl_RAM__C920_
     ei
     ret
 
@@ -1140,7 +1160,7 @@ db $BE, $85, $8E, $83, $8F, $8E, $93, $92, $81, $84, $8F, $93, $00, $C9
 
 _vram_init__752_:
     ld   a, $00
-    ld   [_RAM_C8D7_], a
+    ld   [_rombank_currrent__C8D7_], a
     ldh  [rLCDC], a  ; clear all LCDC bits
 
         ld   hl, _VRAM8000  ; $8000
@@ -1197,28 +1217,33 @@ _vram_init__752_:
         ld   a, $FF    ; Why not 0 for SCX?
         ldh  [rSCX], a
 
-        ; TODO: Find out what all these copied functions are
-        ; If they're loaded to RAm it's probably so they can persist across 32K banks witches
+        ; Load several functions into RAM so they persist across 32K sized bank switches
+        ; Mainly memcopy and bank switching related
 
-        ; Copy
-        ld   hl, _memcopy_in_RAM__C900_
+
+        ld   hl, STARTOF("wram_functions_start_c900")
+        ; HL at 0x9C00
+        ; _memcopy_in_RAM__C900_
         ld   de, _memcopy__7D3_
         call _memcpy_32_bytes__7CA_
 
         ; HL now at 0x9C20
-        ld   de, _LABEL_82C_
+        ; (_switch_bank_jump_hl_RAM__C920_)
+        ld   de, _switch_bank_jump_hl_ROM__82C_
         call _memcpy_32_bytes__7CA_
 
         ; HL now at 0x9C40
-        ld   de, _LABEL_841_
+        ; (_switch_bank_return_to_saved_bank_RAM__C940_)
+        ld   de, _switch_bank_return_to_saved_ROM__841_
         call _memcpy_32_bytes__7CA_
 
         ; HL now at 0x9C60
-        ld   de, _LABEL_7EF_
+        ; (_switch_bank_memcopy_hl_to_de_len_bc_RAM__C960_)
+        ld   de, _switch_bank_memcopy_hl_to_de_len_bc_ROM__7EF_
         call _memcpy_32_bytes__7CA_
 
         ; HL now at 0x9C80
-        ld   de, _LABEL_80C_
+        ld   de, _switch_bank_read_byte_at_hl_ROM__80C_
         call _memcpy_32_bytes__7CA_
 
         ; Load OAM DMA Copy routine into HRAM
@@ -1282,90 +1307,12 @@ _oam_dma_routine_in_ROM__7E3_:
         ei
         ret
 
-; RESEARCH
-; TODO: Interesting... Are these for bank switching?
-;
-; - Gets copied to HRAM... called from anywhere?
-; - Turns off interrupts
-; - Adjusts some variables
-; - Writes one of those variables to 0x1000 (bank switch? system rom de-map?)
-; - Waits briefly (Call is executed 41 M-Cycles after write to 0x1000)
-; - Then executes a memcopy?
-;
-;
-; Expects caller to set the following for a call to the wram memcopy at 0x9C00
-; - Source in DE
-; - Dest   in HL
-; - Length in BC
-; 
-; Gets copied to and run from _RAM_C960_
-_LABEL_7EF_:
-    di
-    ld   a, [_RAM_D6E6_]
-    push af
-    ld   a, [_RAM_C8D7_]
-    ld   [_RAM_C8D8_], a
-    pop  af
-    ld   [_RAM_C8D7_], a
-    ld   [$1000], a
-    ld   a, $0A
-    _wait_loop__03_:        
-        dec  a
-        jr   nz, _wait_loop__03_
-    call _memcopy_in_RAM__C900_  ; TODO: memcopy needs HL, DE, BC set up for it, when does that happen?
-    jp   $C940
 
+SECTION "rom0_bankswitch_functions_07EF", ROM0[$07EF]
+include "quique_sysrom_bankswitch_functions.asm"
 
-; RESEARCH
-; TODO: Interesting... Similar to above
-; Gets copied to and run from _RAM_C980_
-_LABEL_80C_:
-    di
-    ld   a, [_RAM_D6E6_]
-    push af
-    ld   a, [_RAM_C8D7_]
-    ld   [_RAM_C8D8_], a
-    pop  af
-    ld   [_RAM_C8D7_], a
-    ld   [$1000], a
-    ld   a, $0A
-    _wait_loop__820_:
-        dec  a
-        jr   nz, _wait_loop__820_
-    nop
-    nop
-    ld   a, [hl]
-    ld   [$D6E7], a
-    jp   $C940  ; Possibly invalid
+SECTION "rom0_end_bankswitch_functions_0851", ROM0[$0851]
 
-; TODO
-; Gets copied to and run from _RAM_C920_
-_LABEL_82C_:
-    di    
-    push af
-    ld   a, [_RAM_C8D7_]
-    ld   [_RAM_C8D8_], a
-    pop  af
-    ld   [_RAM_C8D7_], a
-    ld   [$1000], a
-    ld   a, $0A
-_LABEL_83D_:    
-    dec  a
-    jr   nz, _LABEL_83D_
-    jp   hl
-
-; TODO
-; Gets copied to and run from _RAM_C940_
-_LABEL_841_:
-    di
-    ld   a, [_RAM_C8D8_]
-    ld   [_RAM_C8D7_], a
-    ld   [$1000], a
-    ld   a, $0A
-_LABEL_84D_:    
-    dec  a
-    jr   nz, _LABEL_84D_
-    ret
 
 _LABEL_851_:    
         ld   a, [_RAM_C8CC_]
@@ -5852,7 +5799,7 @@ _LABEL_6030_:
         ld   hl, $0028
         res  7, h
         ld   a, $01
-        call $C920  ; Possibly invalid
+        call _switch_bank_jump_hl_RAM__C920_
         ei
 _LABEL_6044_:   
         ld   a, [_RAM_D717_]
@@ -5880,7 +5827,7 @@ _LABEL_605F_:
         ld   hl, $0028
         res  7, h
         ld   a, $01
-        call $C920  ; Possibly invalid
+        call _switch_bank_jump_hl_RAM__C920_
         ei
 _LABEL_6080_:   
         ld   a, $10
@@ -5893,7 +5840,7 @@ _LABEL_6080_:
         ld   hl, $0028
         res  7, h
         ld   a, $01
-        call $C920  ; Possibly invalid
+        call _switch_bank_jump_hl_RAM__C920_
         ei
         ld   a, $01
         ld   [_RAM_D20D_], a
@@ -5969,32 +5916,32 @@ _LABEL_611B_:
         pop  de
         ld   hl, $9000
         ld   bc, $0800
-        call $C960  ; Possibly invalid
+        call _switch_bank_memcopy_hl_to_de_len_bc_RAM__C960_
         pop  hl
         push hl
-        call $C980  ; Possibly invalid
+        call _switch_bank_read_byte_at_hl_RAM__C980_
         call _LABEL_92C_
         call _LABEL_94C_
-        ld   a, [_RAM_D6E7_]
+        ld   a, [_rombank_readbyte_result__D6E7_]
         bit  7, a
         jr   z, _LABEL_615A_
         ld   hl, $8800
         ld   bc, $0340
-        call $C960  ; Possibly invalid
+        call _switch_bank_memcopy_hl_to_de_len_bc_RAM__C960_
 _LABEL_615A_:   
         pop  hl
         inc  hl
-        ld   a, [_RAM_D6E7_]
+        ld   a, [_rombank_readbyte_result__D6E7_]
         ld   b, $10
         call _LABEL_4853_
-        add  hl, de
-        call $C980  ; Possibly invalid
-        ld   a, [_RAM_D6E7_]
+        add  hl, de        
+        call _switch_bank_read_byte_at_hl_RAM__C980_
+        ld   a, [_rombank_readbyte_result__D6E7_]
         ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
         ld   b, a
         inc  hl
-        call $C980  ; Possibly invalid
-        ld   a, [_RAM_D6E7_]
+        call _switch_bank_read_byte_at_hl_RAM__C980_
+        ld   a, [_rombank_readbyte_result__D6E7_]
         ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
         call _LABEL_4853_
         push de
@@ -6003,7 +5950,7 @@ _LABEL_615A_:
         push hl
         pop  de
         ld   hl, $D800
-        call $C960  ; Possibly invalid
+        call _switch_bank_memcopy_hl_to_de_len_bc_RAM__C960_
         ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
         ld   b, a
         ld   a, $14
@@ -6221,7 +6168,7 @@ _LABEL_6328_:
         ld   hl, $0018
         res  7, h
         ld   a, $02
-        call $C920  ; Possibly invalid
+        call _switch_bank_jump_hl_RAM__C920_
         ei
         ld   a, [_RAM_D1A7_]    ; _RAM_D1A7_ = $D1A7
         cp   $03
@@ -6382,7 +6329,7 @@ _LABEL_667F_:
         ld   hl, $0018
         res  7, h
         ld   a, $02
-        call $C920  ; Possibly invalid
+        call _switch_bank_jump_hl_RAM__C920_
         ei
         ld   a, [_RAM_D1A7_]    ; _RAM_D1A7_ = $D1A7
         cp   $03
