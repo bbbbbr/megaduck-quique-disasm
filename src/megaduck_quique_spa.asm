@@ -32,8 +32,8 @@ SECTION "wram_c8c8", WRAM0[$c8c8]
 _RAM_C8C8_: db
 
 SECTION "wram_c8ca", WRAM0[$c8ca]
-_RAM_C8CA_: db
-_RAM_C8CB_: db
+_tile_pos_y__RAM_C8CA_: db
+_tile_pos_x__RAM_C8CB_: db
 _RAM_C8CC_: db
 _RAM_C8CD_: ds $a
 _rombank_currrent__C8D7_: db
@@ -1169,8 +1169,7 @@ _LABEL_5F6_:
     nop
     jr   _LABEL_5F6_
 
-; TODO: seems to be: display_message__no_cart_in_slot_to_run__5F9
-; 
+ 
 ; After a short delay this message is cleared and the program
 ; returns to the main menu
 display_message__no_cart_in_slot_to_run__5F9:
@@ -1270,21 +1269,21 @@ _vram_init__752_:
     ld   [_rombank_currrent__C8D7_], a
     ldh  [rLCDC], a  ; clear all LCDC bits
 
-        ld   hl, _VRAM8000  ; $8000
+        ld   hl, _TILEDATA8000  ; $8000
     _loop_clear_vram_all_tile_patterns__75C_:
         xor  a
         ldi  [hl], a
         ld   a, h
-        cp   HIGH(_SCRN0)  ; $98
+        cp   HIGH(_TILEMAP0)  ; $98
         jr   nz, _loop_clear_vram_all_tile_patterns__75C_
 
     ; hl now at $9800
-    ; Fill Tile Map 0 with tile id $BE
+    ; Fill Tile Map 1 with tile id $BE
     _loop_fill_tile_map0__763_:
         ld   a, $BE
         ldi  [hl], a
         ld   a, h
-        cp   HIGH(_SCRN1) ; $9C
+        cp   HIGH(_TILEMAP1) ; $9C
         jr   nz, _loop_fill_tile_map0__763_
 
     ; Fill RAM from _RAM_SHADOW_OAM_BASE__C800_ -> _RAM_C8BF_ ($A0 / 160 bytes)
@@ -1428,12 +1427,12 @@ _LABEL_851_:
         sla  a
         ld   l, a
         ld   h, $C8
-        ld   a, [_RAM_C8CA_]
+        ld   a, [_tile_pos_y__RAM_C8CA_]
         add  [hl]
         ld   e, a
         ld   [hl], a
         inc  hl
-        ld   a, [_RAM_C8CB_]
+        ld   a, [_tile_pos_x__RAM_C8CB_]
         add  [hl]
         ld   d, a
         ld   [hl], a
@@ -1461,7 +1460,7 @@ _LABEL_874_:
     sla  a
     sla  a
     ld   l, a
-    ld   de, _RAM_C8CA_ ; _RAM_C8CA_ = $C8CA
+    ld   de, _tile_pos_y__RAM_C8CA_ ; _tile_pos_y__RAM_C8CA_ = $C8CA
     ld   b, $04
 _LABEL_88A_:
     ld   a, [de]
@@ -1505,7 +1504,7 @@ _LABEL_8C3_:
 
 _LABEL_8C4_:
     ld   b, $12
-    ld   hl, $9800
+    ld   hl, _TILEMAP0; $9800
     cp   $00
     jr   z, _LABEL_8D0_
     ld   hl, $9C00
@@ -1545,17 +1544,17 @@ _LABEL_8EA_:
         ret
     
 _LABEL_8FB_:    
-        ld   hl, $9800
+        ld   hl, _TILEMAP0; $9800
         cp   $00
         jr   z, _LABEL_905_
         ld   hl, $9C00
 _LABEL_905_:    
         ld   a, $00
         ld   d, a
-        ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+        ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
         ld   e, a
         add  hl, de
-        ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+        ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
         dec  a
         ld   e, a
         sla  e
@@ -1609,9 +1608,9 @@ _LABEL_953_:
     ld   l, a
     ld   h, $C8
     ldi  a, [hl]
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     ldi  a, [hl]
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ret
 
 _LABEL_967_:
@@ -3543,20 +3542,30 @@ _LABEL_484C_:
 _LABEL_4852_:
     ret
 
-_LABEL_4853_:
+; Multiply values in registers A x B
+;
+; - Result in: DE
+;
+; - Destroys C only if both A and B are non-zero
+multiply_a_x_b__result_in_de__4853_:
     ld   d, $00
     ld   e, $00
     or   a
-    jr   z, _LABEL_486D_
+    ; Return with result 0 if A is zero
+    jr   z, _multiply_done_486D_
+
     push bc
     ld   c, a
     ld   a, b
     or   a
     ld   a, c
     pop  bc
-    jr   z, _LABEL_486D_
+    ; Return with result 0 if B is zero
+    jr   z, _multiply_done_486D_
+
     ld   c, a
-_LABEL_4863_:
+_loop_multiply__4863_:
+    ; Add DE + A (starts with zero) for B times
     ld   a, e
     add  c
     ld   e, a
@@ -3564,8 +3573,8 @@ _LABEL_4863_:
     adc  $00
     ld   d, a
     dec  b
-    jr   nz, _LABEL_4863_
-_LABEL_486D_:
+    jr   nz, _loop_multiply__4863_
+_multiply_done_486D_:
     ret
 
 _LABEL_486E_:
@@ -3579,7 +3588,7 @@ _LABEL_486E_:
 _LABEL_4875_:
     call _LABEL_92C_
     call _LABEL_94C_
-    ld   hl, $9800
+    ld   hl, _TILEMAP0; $9800
 _LABEL_487E_:
     ld   a, $BE
     ldi  [hl], a
@@ -3645,7 +3654,7 @@ _LABEL_48E0_:
     ld   h, d
     ld   l, e
     push bc
-    call _LABEL_4853_
+    call multiply_a_x_b__result_in_de__4853_
     pop  bc
     add  hl, de
     pop  de
@@ -3654,12 +3663,12 @@ _LABEL_48E0_:
 _LABEL_48EB_:
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     ld   a, c
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     ld   a, b
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
-    ld   hl, $9800
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   hl, _TILEMAP0; $9800
     push de
-    call _LABEL_4932_
+    call calc_vram_addr_of_tile_xy_base_in_hl__4932_
     pop  de
     ld   b, e
     dec  b
@@ -3697,13 +3706,23 @@ _LABEL_4925_:
     call _LABEL_486E_
     ret
 
-_LABEL_4932_:
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+; Calculate the vram address of tilemap X,Y
+; - Base address: HL
+; - Tilemap X,Y in global vars
+; 
+; - Returns result in HL
+;
+; - Destroys: A, BC, DE
+calc_vram_addr_of_tile_xy_base_in_hl__4932_:
+    ; Multiply Tile Y x Tilemap Width
+    ld   a, [_tile_pos_y__RAM_C8CA_]  ; ? Tile Y
     dec  a
-    ld   b, $20
-    call _LABEL_4853_
+    ld   b, _TILEMMAP_WIDTH
+    call multiply_a_x_b__result_in_de__4853_
+    ; Add base Tilemap address in HL
     add  hl, de
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ;  Add X offset
+    ld   a, [_tile_pos_x__RAM_C8CB_]  ; ? Tile X
     ld   e, a
     ld   d, $00
     add  hl, de
@@ -3711,9 +3730,9 @@ _LABEL_4932_:
 
 _LABEL_4944_:
     ld   a, h
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ld   a, l
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     push de
     push bc
 _LABEL_494E_:
@@ -3757,8 +3776,8 @@ _LABEL_4982_:
     jr   _LABEL_494E_
 
 _LABEL_4986_:
-    ld   hl, $9800
-    call _LABEL_4932_
+    ld   hl, _TILEMAP0; $9800
+    call calc_vram_addr_of_tile_xy_base_in_hl__4932_
     pop  bc
     pop  de
     call _LABEL_92C_
@@ -3891,15 +3910,22 @@ _LABEL_4A40_:
     ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
     ret
 
+
+; TODO: _maybe_render_text_string_xy_tilemap0__4A46_:
+; 
+; - Encoded text string to render: DE
+; - ? Start at (Column, Row) or (Tile X,Y) : (H,L)
+;     - H -> _tile_pos_x__RAM_C8CB_, L -> _tile_pos_y__RAM_C8CA_
+; - ?? : C
 _LABEL_4A46_:
     push bc
     ld   a, h
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a  ; h -> Tile X
     ld   a, l
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a  ; l -> Tile Y
     push de
-    ld   hl, $9800
-    call _LABEL_4932_
+    ld   hl, _TILEMAP0  ; $9800
+    call calc_vram_addr_of_tile_xy_base_in_hl__4932_
     pop  de
     call _LABEL_92C_
     pop  bc
@@ -3936,22 +3962,22 @@ _LABEL_4A7B_:
     xor  a
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     ld   a, $03
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     ld   c, $00
 _LABEL_4A89_:
     ld   a, $01
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
 _LABEL_4A8E_:
     ld   d, $03
     push bc
     push de
-    ld   hl, $9800
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    ld  hl, _TILEMAP0; $9800
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     dec  a
     ld   b, $20
-    call _LABEL_4853_
+    call multiply_a_x_b__result_in_de__4853_
     add  hl, de
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ld   e, a
     ld   d, $00
     add  hl, de
@@ -3974,9 +4000,9 @@ _LABEL_4AB0_:
     jr   nz, _LABEL_4AAB_
     pop  de
     pop  bc
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     add  $05
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     inc  c
     ld   a, [_RAM_D06D_]    ; _RAM_D06D_ = $D06D
     cp   c
@@ -3989,16 +4015,16 @@ _LABEL_4AB0_:
     jr   _LABEL_4A8E_
 
 _LABEL_4ADC_:
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     add  $05
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     jr   _LABEL_4A89_
 
 _LABEL_4AE6_:
     ld   a, $28
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     ld   a, $09
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     call _LABEL_4CD1_
     ldh  a, [rLCDC]
     and  $CF
@@ -4092,17 +4118,17 @@ _LABEL_4B92_:
     jr   z, _LABEL_4BC4_
     cp   $08
     jr   z, _LABEL_4BC4_
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     add  $28
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     jr   _LABEL_4BD1_
 
 _LABEL_4BC4_:
     ld   a, $09
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     add  $28
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
 _LABEL_4BD1_:
     call _LABEL_4CD1_
     jp   _LABEL_4B78_
@@ -4125,17 +4151,17 @@ _LABEL_4BD7_:
     jr   z, _LABEL_4C07_
     cp   $03
     jr   z, _LABEL_4C07_
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     sub  $28
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     jr   _LABEL_4C14_
 
 _LABEL_4C07_:
     ld   a, $81
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     sub  $28
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
 _LABEL_4C14_:
     call _LABEL_4CD1_
     jp   _LABEL_4B78_
@@ -4153,9 +4179,9 @@ _LABEL_4C1A_:
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     call _LABEL_953_
     call _LABEL_4D19_
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     add  $28
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     call _LABEL_4CD1_
     jp   _LABEL_4B78_
 
@@ -4170,9 +4196,9 @@ _LABEL_4C47_:
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     call _LABEL_953_
     call _LABEL_4D19_
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     sub  $28
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     call _LABEL_4CD1_
     jp   _LABEL_4B78_
 
@@ -4254,9 +4280,9 @@ _LABEL_4CDF_:
     pop  hl
     ld   a, b
     ldi  [hl], a
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     add  $08
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ld   a, [_RAM_C8CC_]    ; _RAM_C8CC_ = $C8CC
     inc  a
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
@@ -4266,12 +4292,12 @@ _LABEL_4CDF_:
     ld   a, b
     ldi  [hl], a
     pop  bc
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     add  $08
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     sub  $08
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ld   a, [_RAM_C8CC_]    ; _RAM_C8CC_ = $C8CC
     inc  a
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
@@ -4402,7 +4428,7 @@ _LABEL_4DE9_:
 _LABEL_4DFF_:   
     dec  a
     ld   b, $03
-    call _LABEL_4853_
+    call multiply_a_x_b__result_in_de__4853_
     ld   hl, _DATA_5E31_    ; _DATA_5E31_ = $5E31
     add  hl, de
     ld   d, h
@@ -4444,9 +4470,9 @@ _LABEL_4E48_:
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     call _LABEL_549D_
     ld   a, $10
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ld   a, $02
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     ld   c, $01
     ld   hl, _RAM_D028_ ; _RAM_D028_ = $D028
     call _LABEL_5401_
@@ -4487,14 +4513,14 @@ _LABEL_4E69_:
     xor  a
     ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
     ld   a, $07
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
 _LABEL_4EAB_:   
     ld   a, [_RAM_D054_]    ; _RAM_D054_ = $D054
     ld   b, $03
-    call _LABEL_4853_
+    call multiply_a_x_b__result_in_de__4853_
     ld   a, e
     sub  $02
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ld   a, [_RAM_D03B_]    ; _RAM_D03B_ = $D03B
     and  a
     jr   nz, _LABEL_4ED4_
@@ -4502,28 +4528,28 @@ _LABEL_4EAB_:
     ld   hl, _RAM_D074_ + 3 ; _RAM_D074_ + 3 = $D077
     cp   [hl]
     jr   nz, _LABEL_4ED4_
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ld   [_RAM_D073_], a    ; _RAM_D073_ = $D073
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     ld   [_RAM_D074_], a    ; _RAM_D074_ = $D074
 _LABEL_4ED4_:   
     ld   a, [_RAM_D053_]    ; _RAM_D053_ = $D053
     cp   $01
     jr   nz, _LABEL_4F29_
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     ld   [_RAM_D06E_ + 2], a    ; _RAM_D06E_ + 2 = $D070
     add  $02
     sla  a
     sla  a
     sla  a
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ld   [_RAM_D06E_ + 1], a    ; _RAM_D06E_ + 1 = $D06F
     add  $04
     sla  a
     sla  a
     sla  a
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     xor  a
     ld   [_RAM_C8CD_], a    ; _RAM_C8CD_ = $C8CD
     ld   a, $80
@@ -4531,16 +4557,16 @@ _LABEL_4ED4_:
     call _LABEL_623_
     ld   a, b
     ld   [_RAM_D05F_], a    ; _RAM_D05F_ = $D05F
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     ld   b, a
     ld   a, [_RAM_D06E_ + 2]    ; _RAM_D06E_ + 2 = $D070
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     ld   a, b
     ld   [_RAM_D06E_ + 2], a    ; _RAM_D06E_ + 2 = $D070
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ld   b, a
     ld   a, [_RAM_D06E_ + 1]    ; _RAM_D06E_ + 1 = $D06F
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ld   a, b
     ld   [_RAM_D06E_ + 1], a    ; _RAM_D06E_ + 1 = $D06F
 _LABEL_4F29_:   
@@ -4577,22 +4603,22 @@ _LABEL_4F51_:
     inc  a
     cp   $07
     jr   nz, _LABEL_4F6C_
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     add  $02
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     xor  a
 _LABEL_4F6C_:   
     ld   [_RAM_D054_], a    ; _RAM_D054_ = $D054
     jp   _LABEL_4EAB_
 
 _LABEL_4F72_:   
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     inc  a
     sla  a
     sla  a
     sla  a
     ld   [_RAM_D06E_ + 3], a    ; _RAM_D06E_ + 3 = $D071
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     add  $02
     sla  a
     sla  a
@@ -4703,20 +4729,20 @@ _LABEL_5059_:
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     call _LABEL_953_
     call _LABEL_89B_
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     cp   $A0
     jr   z, _LABEL_5087_
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     add  $18
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     jr   _LABEL_50AF_
 
 _LABEL_5087_:   
     ld   a, $10
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     add  $10
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     jr   _LABEL_50AF_
 
 _LABEL_5096_:   
@@ -4726,9 +4752,9 @@ _LABEL_5096_:
     xor  a
     ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
     ld   a, [_RAM_D06E_ + 1]    ; _RAM_D06E_ + 1 = $D06F
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ld   a, [_RAM_D06E_ + 2]    ; _RAM_D06E_ + 2 = $D070
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
 _LABEL_50AF_:   
     ld   a, $80
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
@@ -4751,20 +4777,20 @@ _LABEL_50C3_:
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     call _LABEL_953_
     call _LABEL_89B_
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     cp   $10
     jr   z, _LABEL_50F0_
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     sub  $18
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     jp   _LABEL_50AF_
 
 _LABEL_50F0_:   
     ld   a, $A0
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     sub  $10
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     jp   _LABEL_50AF_
 
 _LABEL_5100_:   
@@ -4775,9 +4801,9 @@ _LABEL_5100_:
     dec  a
     ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
     ld   a, [_RAM_D06E_ + 3]    ; _RAM_D06E_ + 3 = $D071
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ld   a, [_RAM_D072_]
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     jp   _LABEL_50AF_
 
 _LABEL_511F_:   
@@ -4793,9 +4819,9 @@ _LABEL_511F_:
     cp   [hl]
     jr   nc, _LABEL_5148_
     ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     add  $10
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     jp   _LABEL_50AF_
 
 _LABEL_5148_:   
@@ -4806,10 +4832,10 @@ _LABEL_5148_:
     call _LABEL_4832_
     ld   a, c
     ld   b, $10
-    call _LABEL_4853_
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    call multiply_a_x_b__result_in_de__4853_
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     sub  e
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     ld   a, l
     ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
     jp   _LABEL_50AF_
@@ -4825,9 +4851,9 @@ _LABEL_5167_:
     sub  $07
     jr   c, _LABEL_518C_
     ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     sub  $10
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     jp   _LABEL_50AF_
 
 _LABEL_518C_:   
@@ -4845,17 +4871,17 @@ _LABEL_519C_:
     sub  $07
     ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
     ld   a, $10
-    call _LABEL_4853_
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    call multiply_a_x_b__result_in_de__4853_
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     add  e
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     jp   _LABEL_50AF_
 
 _LABEL_51B0_:   
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     call _LABEL_953_
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     cp   $A0
     jp   z, _LABEL_4F95_
     ld   a, [_RAM_D06E_]    ; _RAM_D06E_ = $D06E
@@ -5012,11 +5038,11 @@ _LABEL_52D7_:
     ret
 
 _LABEL_52F5_:   
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     add  $02
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
-    ld   hl, $9800
-    call _LABEL_4932_
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   hl, _TILEMAP0; $9800
+    call calc_vram_addr_of_tile_xy_base_in_hl__4932_
     ld   a, [_RAM_D053_]    ; _RAM_D053_ = $D053
     swap a
     and  $0F
@@ -5031,9 +5057,9 @@ _LABEL_5312_:
     call _LABEL_92C_
     ld   a, [_RAM_C8CC_]    ; _RAM_C8CC_ = $C8CC
     ldi  [hl], a
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     inc  a
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ld   a, [_RAM_D053_]    ; _RAM_D053_ = $D053
     and  $0F
     add  $F1
@@ -5077,18 +5103,18 @@ _LABEL_5359_:
     ret
 
 _LABEL_535C_:   
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     srl  a
     srl  a
     srl  a
     sub  $04
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     srl  a
     srl  a
     srl  a
     sub  $02
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     ret
 
 _LABEL_5379_:   
@@ -5107,9 +5133,9 @@ _LABEL_5388_:
 
 _LABEL_538C_:   
     ld   a, [_RAM_D073_]    ; _RAM_D073_ = $D073
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ld   a, [_RAM_D074_]    ; _RAM_D074_ = $D074
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     ld   a, [_RAM_D04A_]    ; _RAM_D04A_ = $D04A
     inc  a
     ld   [_RAM_D04A_], a    ; _RAM_D04A_ = $D04A
@@ -5139,9 +5165,9 @@ _LABEL_53CB_:
     ret
 
 _LABEL_53CC_:   
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     add  $02
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ld   a, $BE
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     push af
@@ -5155,9 +5181,9 @@ _LABEL_53CC_:
     pop  de
     pop  bc
     pop  af
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     inc  a
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     push af
     push bc
     push de
@@ -5172,9 +5198,9 @@ _LABEL_53CC_:
     ret
 
 _LABEL_5401_:   
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     add  $02
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ldi  a, [hl]
     ld   b, a
     swap a
@@ -5218,9 +5244,9 @@ _LABEL_543A_:
 _LABEL_544C_:   
     call _LABEL_612_
 _LABEL_544F_:   
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     inc  a
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     pop  bc
     ld   a, b
     and  $0F
@@ -5255,11 +5281,11 @@ _LABEL_5480_:
     push hl
     push de
     bit  1, c
-    ld   hl, $9800
+    ld   hl, _TILEMAP0; $9800
     jr   z, _LABEL_5490_
-    ld   hl, $9800
+    ld   hl, _TILEMAP0; $9800
 _LABEL_5490_:   
-    call _LABEL_4932_
+    call calc_vram_addr_of_tile_xy_base_in_hl__4932_
     call _LABEL_92C_
     call _LABEL_549D_
     pop  de
@@ -5329,9 +5355,9 @@ _LABEL_5505_:
     or   $02
     ldh  [rLCDC], a
     xor  a
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ld   a, $03
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     ld   [_RAM_D20C_], a
     ld   a, $5F
     call _LABEL_57BC_
@@ -5464,7 +5490,7 @@ _LABEL_5600_:
     ld   a, [_RAM_D054_]
     dec  a
     ld   b, $03
-    call _LABEL_4853_
+    call multiply_a_x_b__result_in_de__4853_
     ld   hl, _DATA_5E19_
     add  hl, de
     ldi  a, [hl]
@@ -5485,13 +5511,13 @@ _LABEL_5600_:
     swap a
     and  $0F
     ld   b, $0A
-    call _LABEL_4853_
+    call multiply_a_x_b__result_in_de__4853_
     ld   a, [_RAM_D052_]
     and  $0F
     add  e
     dec  a
     ld   b, $03
-    call _LABEL_4853_
+    call multiply_a_x_b__result_in_de__4853_
     ld   hl, _DATA_5E31_
     add  hl, de
     ldi  a, [hl]
@@ -5663,28 +5689,28 @@ _LABEL_577B_:
 
 _LABEL_5792_:   
     xor  a
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ld   a, [_RAM_D20C_]
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     ld   a, $63
     call _LABEL_57BC_
     ld   a, [_RAM_D068_]
     ld   b, $03
-    call _LABEL_4853_
+    call multiply_a_x_b__result_in_de__4853_
     ld   a, e
     add  $03
     ld   [_RAM_D20C_], a
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     xor  a
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ld   a, $5F
     call _LABEL_57BC_
     ret
 
 _LABEL_57BC_:   
     push af
-    ld   hl, $9800
-    call _LABEL_4932_
+    ld   hl, _TILEMAP0; $9800
+    call calc_vram_addr_of_tile_xy_base_in_hl__4932_
     ld   c, $02
     call _LABEL_92C_
     pop  af
@@ -5713,7 +5739,7 @@ _LABEL_57D5_:
     ld   hl, $8800
     ld   a, $80
     call _LABEL_48CD_
-    ld   hl, $9800
+    ld   hl, _TILEMAP0; $9800
 _LABEL_57F9_:   
     xor  a
     ldi  [hl], a
@@ -5842,9 +5868,9 @@ _LABEL_58EA_:
     ld   hl, _DATA_590F_
     call _LABEL_486E_
     ldi  a, [hl]
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ldi  a, [hl]
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     ld   a, $FF
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     ld   a, $80
@@ -5925,7 +5951,7 @@ _LABEL_5987_:
     swap a
     and  $0F
     ld   b, $0A
-    call _LABEL_4853_
+    call multiply_a_x_b__result_in_de__4853_
     ld   a, [_RAM_D056_]
     and  $0F
     add  e
@@ -5987,7 +6013,7 @@ _LABEL_59F2_:
     ldi  [hl], a
     ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
     ld   b, $04
-    call _LABEL_4853_
+    call multiply_a_x_b__result_in_de__4853_
     ld   a, $64
     add  e
     ld   c, a
@@ -6152,7 +6178,7 @@ _LABEL_5B03_:
     swap a
     and  $0F
     ld   b, $0A
-    call _LABEL_4853_
+    call multiply_a_x_b__result_in_de__4853_
     ld   a, [hl]
     and  $0F
     add  e
@@ -6210,7 +6236,7 @@ _LABEL_5B5F_:
     xor  a
 _LABEL_5B73_:   
     ld   b, $05
-    call _LABEL_4853_
+    call multiply_a_x_b__result_in_de__4853_
     ld   a, e
     ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
     inc  hl
@@ -6244,7 +6270,7 @@ _LABEL_5BB9_:
     swap a
     and  $0F
     ld   b, $0A
-    call _LABEL_4853_
+    call multiply_a_x_b__result_in_de__4853_
     ld   a, [hl]
     and  $0F
     add  e
@@ -6283,7 +6309,7 @@ _LABEL_5BCD_:
     ldi  a, [hl]
     sub  $10
     add  $01
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ldi  a, [hl]
     sub  $10
     jr   _LABEL_5C61_
@@ -6301,7 +6327,7 @@ _LABEL_5C0D_:
     ldi  a, [hl]
     sub  $10
     add  $01
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ldi  a, [hl]
     jr   _LABEL_5C61_
 
@@ -6317,7 +6343,7 @@ _LABEL_5C2B_:
     ld   hl, _DATA_5D9F_
     ldi  a, [hl]
     add  $08
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ldi  a, [hl]
     sub  $10
     jr   _LABEL_5C61_
@@ -6332,10 +6358,10 @@ _LABEL_5C49_:
     ld   hl, _DATA_5D9F_
     ldi  a, [hl]
     add  $08
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ldi  a, [hl]
 _LABEL_5C61_:   
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     ld   hl, _RAM_D037_
     ld   a, $00
     add  [hl]
@@ -6371,15 +6397,15 @@ _LABEL_5C8E_:
     ld   a, [_RAM_D04A_]
     and  $0C
     jr   nz, _LABEL_5CA7_
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     sub  $08
     jr   _LABEL_5CAC_
 
 _LABEL_5CA7_:   
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     add  $08
 _LABEL_5CAC_:   
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ld   a, [_RAM_D037_]
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     push hl
@@ -6397,30 +6423,30 @@ _LABEL_5CAC_:
     ld   a, [_RAM_D04A_]
     and  $0C
     jr   nz, _LABEL_5CD9_
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     add  b
     jr   _LABEL_5CDD_
 
 _LABEL_5CD9_:   
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     sub  b
 _LABEL_5CDD_:   
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ld   a, $10
     call _LABEL_486E_
     ld   b, [hl]
     ld   a, [_RAM_D04A_]
     and  $09
     jr   nz, _LABEL_5CF3_
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     add  b
     jr   _LABEL_5CF7_
 
 _LABEL_5CF3_:   
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     sub  b
 _LABEL_5CF7_:   
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     ld   a, [_RAM_D037_]
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     call _LABEL_623_
@@ -6432,15 +6458,15 @@ _LABEL_5CF7_:
     ld   a, [_RAM_D04A_]
     and  $0C
     jr   nz, _LABEL_5D18_
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     add  $08
     jr   _LABEL_5D1D_
 
 _LABEL_5D18_:   
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     sub  $08
 _LABEL_5D1D_:   
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ld   a, [_RAM_D037_]
     sub  $02
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
@@ -6929,7 +6955,7 @@ _LABEL_615A_:
     inc  hl
     ld   a, [_rombank_readbyte_result__D6E7_]
     ld   b, $10
-    call _LABEL_4853_
+    call multiply_a_x_b__result_in_de__4853_
     add  hl, de        
     call _switch_bank_read_byte_at_hl_RAM__C980_
     ld   a, [_rombank_readbyte_result__D6E7_]
@@ -6939,7 +6965,7 @@ _LABEL_615A_:
     call _switch_bank_read_byte_at_hl_RAM__C980_
     ld   a, [_rombank_readbyte_result__D6E7_]
     ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
-    call _LABEL_4853_
+    call multiply_a_x_b__result_in_de__4853_
     push de
     pop  bc
     inc  hl
@@ -6962,9 +6988,9 @@ _LABEL_615A_:
     push bc
     ld   b, c
     ld   a, $20
-    call _LABEL_4853_
+    call multiply_a_x_b__result_in_de__4853_
     pop  bc
-    ld   hl, $9800
+    ld   hl, _TILEMAP0; $9800
     add  hl, de
     ld   c, b
     ld   b, $00
@@ -7027,7 +7053,7 @@ _LABEL_61D8_:
 _LABEL_620A_:   
     call _LABEL_92C_
     call _LABEL_94C_
-    ld   hl, $9800
+    ld   hl, _TILEMAP0; $9800
 _LABEL_6213_:   
     ld   a, $FA
     ldi  [hl], a
@@ -7065,9 +7091,9 @@ _LABEL_6240_:
     xor  a
     ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
     ld   a, $88
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     ld   a, [_RAM_D03B_]    ; _RAM_D03B_ = $D03B
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ld   a, $FB
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     xor  a
@@ -7184,7 +7210,7 @@ _LABEL_6357_:
     ld   a, h
     cp   $98
     jr   nz, _LABEL_6357_
-    ld   hl, $9800
+    ld   hl, _TILEMAP0; $9800
 _LABEL_6361_:   
     ld   a, $C8
     ldi  [hl], a
@@ -7212,9 +7238,9 @@ _LABEL_6369_:
     ld   [_RAM_D19C_], a    ; _RAM_D19C_ = $D19C
     ld   [_RAM_D19D_], a    ; _RAM_D19D_ = $D19D
     ld   a, $50
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     ld   a, $58
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     call _LABEL_6510_
 _LABEL_63A7_:   
     xor  a
@@ -7317,9 +7343,9 @@ _LABEL_667F_:
     ld   a, [_RAM_D04B_]
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     call _LABEL_953_
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ld   [_RAM_D073_], a
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     ld   [_RAM_D074_], a
     call _LABEL_89B_
     ld   hl, $0018
@@ -7396,12 +7422,12 @@ _LABEL_695C_:
     call _LABEL_89B_
     xor  a
     ld   [_RAM_D196_], a
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     add  $04
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     add  $04
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     call _LABEL_6510_
     ld   a, $0A
     call _LABEL_4A72_
@@ -7422,7 +7448,7 @@ _LABEL_695C_:
 _LABEL_6A26_:
     ld   a, [_RAM_D19C_]    ; _RAM_D19C_ = $D19C
     ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     and  $07
     ld   b, $80
     jr   z, _LABEL_6A3A_
@@ -7438,7 +7464,7 @@ _LABEL_6A3A_:
     jp   z, _LABEL_6A6E_
 _LABEL_6A45_:
     push hl
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     and  $07
     sla  a
     call _LABEL_486E_
@@ -7448,9 +7474,9 @@ _LABEL_6A45_:
     dec  a
     ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
     ret  z
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     inc  a
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     and  $07
     jr   nz, _LABEL_6A45_
     push bc
@@ -7460,7 +7486,7 @@ _LABEL_6A45_:
 
 _LABEL_6A6E_:
     push hl
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     and  $07
     sla  a
     call _LABEL_486E_
@@ -7470,9 +7496,9 @@ _LABEL_6A6E_:
     dec  a
     ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
     ret  z
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     inc  a
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     and  $07
     jr   z, _LABEL_6A94_
     srl  b
@@ -7725,9 +7751,9 @@ db $D1, $C9
 
 _LABEL_6F40_:
     ld   a, [_RAM_D1A2_]    ; _RAM_D1A2_ = $D1A2
-    ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     ld   a, [_RAM_D1A3_]    ; _RAM_D1A3_ = $D1A3
-    ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     call _LABEL_6FA0_
     ld   a, [_RAM_D1A3_]    ; _RAM_D1A3_ = $D1A3
     ld   b, a
@@ -7780,19 +7806,19 @@ _LABEL_6F87_:
 db $FA, $4B, $D0, $EA, $CC, $C8, $CD, $53, $09
 
 _LABEL_6FA0_:
-    ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
     srl  a
     srl  a
     srl  a
     sub  $04
     ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
-    ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
     srl  a
     srl  a
     srl  a
     sub  $03
     ld   b, $0E
-    call _LABEL_4853_
+    call multiply_a_x_b__result_in_de__4853_
     ld   a, e
     ld   hl, _RAM_D03A_ ; _RAM_D03A_ = $D03A
     add  [hl]
@@ -7800,7 +7826,7 @@ _LABEL_6FA0_:
     push af
     res  7, a
     ld   b, $10
-    call _LABEL_4853_
+    call multiply_a_x_b__result_in_de__4853_
     pop  af
     jr   nz, _LABEL_6FD5_
     ld   hl, $9000
@@ -8655,7 +8681,7 @@ _LABEL_7733_:
         call _memcopy_in_RAM__C900_
         call _LABEL_92C_
         call _LABEL_94C_
-        ld   hl, $9800
+        ld   hl, _TILEMAP0; $9800
         ld   de, $9C00
 _LABEL_7751_:   
         ldi  a, [hl]
@@ -8667,7 +8693,7 @@ _LABEL_7751_:
         ld   bc, $0107
         ld   de, $120A
         ld   a, $F2
-        ld   hl, $9800
+        ld   hl, _TILEMAP0; $9800
         call _LABEL_48EB_
         ld   de, _DATA_7888_
         ld   hl, $0707
@@ -8695,7 +8721,7 @@ _LABEL_777C_:
         call _LABEL_92C_
         call _LABEL_94C_
         ld   hl, $9C00
-        ld   de, $9800
+        ld   de, _TILEMAP0; $9800
 _LABEL_77A1_:   
         ldi  a, [hl]
         ld   [de], a
@@ -8742,16 +8768,16 @@ _LABEL_77E4_:
         push bc
         srl  a
         ld   b, $06
-        call _LABEL_4853_
+        call multiply_a_x_b__result_in_de__4853_
         add  hl, de
         pop  bc
         ldi  a, [hl]
-        ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+        ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
         ldi  a, [hl]
-        ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+        ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
         ld   a, $80
         ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
-        ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+        ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
         cp   $90
         jr   z, _LABEL_7807_
         ld   a, $FD
@@ -8764,16 +8790,16 @@ _LABEL_7807_:
         pop  hl
         ld   a, b
         ld   [_RAM_D04B_], a
-        ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+        ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
         sub  $06
-        ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
-        ld   a, [_RAM_C8CA_]    ; _RAM_C8CA_ = $C8CA
+        ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+        ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
         add  $08
         cp   $98
         jr   z, _LABEL_7827_
         sub  $10
 _LABEL_7827_:   
-        ld   [_RAM_C8CA_], a    ; _RAM_C8CA_ = $C8CA
+        ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
         xor  a
         ld   [_RAM_C8CD_], a    ; _RAM_C8CD_ = $C8CD
         ld   b, $04
@@ -8791,9 +8817,9 @@ _LABEL_7833_:
         ld   [de], a
         inc  de
         pop  bc
-        ld   a, [_RAM_C8CB_]    ; _RAM_C8CB_ = $C8CB
+        ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
         add  $07
-        ld   [_RAM_C8CB_], a    ; _RAM_C8CB_ = $C8CB
+        ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
         dec  b
         jr   nz, _LABEL_7833_
         ret
