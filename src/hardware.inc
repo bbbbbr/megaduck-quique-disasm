@@ -555,6 +555,14 @@ DEF LCDCF_OBJOFF  EQU %00000000 ; OBJ Display
 DEF LCDCF_OBJON   EQU %00000001 ; OBJ Display
 DEF LCDCF_BGOFF   EQU %00000000 ; BG Display
 DEF LCDCF_BGON    EQU %01000000 ; BG Display
+DEF LCDCF_B_ON      EQU 7
+DEF LCDCF_B_WIN9C00 EQU 3
+DEF LCDCF_B_WINON   EQU 5
+DEF LCDCF_B_BG8000  EQU 4
+DEF LCDCF_B_BG9C00  EQU 2
+DEF LCDCF_B_OBJ16   EQU 1
+DEF LCDCF_B_OBJON   EQU 0
+DEF LCDCF_B_BGON    EQU 6
 else
 DEF rLCDC EQU $FF40
 
@@ -574,6 +582,14 @@ DEF LCDCF_OBJOFF  EQU %00000000 ; OBJ Display
 DEF LCDCF_OBJON   EQU %00000010 ; OBJ Display
 DEF LCDCF_BGOFF   EQU %00000000 ; BG Display
 DEF LCDCF_BGON    EQU %00000001 ; BG Display
+DEF LCDCF_B_ON      EQU 7
+DEF LCDCF_B_WIN9C00 EQU 6
+DEF LCDCF_B_WINON   EQU 5
+DEF LCDCF_B_BG8000  EQU 4
+DEF LCDCF_B_BG9C00  EQU 3
+DEF LCDCF_B_OBJ16   EQU 2
+DEF LCDCF_B_OBJON   EQU 1
+DEF LCDCF_B_BGON    EQU 0
 endc
 ; "Window Character Data Select" follows BG
 
@@ -588,16 +604,19 @@ else
 DEF rSTAT EQU $FF41
 endc
 
-DEF STATF_LYC     EQU  %01000000 ; LYC=LY Coincidence (Selectable)
-DEF STATF_MODE10  EQU  %00100000 ; Mode 10
-DEF STATF_MODE01  EQU  %00010000 ; Mode 01 (V-Blank)
-DEF STATF_MODE00  EQU  %00001000 ; Mode 00 (H-Blank)
-DEF STATF_LYCF    EQU  %00000100 ; Coincidence Flag
-DEF STATF_HBL     EQU  %00000000 ; H-Blank
-DEF STATF_VBL     EQU  %00000001 ; V-Blank
-DEF STATF_OAM     EQU  %00000010 ; OAM-RAM is used by system
-DEF STATF_LCD     EQU  %00000011 ; Both OAM and VRAM used by system
-DEF STATF_BUSY    EQU  %00000010 ; When set, VRAM access is unsafe
+DEF STATF_LYC       EQU  %01000000 ; LYC=LY Coincidence STAT Interrupt Enable
+DEF STATF_MODE10    EQU  %00100000 ; Mode 10 (OAM Scan) STAT Interrupt Enable
+DEF STATF_MODE01    EQU  %00010000 ; Mode 01 (V-Blank)  STAT Interrupt Enable
+DEF STATF_MODE00    EQU  %00001000 ; Mode 00 (H-Blank)  STAT Interrupt Enable
+DEF STATF_LYCF      EQU  %00000100 ; Coincidence Flag LYC == LY status
+
+DEF STATF_HBL       EQU  %00000000 ; Status = Mode 0: H-Blank
+DEF STATF_VBL       EQU  %00000001 ; Status = Mode 1: V-Blank
+DEF STATF_OAM       EQU  %00000010 ; Status = Mode 2: OAM-RAM is used by system
+DEF STATF_RENDERING EQU  %00000011 ; Status = Mode 3: Rendering
+
+DEF STATF_LCD       EQU  %00000011 ; Both OAM and VRAM used by system
+DEF STATF_BUSY      EQU  %00000010 ; When set, VRAM access is unsafe
 
 ; --
 ; -- SCY ($FF42)
@@ -871,6 +890,12 @@ DEF IEF_SERIAL EQU %00001000 ; Serial I/O transfer end
 DEF IEF_TIMER  EQU %00000100 ; Timer Overflow
 DEF IEF_STAT   EQU %00000010 ; STAT
 DEF IEF_VBLANK EQU %00000001 ; V-Blank
+
+DEF IEF_B_HILO   EQU 4 ; Transition from High to Low of Pin number P10-P13
+DEF IEF_B_SERIAL EQU 3 ; Serial I/O transfer end
+DEF IEF_B_TIMER  EQU 2 ; Timer Overflow
+DEF IEF_B_STAT   EQU 1 ; STAT
+DEF IEF_B_VBLANK EQU 0 ; V-Blank
 
 
 ;***************************************************************************

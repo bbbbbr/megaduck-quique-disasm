@@ -18,6 +18,14 @@ _PORT_60_ EQU $60
 DEF rROMB_SWITCH_MEGADUCK_QUIQUE  EQU $1000
 DEF ROM_SWITCH_DELAY              EQU $0A  ; Delay of ~41 M-Cycles after write to bank switch (TODO: re-check)
 
+DEF LY_LAST_SCREEN_LINE           EQU 143 
+DEF LY_VBL_FIRST_LINE             EQU (LY_LAST_SCREEN_LINE + 1)
+DEF LY_VBL_SECOND_LINE            EQU (LY_LAST_SCREEN_LINE + 2)
+
+DEF STR_TERMINATOR                EQU $00
+DEF CHAR_BLANKSPACE               EQU $BE
+DEF PRINT_NORMAL                  EQU $01
+DEF PRINT_ERASE                   EQU $00
 
 ; Turn on to enable skipping some Megaduck QuiQue hardware specific code
 ; def GB_DEBUG = 1
@@ -32,8 +40,8 @@ SECTION "wram_c8c8", WRAM0[$c8c8]
 _RAM_C8C8_: db
 
 SECTION "wram_c8ca", WRAM0[$c8ca]
-_tile_pos_y__RAM_C8CA_: db
-_tile_pos_x__RAM_C8CB_: db
+_tilemap_pos_y__RAM_C8CA_: db
+_tilemap_pos_x__RAM_C8CB_: db
 _RAM_C8CC_: db
 _RAM_C8CD_: ds $a
 _rombank_currrent__C8D7_: db
@@ -267,7 +275,7 @@ SECTION "hram_ff80", HRAM[$FF80]
 _oam_dma_routine_in_HRAM__FF80_: db
 
 SECTION "hram_ffa1", HRAM[$ffa1]
-_RAM_FFA1_: db
+_rIE_saved__RAM_FFA1_: db
 
 SECTION "hram_fff0", HRAM[$fff0]
 _RAM_FFF0_: db

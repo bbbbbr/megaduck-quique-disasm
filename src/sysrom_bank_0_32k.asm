@@ -72,7 +72,7 @@ _INT_TIMER__50_:
     ei
     reti
     nop
-    nop    
+    nop
 
 
 _INT_SERIAL__58_:
@@ -187,7 +187,7 @@ _GB_ENTRY_POINT_100_:
     ld   a, [_RAM_D024_]    ; _RAM_D024_ = $D024
     bit  0, a
     jr   nz, @ - 5
-_LABEL_10F_:    
+_LABEL_10F_:
     ld   a, $09
     ld   [maybe_serial_link_data__RAM_D023_], a
     call _LABEL_B64_
@@ -241,7 +241,7 @@ _LABEL_15C_:
     ld   a, [_RAM_D400_]
     cp   $AA
     call z, _LABEL_25E_
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
     call _LABEL_94C_
 
     ld   hl, $9000
@@ -249,7 +249,7 @@ _LABEL_15C_:
     ld   bc, $0800
     call _memcopy_in_RAM__C900_
 
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
     call _LABEL_94C_
 
     ld   hl, $8800
@@ -417,15 +417,15 @@ _LABEL_28A_:
     jr   _LABEL_28A_
 
 
-_LABEL_294_:    
+_LABEL_294_:
     ld   hl, _RAM_D000_ ; _RAM_D000_ = $D000
     bit  2, [hl]
     jr   nz, _LABEL_29D_
     jr   _LABEL_294_
-_LABEL_29D_:    
+_LABEL_29D_:
     res  2, [hl]
     jp   _LABEL_4F9_
-    
+
 
 _LABEL_2A2_:
     ld   a, [_RAM_CC01_]    ; _RAM_CC01_ = $CC01
@@ -737,7 +737,7 @@ _LABEL_4E9_:
 _LABEL_4F4_:
     ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
     ldh  [rAUDTERM], a
-_LABEL_4F9_:    
+_LABEL_4F9_:
     ld   a, $20
     ldh  [rP1], a
     ldh  a, [rP1]
@@ -804,7 +804,7 @@ _LABEL_54B_:
     jp   _LABEL_482B_
 
 _LABEL_56E_:
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
     call _LABEL_94C_
     ld   hl, $8800
     ld   de, $2F2A
@@ -825,7 +825,7 @@ _LABEL_592_:
     dec  b
     jr   nz, _LABEL_592_
 _LABEL_59A_:
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
     call _LABEL_94C_
     ld   de, $9D20
 _LABEL_5A3_:
@@ -862,9 +862,9 @@ _window_scroll_up__5C3_:
     ld   a, 160 ; Start Window top position at Y line 160 ; $A0
     ldh  [rWY], a
 
-    _window_scroll_up_loop__5C8_:    
+    _window_scroll_up_loop__5C8_:
         ld   hl, $2000  ; Delay 57,346 M-Cycles (a little less than one frame [70,224])
-        _delay_loop__5CB_:    
+        _delay_loop__5CB_:
                 dec  hl
                 ld   a, l
                 or   h
@@ -897,26 +897,30 @@ _LABEL_5F6_:
     nop
     jr   _LABEL_5F6_
 
- 
+
 ; After a short delay this message is cleared and the program
 ; returns to the main menu
 display_message__no_cart_in_slot_to_run__5F9:
     call _LABEL_4875_
     ld   de, _string_message__no_cart_in_slot_to_run__734_
-    ld   hl, $030A
-    ld   c, $01
-    call _LABEL_4A46_
-    ld   hl, $030B
-    call _LABEL_4A46_
+    ; Render first line
+    ld   hl, $030A         ; Column 3, Row 10 (zero based)
+    ld   c, PRINT_NORMAL  ; $01
+    call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
+    ; Render second line
+    ; DE is now at the start of the second line
+    ; (C is still PRINT_NORMAL  ; $01)
+    ld   hl, $030B         ; Column 3, Row 11 (zero based)
+    call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
     ld   a, $64
     jp   _LABEL_4A72_
 
-_LABEL_612_:    
+_LABEL_612_:
         push af
         push bc
         push de
         push hl
-        call _LABEL_92C_
+        call wait_until_vbl__92C_
         ld   a, $00
         call _LABEL_8FB_
         pop  hl
@@ -941,13 +945,13 @@ _display_bg_sprites_on__627_:
 
 ; - Block of encoded text at 0x0637 - 0x0750
 ;        92 85 8C 8F 8A 00 BE BE BE BE BE 83 81 8C 85 8E 84 81 92 89 8F 00 BE BE BE BE BE 83 81 8C 83 95 8C 81 84 8F 92 81 00 BE BE BE BE BE BE BE 81 87 85 8E 84 81 00 BE BE BE BE BE 83 88 85 91 95 85 8F BE 84 85 01 BE BE BE BE BE BE 84 85 8C 85 94 92 85 8F 00 BE BE BE BE BE BE BE 8A 95 85 87 8F 93 00 BE BE BE BE BE BE BE 84 89 82 95 8A 8F 00 BE BE BE BE 90 92 8F 87 92 81 8D 81 83 89 8F 8E 01 BE BE BE BE BE BE BE 82 81 93 89 83 81 00 BE BE BE BE BE BE BE BE 90 89 81 8E 8F 00 BE BE BE 90 92 8F 83 85 93 81 84 8F 92 BE 84 85 01 BE BE BE BE BE BE 90 81 8C 81 82 92 81 93 00 BE BE BE 84 89 83 83 89 8F 8E 81 92 89 8F BE 84 85 01 BE BE BE BE BE BE 84 89 82 95 8A 8F 93 00 BE BE BE BE 89 8E 94 85 92 92 95 90 94 8F 92 01 BE BE BE BE 84 85 8C BE 93 89 93 94 85 8D 81 00 86 89 83 88 81 F1 86 89 83 88 85 92 8F 00 8E 8F BE 85 8E 83 8F 8E 93 92 81 84 8F 93 00
-;        RELOJ ~~~~~CALENDARIO ~~~~~CALCULADORA ~~~~~~~AGENDA ~~~~~CHEQUEO~DE￁~~~~~~DELETREO ~~~~~~~JUEGOS ~~~~~~~DIBUJO ~~~~PROGRAMACION￁~~~~~~~BASICA ~~~~~~~~PIANO ~~~PROCESADOR~DE￁~~~~~~PALABRAS ~~~DICCIONARIO~DE￁~~~~~~DIBUJOS ~~~~INTERRUPTOR￁~~~~DEL~SISTEMA FICHA±FICHERO NO~ENCONSRADOS 
+;        RELOJ ~~~~~CALENDARIO ~~~~~CALCULADORA ~~~~~~~AGENDA ~~~~~CHEQUEO~DE￁~~~~~~DELETREO ~~~~~~~JUEGOS ~~~~~~~DIBUJO ~~~~PROGRAMACION￁~~~~~~~BASICA ~~~~~~~~PIANO ~~~PROCESADOR~DE￁~~~~~~PALABRAS ~~~DICCIONARIO~DE￁~~~~~~DIBUJOS ~~~~INTERRUPTOR￁~~~~DEL~SISTEMA FICHA±FICHERO NO~ENCONSRADOS
 
-; Encoding: 
+; Encoding:
 ; Add +64 (0x40) to ASCII values for most letters
 ; Space      = 0xBE
 ;     /      = 0xF1
-; String end = 0x00    
+; String end = 0x00
 
 
 ; Data from 630 to 733 (260 bytes)
@@ -966,12 +970,12 @@ db $81, $8E, $8F, $00, $BE, $BE, $BE, $90, $92, $8F, $83, $85, $93, $81, $84, $8
 db $92, $BE, $84, $85, $01, $BE, $BE, $BE, $BE, $BE, $BE, $90, $81, $8C, $81, $82
 db $92, $81, $93, $00, $BE, $BE, $BE, $84, $89, $83, $83, $89, $8F, $8E, $81, $92
 db $89, $8F, $BE, $84, $85, $01, $BE, $BE, $BE, $BE, $BE, $BE, $84, $89, $82, $95
-db $8A, $8F, $93, $00, $BE, $BE, $BE, $BE 
+db $8A, $8F, $93, $00, $BE, $BE, $BE, $BE
 
-; Message text displayed before running a cart from the cart slot 
+; Message text displayed before running a cart from the cart slot
 ; (the text is rendered to the window layer and the window scrolls
 ;  up and then it tries to boot the cart)
-; 
+;
 ; INTERRUPTOR DEL SISTEMA
 ;   Raw ROM: at:0x0718 (Maybe starting 0713 or 0714?)
 ;            TEXT :I  N  T  E  R  R  U  P  T  O  R  \n             D  E  L     S  I  S  T  E  M  A
@@ -989,8 +993,9 @@ db $84, $85, $8C, $BE, $93, $89, $93, $94, $85, $8D, $81, $00
 ;         RAW-ROM :86 89 83 88 81 F1 86 89 83 88 85 92 8F 00 8E 8F BE 85 8E 83 8F 8E 93 92 81 84 8F 93 00
 ; Data from 734 to 751 (30 bytes)
 _string_message__no_cart_in_slot_to_run__734_:
-db $86, $89, $83, $88, $81, $F1, $86, $89, $83, $88, $85, $92, $8F, $00, $8E, $8F
-db $BE, $85, $8E, $83, $8F, $8E, $93, $92, $81, $84, $8F, $93, $00, $C9
+db $86, $89, $83, $88, $81, $F1, $86, $89, $83, $88, $85, $92, $8F, $00,
+db $8E, $8F, $BE, $85, $8E, $83, $8F, $8E, $93, $92, $81, $84, $8F, $93, $00
+db $C9
 
 _vram_init__752_:
     ld   a, $00
@@ -1108,7 +1113,7 @@ _memcpy_32bytes_loop_7CC_:
     jr   nz, _memcpy_32bytes_loop_7CC_
     ret
 
-; Memcopy 
+; Memcopy
 ; - Source in DE
 ; - Dest   in HL
 ; - Length in BC
@@ -1148,29 +1153,29 @@ include "quique_sysrom_bankswitch_functions.asm"
 SECTION "rom0_end_bankswitch_functions_0851", ROM0[$0851]
 
 
-_LABEL_851_:    
+_LABEL_851_:
         ld   a, [_RAM_C8CC_]
         dec  a
         sla  a
         sla  a
         ld   l, a
         ld   h, $C8
-        ld   a, [_tile_pos_y__RAM_C8CA_]
+        ld   a, [_tilemap_pos_y__RAM_C8CA_]
         add  [hl]
         ld   e, a
         ld   [hl], a
         inc  hl
-        ld   a, [_tile_pos_x__RAM_C8CB_]
+        ld   a, [_tilemap_pos_x__RAM_C8CB_]
         add  [hl]
         ld   d, a
         ld   [hl], a
         ld   a, $00
         ret
-    
-_LABEL_86C_:    
+
+_LABEL_86C_:
         ld   a, $02
         ret
-    
+
 
 _LABEL_86F_:
     ld   c, $00
@@ -1188,7 +1193,7 @@ _LABEL_874_:
     sla  a
     sla  a
     ld   l, a
-    ld   de, _tile_pos_y__RAM_C8CA_ ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   de, _tilemap_pos_y__RAM_C8CA_ ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
     ld   b, $04
 _LABEL_88A_:
     ld   a, [de]
@@ -1257,7 +1262,7 @@ _LABEL_8D2_:
     ldh  [rLCDC], a
     ret
 
-_LABEL_8EA_:    
+_LABEL_8EA_:
         push af
         push bc
         push de
@@ -1270,19 +1275,19 @@ _LABEL_8EA_:
         pop  bc
         pop  af
         ret
-    
-_LABEL_8FB_:    
+
+_LABEL_8FB_:
         ld   hl, _TILEMAP0; $9800
         cp   $00
         jr   z, _LABEL_905_
         ld   hl, $9C00
-_LABEL_905_:    
+_LABEL_905_:
         ld   a, $00
         ld   d, a
-        ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+        ld   a, [_tilemap_pos_x__RAM_C8CB_]
         ld   e, a
         add  hl, de
-        ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+        ld   a, [_tilemap_pos_y__RAM_C8CA_]
         dec  a
         ld   e, a
         sla  e
@@ -1300,27 +1305,43 @@ _LABEL_905_:
         ld   [hl], a
         ret
 
-_LABEL_92C_:
+
+; Waits until VBlank line 145
+;
+; - Temporarily turns off VBL ISR while doing that
+; - Returns immediately if screen is off
+wait_until_vbl__92C_:
+    ; If screen is ON then continue
+    ; If the screen is OFF then return
     ldh  a, [rLCDC]
-    bit  7, a
-    jr   nz, _LABEL_933_
+    bit  LCDCF_B_ON, a  ; bit 7
+    jr   nz, _wait_until_hblank__933_
     ret
 
-_LABEL_933_:
-    ldh  a, [rSTAT]
-    and  $03
-    jr   nz, _LABEL_933_
-    ldh  a, [rIE]
-    ldh  [_RAM_FFA1_], a    ; _RAM_FFA1_ = $FFA1
-    res  0, a
-    ldh  [rIE], a
-_LABEL_941_:
-    ldh  a, [rLY]
-    cp   $91
-    jr   nz, _LABEL_941_
-    ldh  a, [_RAM_FFA1_]    ; _RAM_FFA1_ = $FFA1
-    ldh  [rIE], a
-    ret
+    _wait_until_hblank__933_:
+        ; wait until Mode 0: HBlank
+        ldh  a, [rSTAT]
+        and  STATF_LCD  ; $03 (STATF LCD Status Mask)
+        jr   nz, _wait_until_hblank__933_
+
+        ; Save state of Interrupt enables
+        ; Then turn off VBlank Interrupt
+        ldh  a, [rIE]
+        ldh  [_rIE_saved__RAM_FFA1_], a
+        res  IEF_B_VBLANK, a  ; bit 0
+        ldh  [rIE], a
+
+    ; Why line 145 instead of 144?
+    _wait_until_line_145__941_:
+        ldh  a, [rLY]
+        cp   LY_VBL_SECOND_LINE  ; $91
+        jr   nz, _wait_until_line_145__941_
+
+        ; Restore previous state of Interrupt enables
+        ldh  a, [_rIE_saved__RAM_FFA1_]
+        ldh  [rIE], a
+        ret
+
 
 _LABEL_94C_:
     ldh  a, [rLCDC]
@@ -1336,9 +1357,9 @@ _LABEL_953_:
     ld   l, a
     ld   h, $C8
     ldi  a, [hl]
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     ldi  a, [hl]
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ret
 
 _LABEL_967_:
@@ -1426,7 +1447,7 @@ _LABEL_9CF_:
     call _LABEL_B64_
     ld   b, $01
     ld   c, $FF
-    _LABEL_9F6_:    
+    _LABEL_9F6_:
         call _LABEL_B7D_
         cp   c
         call nz, _LABEL_BBA_
@@ -1449,8 +1470,8 @@ _LABEL_A10_:
     ret
 
 ; Research
-; TODO: 
-; 
+; TODO:
+;
 ; TODO: Serial Link (or Special hardware) Receive byte?
 _LABEL_A17_:
     push af
@@ -2187,7 +2208,7 @@ db $CD, $3E, $14, $13, $3D, $CE, $16, $15, $CA, $3F, $3A, $17
 ; Data from F2F to 2FFF (8401 bytes)
 _DATA_F2F_:
 db $9E, $75, $74, $73, $CB, $A0, $DB, $D4, $D3, $6F, $C0, $6C, $6E, $BF, $D1, $D0
-db $77, $76, $41, $47, $42, $48, 
+db $77, $76, $41, $47, $42, $48,
 _DATA_F45_:
 db $1F, $04, $24, $08, $1F, $04, $21, $04, $1F, $04
 db $1D, $04, $1F, $04, $1C, $04, $1F, $04, $24, $08, $1F, $04, $21, $04, $1F, $04
@@ -2200,7 +2221,7 @@ db $04, $29, $04, $2D, $08, $2D, $04, $2D, $08, $29, $04, $29, $08, $23, $04, $2
 db $04, $26, $04, $29, $04, $2D, $08, $2D, $04, $2D, $08, $28, $04, $28, $0C, $FF
 ; Extra bytes from somewhere?
 db $1C, $04, $1D, $04, $1F, $08, $24, $08, $23, $04, $23, $04, $21, $04, $21, $04
-db $1F, $04, $1F, $04, $21, $04, $23, $04, $24, $04, $1F, $04, 
+db $1F, $04, $1F, $04, $21, $04, $23, $04, $24, $04, $1F, $04,
 db $1C, $04, $1D, $04
 db $1F, $08, $24, $08, $23, $04, $23, $04, $21, $04, $21, $04, $1F, $04, $1F, $04
 db $21, $04, $23, $04, $24, $08, $FF, $26, $04, $28, $08, $28, $04, $2A, $04, $28
@@ -2234,7 +2255,7 @@ db $28, $02, $28, $02, $29, $02, $29, $02, $29, $02, $2B, $06, $54, $0E, $29, $0
 db $29, $02, $29, $02, $29, $04, $29, $04, $28, $04, $24, $0C, $54, $02, $29, $02
 db $29, $02, $29, $02, $29, $04, $29, $04, $28, $04, $24, $04, $24, $04, $24, $04
 db $26, $04, $23, $04, $26, $04, $29, $04, $28, $04, $28, $04, $24, $04, $21, $04
-db $1F, $04, $FF, 
+db $1F, $04, $FF,
 _DATA_11F2_:
 db $00, $00, $38, $38, $65, $45, $A6, $C6, $A8, $C8, $93, $F3, $67
 db $64, $2F, $28, $00, $00, $7E, $7E, $8F, $81, $3F, $3C, $F3, $C3, $F0, $00, $E0
@@ -2594,7 +2615,7 @@ db $FC, $FC, $90, $90, $04, $04, $03, $03, $44, $44, $23, $23, $10, $10, $0F, $0
 db $00, $00, $00, $00, $10, $10, $F0, $F0, $20, $20, $E0, $E0, $40, $40, $C0, $C0
 ds 68, $00
 
-; Data from 266A to 2759 (240 bytes)    
+; Data from 266A to 2759 (240 bytes)
 _DATA_266A_:
 ds 10, $00
 db $13, $14, $17, $18
@@ -2615,9 +2636,9 @@ db $3E, $00, $00, $00, $00, $10, $11, $12, $00, $3F, $40, $00, $00, $00, $00, $0
 db $00, $00, $00, $41, $42, $00, $00, $00, $00, $00, $00, $00, $43, $44, $45, $46
 db $47, $00, $54, $55, $00, $48, $49, $4A, $4B, $4C, $00, $00, $00, $00, $00, $00
     db $4D, $4E, $4F, $50, $51, $52, $53, $56, $57, $58, $59, $5A, $5B, $5C, $00
-    
-; Data from 275A to 2FFF (2214 bytes)   
-_DATA_275A_:    
+
+; Data from 275A to 2FFF (2214 bytes)
+_DATA_275A_:
     db $00, $FF, $00, $C3, $00, $99, $00, $99, $00, $99, $00, $99, $00, $C3, $00, $FF
     db $00, $FF, $00, $E7, $00, $C7, $00, $E7, $00, $E7, $00, $E7, $00, $C3, $00, $FF
     db $00, $FF, $00, $C3, $00, $B1, $00, $F1, $00, $C3, $00, $8F, $00, $81, $00, $FF
@@ -2772,7 +2793,7 @@ db $6C, $6C, $6C, $6C, $38, $38, $00, $00, $00, $00, $66, $66, $6C, $6C, $78, $7
 db $78, $78, $6C, $6C, $66, $66, $00, $00, $00, $00
 ds 10, $60
 db $7E, $7E, $00, $00, $00, $00, $46, $46, $6E, $6E
-    
+
 
 _LABEL_3000_:
     ld   a, [hl]
@@ -3314,7 +3335,7 @@ _LABEL_486E_:
     ret
 
 _LABEL_4875_:
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
     call _LABEL_94C_
     ld   hl, _TILEMAP0; $9800
 _LABEL_487E_:
@@ -3330,7 +3351,7 @@ _LABEL_487E_:
     ret
 
 _LABEL_488F_:
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
     call _LABEL_94C_
     ld   hl, $9C00
 _LABEL_4898_:
@@ -3352,7 +3373,7 @@ _LABEL_48B7_:
     and  $03
     cp   $00
     jr   nz, _LABEL_48C1_
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
 _LABEL_48C1_:
     ld   c, $10
 _LABEL_48C3_:
@@ -3372,7 +3393,7 @@ _LABEL_48CD_:
     ld   b, c
     ld   a, $10
     call _LABEL_48E0_
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
     pop  af
     ld   b, a
     jr   _LABEL_48B7_
@@ -3391,9 +3412,9 @@ _LABEL_48E0_:
 _LABEL_48EB_:
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     ld   a, c
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     ld   a, b
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   hl, _TILEMAP0; $9800
     push de
     call calc_vram_addr_of_tile_xy_base_in_hl__4932_
@@ -3416,7 +3437,7 @@ _LABEL_4907_:
 
 _LABEL_491B_:
     ld   c, a
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
     ld   a, c
     ld   c, d
     dec  c
@@ -3437,20 +3458,20 @@ _LABEL_4925_:
 ; Calculate the vram address of tilemap X,Y
 ; - Base address: HL
 ; - Tilemap X,Y in global vars
-; 
+;
 ; - Returns result in HL
 ;
 ; - Destroys: A, BC, DE
 calc_vram_addr_of_tile_xy_base_in_hl__4932_:
     ; Multiply Tile Y x Tilemap Width
-    ld   a, [_tile_pos_y__RAM_C8CA_]  ; ? Tile Y
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]  ; ? Tile Y
     dec  a
     ld   b, _TILEMMAP_WIDTH
     call multiply_a_x_b__result_in_de__4853_
     ; Add base Tilemap address in HL
     add  hl, de
     ;  Add X offset
-    ld   a, [_tile_pos_x__RAM_C8CB_]  ; ? Tile X
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]  ; ? Tile X
     ld   e, a
     ld   d, $00
     add  hl, de
@@ -3458,9 +3479,9 @@ calc_vram_addr_of_tile_xy_base_in_hl__4932_:
 
 _LABEL_4944_:
     ld   a, h
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, l
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     push de
     push bc
 _LABEL_494E_:
@@ -3508,7 +3529,7 @@ _LABEL_4986_:
     call calc_vram_addr_of_tile_xy_base_in_hl__4932_
     pop  bc
     pop  de
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
 _LABEL_4991_:
     ld   a, [de]
     cp   $00
@@ -3521,7 +3542,7 @@ _LABEL_4991_:
     and  $07
     cp   $00
     jr   nz, _LABEL_49A3_
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
 _LABEL_49A3_:
     push bc
     dec  b
@@ -3539,7 +3560,7 @@ _LABEL_49A3_:
     and  $0F
     cp   $00
     jr   nz, _LABEL_49BC_
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
 _LABEL_49BC_:
     pop  hl
     pop  de
@@ -3639,43 +3660,59 @@ _LABEL_4A40_:
     ret
 
 
-; TODO: _maybe_render_text_string_xy_tilemap0__4A46_:
-; 
-; - Encoded text string to render: DE
-; - ? Start at (Column, Row) or (Tile X,Y) : (H,L)
-;     - H -> _tile_pos_x__RAM_C8CB_, L -> _tile_pos_y__RAM_C8CA_
-; - ?? : C
-_LABEL_4A46_:
+; Draws a text string to the Tilemap at X,Y
+;
+; - Encoded text string to render       : DE
+; - Start at Tilemap (X,Y)              : H,L
+; - Render mode (1 = Normal, 0 = Erase) : C
+render_string_at_de_to_tilemap0_xy_in_hl__4A46_:
     push bc
+    ; Calculate offset into VRAM base address for Tilemap X,Y
     ld   a, h
-    ld   [_tile_pos_x__RAM_C8CB_], a  ; h -> Tile X
+    ld   [_tilemap_pos_x__RAM_C8CB_], a  ; h -> Tilemap X
     ld   a, l
-    ld   [_tile_pos_y__RAM_C8CA_], a  ; l -> Tile Y
+    ld   [_tilemap_pos_y__RAM_C8CA_], a  ; l -> Tilemap Y
     push de
     ld   hl, _TILEMAP0  ; $9800
     call calc_vram_addr_of_tile_xy_base_in_hl__4932_
     pop  de
-    call _LABEL_92C_
+
+    ; Wait for VBlank before continuing
+    call wait_until_vbl__92C_
+
+    ; Check to see if the text should be rendered normally (C != 0)
+    ; or if the string should be rendered as Blank Spaces (i.e. erase)
     pop  bc
     ld   a, c
-    cp   $00
-    jr   z, _LABEL_4A68_
-_LABEL_4A60_:
-    ld   a, [de]
-    inc  de
-    cp   $00
-    ret  z
-    ldi  [hl], a
-    jr   _LABEL_4A60_
+    cp   PRINT_ERASE
+    jr   z, _loop_erase_chars_to_tilemap__4A68_
+    ; Print Normal
+    ;
+    ; Render string characters into the Tilemap at HL
+    ; until a string terminator is reached, then return
+    _loop_str_chars_to_tilemap__4A60_:
+        ld   a, [de]
+        inc  de
+        cp   STR_TERMINATOR  ; $00
+        ret  z
+        ldi  [hl], a
+        jr _loop_str_chars_to_tilemap__4A60_
 
-_LABEL_4A68_:
-    ld   a, [de]
-    inc  de
-    cp   $00
-    ret  z
-    ld   a, $BE
-    ldi  [hl], a
-    jr   _LABEL_4A68_
+    ; Print Erase
+    ; Note: This mode doesn't seem to get used by anything
+    ;
+    ; Write Space Characters ($BE) into the Tilemap at HL
+    ; ignoring the actual character values
+    ; until a string terminator is reached, then return
+    _loop_erase_chars_to_tilemap__4A68_:
+        ld   a, [de]
+        inc  de
+        cp   STR_TERMINATOR  ; $00
+        ret  z
+        ld   a, CHAR_BLANKSPACE  ; $BE
+        ldi  [hl], a
+        jr   _loop_erase_chars_to_tilemap__4A68_
+
 
 _LABEL_4A72_:
     push af
@@ -3690,27 +3727,27 @@ _LABEL_4A7B_:
     xor  a
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     ld   a, $03
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     ld   c, $00
 _LABEL_4A89_:
     ld   a, $01
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
 _LABEL_4A8E_:
     ld   d, $03
     push bc
     push de
     ld  hl, _TILEMAP0; $9800
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     dec  a
     ld   b, $20
     call multiply_a_x_b__result_in_de__4853_
     add  hl, de
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     ld   e, a
     ld   d, $00
     add  hl, de
     ld   c, $03
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
 _LABEL_4AAB_:
     ld   a, [_RAM_C8CC_]    ; _RAM_C8CC_ = $C8CC
     ld   b, $03
@@ -3728,9 +3765,9 @@ _LABEL_4AB0_:
     jr   nz, _LABEL_4AAB_
     pop  de
     pop  bc
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     add  $05
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     inc  c
     ld   a, [_RAM_D06D_]    ; _RAM_D06D_ = $D06D
     cp   c
@@ -3743,16 +3780,16 @@ _LABEL_4AB0_:
     jr   _LABEL_4A8E_
 
 _LABEL_4ADC_:
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     add  $05
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     jr   _LABEL_4A89_
 
 _LABEL_4AE6_:
     ld   a, $28
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     ld   a, $09
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     call _LABEL_4CD1_
     ldh  a, [rLCDC]
     and  $CF
@@ -3846,17 +3883,17 @@ _LABEL_4B92_:
     jr   z, _LABEL_4BC4_
     cp   $08
     jr   z, _LABEL_4BC4_
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     add  $28
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     jr   _LABEL_4BD1_
 
 _LABEL_4BC4_:
     ld   a, $09
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     add  $28
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
 _LABEL_4BD1_:
     call _LABEL_4CD1_
     jp   _LABEL_4B78_
@@ -3879,17 +3916,17 @@ _LABEL_4BD7_:
     jr   z, _LABEL_4C07_
     cp   $03
     jr   z, _LABEL_4C07_
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     sub  $28
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     jr   _LABEL_4C14_
 
 _LABEL_4C07_:
     ld   a, $81
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     sub  $28
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
 _LABEL_4C14_:
     call _LABEL_4CD1_
     jp   _LABEL_4B78_
@@ -3907,9 +3944,9 @@ _LABEL_4C1A_:
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     call _LABEL_953_
     call _LABEL_4D19_
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     add  $28
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     call _LABEL_4CD1_
     jp   _LABEL_4B78_
 
@@ -3924,9 +3961,9 @@ _LABEL_4C47_:
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     call _LABEL_953_
     call _LABEL_4D19_
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     sub  $28
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     call _LABEL_4CD1_
     jp   _LABEL_4B78_
 
@@ -4008,9 +4045,9 @@ _LABEL_4CDF_:
     pop  hl
     ld   a, b
     ldi  [hl], a
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     add  $08
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, [_RAM_C8CC_]    ; _RAM_C8CC_ = $C8CC
     inc  a
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
@@ -4020,12 +4057,12 @@ _LABEL_4CDF_:
     ld   a, b
     ldi  [hl], a
     pop  bc
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     add  $08
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     sub  $08
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, [_RAM_C8CC_]    ; _RAM_C8CC_ = $C8CC
     inc  a
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
@@ -4091,7 +4128,7 @@ _LABEL_4D66_:
 _LABEL_4D6E_:
     ret
 
-_LABEL_4D6F_:   
+_LABEL_4D6F_:
     ld   a, [_RAM_DBFB_]    ; _RAM_DBFB_ = $DBFB
     bit  2, a
     jr   nz, _LABEL_4D7F_
@@ -4099,7 +4136,7 @@ _LABEL_4D6F_:
     ld   [_RAM_DBFB_], a    ; _RAM_DBFB_ = $DBFB
     xor  a
     ld   [_RAM_DBFE_ + 1], a    ; _RAM_DBFE_ + 1 = $DBFF
-_LABEL_4D7F_:   
+_LABEL_4D7F_:
     xor  a
     ld   [_RAM_D05D_], a    ; _RAM_D05D_ = $D05D
     ld   [_RAM_D05E_], a    ; _RAM_D05E_ = $D05E
@@ -4108,18 +4145,18 @@ _LABEL_4D7F_:
     ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
     ld   a, $0C
     ld   [_RAM_D036_], a    ; _RAM_D036_ = $D036
-_LABEL_4D94_:   
+_LABEL_4D94_:
     call _LABEL_AEF_
     ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
     cp   $F9
     jr   nz, _LABEL_4D94_
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
     call _LABEL_94C_
     ld   hl, $8800
     ld   de, $2F2A
     ld   bc, _wait_loop__703_ - 3   ; _wait_loop__703_ - 3 = $0800
     call _memcopy_in_RAM__C900_ ; Possibly invalid
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
     call _LABEL_94C_
     ld   hl, $9000
     ld   de, $27FA
@@ -4129,9 +4166,9 @@ _LABEL_4D94_:
     ld   de, _RAM_D074_ + 1 ; _RAM_D074_ + 1 = $D075
     ld   b, $03
     call _LABEL_482B_
-_LABEL_4DCD_:   
+_LABEL_4DCD_:
     call _LABEL_4875_
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
     call _LABEL_94C_
     ld   hl, _DATA_275A_
     ld   de, $8F10
@@ -4140,7 +4177,7 @@ _LABEL_4DCD_:
     ld   hl, $9820
     ld   bc, $1002
     ld   a, $18
-_LABEL_4DE9_:   
+_LABEL_4DE9_:
     ldi  [hl], a
     dec  b
     jr   nz, _LABEL_4DE9_
@@ -4153,7 +4190,7 @@ _LABEL_4DE9_:
     bit  4, a
     jr   z, _LABEL_4DFF_
     sub  $06
-_LABEL_4DFF_:   
+_LABEL_4DFF_:
     dec  a
     ld   b, $03
     call multiply_a_x_b__result_in_de__4853_
@@ -4163,7 +4200,7 @@ _LABEL_4DFF_:
     ld   e, l
     ld   b, $03
     ld   hl, $982B
-_LABEL_4E10_:   
+_LABEL_4E10_:
     ld   a, [de]
     inc  de
     sub  $81
@@ -4188,26 +4225,26 @@ _LABEL_4E10_:
     ld   a, $12
     jr   _LABEL_4E48_
 
-_LABEL_4E3E_:   
+_LABEL_4E3E_:
     ld   a, $04
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     call _LABEL_549D_
     ld   a, $00
-_LABEL_4E48_:   
+_LABEL_4E48_:
     inc  hl
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     call _LABEL_549D_
     ld   a, $10
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, $02
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     ld   c, $01
     ld   hl, _RAM_D028_ ; _RAM_D028_ = $D028
     call _LABEL_5401_
     ld   hl, $9880
     ld   b, $07
     ld   de, _DATA_5E19_    ; _DATA_5E19_ = $5E19
-_LABEL_4E69_:   
+_LABEL_4E69_:
     ld   a, [de]
     inc  de
     ldi  [hl], a
@@ -4241,14 +4278,14 @@ _LABEL_4E69_:
     xor  a
     ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
     ld   a, $07
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
-_LABEL_4EAB_:   
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
+_LABEL_4EAB_:
     ld   a, [_RAM_D054_]    ; _RAM_D054_ = $D054
     ld   b, $03
     call multiply_a_x_b__result_in_de__4853_
     ld   a, e
     sub  $02
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, [_RAM_D03B_]    ; _RAM_D03B_ = $D03B
     and  a
     jr   nz, _LABEL_4ED4_
@@ -4256,28 +4293,28 @@ _LABEL_4EAB_:
     ld   hl, _RAM_D074_ + 3 ; _RAM_D074_ + 3 = $D077
     cp   [hl]
     jr   nz, _LABEL_4ED4_
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     ld   [_RAM_D073_], a    ; _RAM_D073_ = $D073
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     ld   [_RAM_D074_], a    ; _RAM_D074_ = $D074
-_LABEL_4ED4_:   
+_LABEL_4ED4_:
     ld   a, [_RAM_D053_]    ; _RAM_D053_ = $D053
     cp   $01
     jr   nz, _LABEL_4F29_
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     ld   [_RAM_D06E_ + 2], a    ; _RAM_D06E_ + 2 = $D070
     add  $02
     sla  a
     sla  a
     sla  a
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     ld   [_RAM_D06E_ + 1], a    ; _RAM_D06E_ + 1 = $D06F
     add  $04
     sla  a
     sla  a
     sla  a
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     xor  a
     ld   [_RAM_C8CD_], a    ; _RAM_C8CD_ = $C8CD
     ld   a, $80
@@ -4285,19 +4322,19 @@ _LABEL_4ED4_:
     call _LABEL_623_
     ld   a, b
     ld   [_RAM_D05F_], a    ; _RAM_D05F_ = $D05F
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     ld   b, a
     ld   a, [_RAM_D06E_ + 2]    ; _RAM_D06E_ + 2 = $D070
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     ld   a, b
     ld   [_RAM_D06E_ + 2], a    ; _RAM_D06E_ + 2 = $D070
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     ld   b, a
     ld   a, [_RAM_D06E_ + 1]    ; _RAM_D06E_ + 1 = $D06F
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, b
     ld   [_RAM_D06E_ + 1], a    ; _RAM_D06E_ + 1 = $D06F
-_LABEL_4F29_:   
+_LABEL_4F29_:
     call _LABEL_532F_
     cp   $00
     jr   nz, _LABEL_4F3A_
@@ -4306,9 +4343,9 @@ _LABEL_4F29_:
     call _LABEL_5401_
     jr   _LABEL_4F3D_
 
-_LABEL_4F3A_:   
+_LABEL_4F3A_:
     call _LABEL_52F5_
-_LABEL_4F3D_:   
+_LABEL_4F3D_:
     ld   a, [_RAM_D053_]    ; _RAM_D053_ = $D053
     and  $0F
     inc  a
@@ -4318,10 +4355,10 @@ _LABEL_4F3D_:
     inc  a
     jr   _LABEL_4F51_
 
-_LABEL_4F4D_:   
+_LABEL_4F4D_:
     and  $F0
     add  $10
-_LABEL_4F51_:   
+_LABEL_4F51_:
     ld   [_RAM_D053_], a    ; _RAM_D053_ = $D053
     ld   b, a
     ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
@@ -4331,22 +4368,22 @@ _LABEL_4F51_:
     inc  a
     cp   $07
     jr   nz, _LABEL_4F6C_
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     add  $02
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     xor  a
-_LABEL_4F6C_:   
+_LABEL_4F6C_:
     ld   [_RAM_D054_], a    ; _RAM_D054_ = $D054
     jp   _LABEL_4EAB_
 
-_LABEL_4F72_:   
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+_LABEL_4F72_:
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     inc  a
     sla  a
     sla  a
     sla  a
     ld   [_RAM_D06E_ + 3], a    ; _RAM_D06E_ + 3 = $D071
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     add  $02
     sla  a
     sla  a
@@ -4355,7 +4392,7 @@ _LABEL_4F72_:
     ld   a, $01
     ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
     call _display_bg_sprites_on__627_
-_LABEL_4F95_:   
+_LABEL_4F95_:
     call _LABEL_289_
     call _LABEL_C8D_
     ld   a, [_RAM_D074_ + 1]    ; _RAM_D074_ + 1 = $D075
@@ -4367,7 +4404,7 @@ _LABEL_4F95_:
     cp   [hl]
     jr   nz, _LABEL_4FAE_
     call _LABEL_538C_
-_LABEL_4FAE_:   
+_LABEL_4FAE_:
     ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
     cp   $2F
     jp   nz, _LABEL_4FEE_
@@ -4399,7 +4436,7 @@ _LABEL_4FAE_:
     ld   [_RAM_D074_ + 1], a    ; _RAM_D074_ + 1 = $D075
     jr   _LABEL_4F95_
 
-_LABEL_4FEE_:   
+_LABEL_4FEE_:
     cp   $2E
     jp   z, _LABEL_51B0_
     cp   $2A
@@ -4421,7 +4458,7 @@ _LABEL_4FEE_:
     call _LABEL_BD6_
     jp   _LABEL_4F95_
 
-_LABEL_5022_:   
+_LABEL_5022_:
     ld   a, [_RAM_D006_]    ; _RAM_D006_ = $D006
     bit  2, a
     jp   nz, _LABEL_51B0_
@@ -4444,7 +4481,7 @@ _LABEL_5022_:
     jp   z, _LABEL_511F_
     jp   _LABEL_4F95_
 
-_LABEL_5059_:   
+_LABEL_5059_:
     xor  a
     ld   [_RAM_D05E_], a    ; _RAM_D05E_ = $D05E
     ld   a, [_RAM_D06E_]    ; _RAM_D06E_ = $D06E
@@ -4457,33 +4494,33 @@ _LABEL_5059_:
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     call _LABEL_953_
     call _LABEL_89B_
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     cp   $A0
     jr   z, _LABEL_5087_
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     add  $18
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     jr   _LABEL_50AF_
 
-_LABEL_5087_:   
+_LABEL_5087_:
     ld   a, $10
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     add  $10
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     jr   _LABEL_50AF_
 
-_LABEL_5096_:   
+_LABEL_5096_:
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     call _LABEL_89B_
     xor  a
     ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
     ld   a, [_RAM_D06E_ + 1]    ; _RAM_D06E_ + 1 = $D06F
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, [_RAM_D06E_ + 2]    ; _RAM_D06E_ + 2 = $D070
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
-_LABEL_50AF_:   
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
+_LABEL_50AF_:
     ld   a, $80
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     call _LABEL_623_
@@ -4493,7 +4530,7 @@ _LABEL_50AF_:
     call _LABEL_4A72_
     jp   _LABEL_4F95_
 
-_LABEL_50C3_:   
+_LABEL_50C3_:
     xor  a
     ld   [_RAM_D05D_], a    ; _RAM_D05D_ = $D05D
     ld   a, [_RAM_D06E_]    ; _RAM_D06E_ = $D06E
@@ -4505,23 +4542,23 @@ _LABEL_50C3_:
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     call _LABEL_953_
     call _LABEL_89B_
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     cp   $10
     jr   z, _LABEL_50F0_
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     sub  $18
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     jp   _LABEL_50AF_
 
-_LABEL_50F0_:   
+_LABEL_50F0_:
     ld   a, $A0
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     sub  $10
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     jp   _LABEL_50AF_
 
-_LABEL_5100_:   
+_LABEL_5100_:
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     call _LABEL_89B_
@@ -4529,12 +4566,12 @@ _LABEL_5100_:
     dec  a
     ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
     ld   a, [_RAM_D06E_ + 3]    ; _RAM_D06E_ + 3 = $D071
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, [_RAM_D072_]
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     jp   _LABEL_50AF_
 
-_LABEL_511F_:   
+_LABEL_511F_:
     xor  a
     ld   [_RAM_D05B_], a    ; _RAM_D05B_ = $D05B
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
@@ -4547,12 +4584,12 @@ _LABEL_511F_:
     cp   [hl]
     jr   nc, _LABEL_5148_
     ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     add  $10
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     jp   _LABEL_50AF_
 
-_LABEL_5148_:   
+_LABEL_5148_:
     ld   a, [_RAM_D06E_]    ; _RAM_D06E_ = $D06E
     ld   e, a
     ld   d, $00
@@ -4561,14 +4598,14 @@ _LABEL_5148_:
     ld   a, c
     ld   b, $10
     call multiply_a_x_b__result_in_de__4853_
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     sub  e
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     ld   a, l
     ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
     jp   _LABEL_50AF_
 
-_LABEL_5167_:   
+_LABEL_5167_:
     xor  a
     ld   [_RAM_D05C_], a    ; _RAM_D05C_ = $D05C
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
@@ -4579,37 +4616,37 @@ _LABEL_5167_:
     sub  $07
     jr   c, _LABEL_518C_
     ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     sub  $10
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     jp   _LABEL_50AF_
 
-_LABEL_518C_:   
+_LABEL_518C_:
     ld   a, [_RAM_D06E_]    ; _RAM_D06E_ = $D06E
     ld   b, $00
     ld   hl, _RAM_D06D_ ; _RAM_D06D_ = $D06D
-_LABEL_5194_:   
+_LABEL_5194_:
     add  $07
     cp   [hl]
     jr   nc, _LABEL_519C_
     inc  b
     jr   _LABEL_5194_
 
-_LABEL_519C_:   
+_LABEL_519C_:
     sub  $07
     ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
     ld   a, $10
     call multiply_a_x_b__result_in_de__4853_
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     add  e
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     jp   _LABEL_50AF_
 
-_LABEL_51B0_:   
+_LABEL_51B0_:
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     call _LABEL_953_
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     cp   $A0
     jp   z, _LABEL_4F95_
     ld   a, [_RAM_D06E_]    ; _RAM_D06E_ = $D06E
@@ -4632,7 +4669,7 @@ _LABEL_51B0_:
     dec  hl
     dec  hl
     dec  hl
-_LABEL_51E4_:   
+_LABEL_51E4_:
     ld   a, [de]
     ldi  [hl], a
     inc  de
@@ -4650,7 +4687,7 @@ _LABEL_51E4_:
     call _LABEL_4A72_
     jp   _LABEL_4F95_
 
-_LABEL_5206_:   
+_LABEL_5206_:
     ld   a, [_RAM_DBFE_ + 1]    ; _RAM_DBFE_ + 1 = $DBFF
     cp   $1E
     jp   nc, _LABEL_4F95_
@@ -4658,7 +4695,7 @@ _LABEL_5206_:
     ld   [_RAM_DBFE_ + 1], a    ; _RAM_DBFE_ + 1 = $DBFF
     ld   de, _RAM_D051_ ; _RAM_D051_ = $D051
     ld   b, $03
-_LABEL_5217_:   
+_LABEL_5217_:
     ld   a, [de]
     ldi  [hl], a
     inc  de
@@ -4670,7 +4707,7 @@ _LABEL_5217_:
     call _LABEL_4A72_
     jp   _LABEL_4F95_
 
-_LABEL_522B_:   
+_LABEL_522B_:
     ld   hl, _RAM_D028_ + 1 ; _RAM_D028_ + 1 = $D029
     call _LABEL_5B03_
     dec  a
@@ -4680,7 +4717,7 @@ _LABEL_522B_:
     cp   $0C
     jr   nc, _LABEL_5240_
     add  $64
-_LABEL_5240_:   
+_LABEL_5240_:
     dec  a
     cp   $5C
     jp   c, _LABEL_4F95_
@@ -4693,7 +4730,7 @@ _LABEL_5240_:
     call _LABEL_89B_
     jp   _LABEL_4DCD_
 
-_LABEL_525D_:   
+_LABEL_525D_:
     call _LABEL_5379_
     ld   [_RAM_D028_ + 1], a    ; _RAM_D028_ + 1 = $D029
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
@@ -4701,7 +4738,7 @@ _LABEL_525D_:
     call _LABEL_89B_
     jp   _LABEL_4DCD_
 
-_LABEL_526F_:   
+_LABEL_526F_:
     ld   hl, _RAM_D028_ + 1 ; _RAM_D028_ + 1 = $D029
     call _LABEL_5B03_
     inc  a
@@ -4712,7 +4749,7 @@ _LABEL_526F_:
     cp   $0C
     jr   nc, _LABEL_5286_
     add  $64
-_LABEL_5286_:   
+_LABEL_5286_:
     inc  a
     cp   $70
     jp   z, _LABEL_4F95_
@@ -4725,7 +4762,7 @@ _LABEL_5286_:
     call _LABEL_89B_
     jp   _LABEL_4DCD_
 
-_LABEL_52A3_:   
+_LABEL_52A3_:
     call _LABEL_5379_
     ld   [_RAM_D028_ + 1], a    ; _RAM_D028_ + 1 = $D029
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
@@ -4733,13 +4770,13 @@ _LABEL_52A3_:
     call _LABEL_89B_
     jp   _LABEL_4DCD_
 
-_LABEL_52B5_:   
+_LABEL_52B5_:
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     call _LABEL_89B_
     ret
 
-_LABEL_52BF_:   
+_LABEL_52BF_:
     ld   a, [_RAM_D074_ + 1]    ; _RAM_D074_ + 1 = $D075
     ld   hl, _RAM_D028_ ; _RAM_D028_ = $D028
     cp   [hl]
@@ -4751,7 +4788,7 @@ _LABEL_52BF_:
     ld   a, $07
     ld   [_RAM_D04A_], a    ; _RAM_D04A_ = $D04A
     call _LABEL_538C_
-_LABEL_52D7_:   
+_LABEL_52D7_:
     ld   a, [_RAM_D028_ + 3]    ; _RAM_D028_ + 3 = $D02B
     push af
     call _LABEL_522_
@@ -4765,10 +4802,10 @@ _LABEL_52D7_:
     ld   [_RAM_D028_ + 2], a    ; _RAM_D028_ + 2 = $D02A
     ret
 
-_LABEL_52F5_:   
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+_LABEL_52F5_:
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     add  $02
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   hl, _TILEMAP0; $9800
     call calc_vram_addr_of_tile_xy_base_in_hl__4932_
     ld   a, [_RAM_D053_]    ; _RAM_D053_ = $D053
@@ -4778,16 +4815,16 @@ _LABEL_52F5_:
     add  $F1
     jr   _LABEL_5312_
 
-_LABEL_5310_:   
+_LABEL_5310_:
     ld   a, $BE
-_LABEL_5312_:   
+_LABEL_5312_:
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
     ld   a, [_RAM_C8CC_]    ; _RAM_C8CC_ = $C8CC
     ldi  [hl], a
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     inc  a
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, [_RAM_D053_]    ; _RAM_D053_ = $D053
     and  $0F
     add  $F1
@@ -4795,7 +4832,7 @@ _LABEL_5312_:
     ld   [hl], a
     ret
 
-_LABEL_532F_:   
+_LABEL_532F_:
     ld   hl, $DBA0
     ld   a, [_RAM_D054_]    ; _RAM_D054_ = $D054
     cp   $06
@@ -4804,10 +4841,10 @@ _LABEL_532F_:
     and  a
     jr   z, _LABEL_5357_
     ld   b, a
-_LABEL_5340_:   
+_LABEL_5340_:
     ld   de, _RAM_D051_ ; _RAM_D051_ = $D051
     ld   c, $03
-_LABEL_5345_:   
+_LABEL_5345_:
     ld   a, [de]
     cp   [hl]
     jr   nz, _LABEL_5350_
@@ -4817,35 +4854,35 @@ _LABEL_5345_:
     jr   nz, _LABEL_5345_
     jr   _LABEL_5359_
 
-_LABEL_5350_:   
+_LABEL_5350_:
     ld   a, c
     call _LABEL_486E_
     dec  b
     jr   nz, _LABEL_5340_
-_LABEL_5357_:   
+_LABEL_5357_:
     xor  a
     ret
 
-_LABEL_5359_:   
+_LABEL_5359_:
     ld   a, $01
     ret
 
-_LABEL_535C_:   
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+_LABEL_535C_:
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     srl  a
     srl  a
     srl  a
     sub  $04
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     srl  a
     srl  a
     srl  a
     sub  $02
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     ret
 
-_LABEL_5379_:   
+_LABEL_5379_:
     ld   e, a
     ld   d, $00
     ld   h, $0A
@@ -4854,16 +4891,16 @@ _LABEL_5379_:
     cp   $0A
     jr   c, _LABEL_5388_
     sub  $0A
-_LABEL_5388_:   
+_LABEL_5388_:
     swap a
     or   l
     ret
 
-_LABEL_538C_:   
+_LABEL_538C_:
     ld   a, [_RAM_D073_]    ; _RAM_D073_ = $D073
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, [_RAM_D074_]    ; _RAM_D074_ = $D074
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     ld   a, [_RAM_D04A_]    ; _RAM_D04A_ = $D04A
     inc  a
     ld   [_RAM_D04A_], a    ; _RAM_D04A_ = $D04A
@@ -4882,41 +4919,41 @@ _LABEL_538C_:
     ld   hl, _RAM_D028_ + 2 ; _RAM_D028_ + 2 = $D02A
     and  a
     jr   z, _LABEL_53C6_
-_LABEL_53C1_:   
+_LABEL_53C1_:
     call _LABEL_52F5_
     jr   _LABEL_53CB_
 
-_LABEL_53C6_:   
+_LABEL_53C6_:
     ld   c, $02
     call _LABEL_5401_
-_LABEL_53CB_:   
+_LABEL_53CB_:
     ret
 
-_LABEL_53CC_:   
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+_LABEL_53CC_:
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     add  $02
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, $BE
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     push af
     push bc
     push de
     push hl
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
     ld   a, $00
     call _LABEL_8FB_
     pop  hl
     pop  de
     pop  bc
     pop  af
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     inc  a
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     push af
     push bc
     push de
     push hl
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
     ld   a, $00
     call _LABEL_8FB_
     pop  hl
@@ -4925,10 +4962,10 @@ _LABEL_53CC_:
     pop  af
     ret
 
-_LABEL_5401_:   
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+_LABEL_5401_:
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     add  $02
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ldi  a, [hl]
     ld   b, a
     swap a
@@ -4945,20 +4982,20 @@ _LABEL_5401_:
     cp   $80
     jr   nz, _LABEL_5427_
     ld   a, $98
-_LABEL_5427_:   
+_LABEL_5427_:
     push hl
     push bc
     call _LABEL_5480_
     jr   _LABEL_544F_
 
-_LABEL_542E_:   
+_LABEL_542E_:
     add  $C0
     cp   $C0
     jr   nz, _LABEL_543A_
     bit  2, c
     jr   nz, _LABEL_543A_
     ld   a, $BE
-_LABEL_543A_:   
+_LABEL_543A_:
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     push hl
     push bc
@@ -4969,12 +5006,12 @@ _LABEL_543A_:
     call _LABEL_612_
     jr   _LABEL_544F_
 
-_LABEL_544C_:   
+_LABEL_544C_:
     call _LABEL_612_
-_LABEL_544F_:   
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+_LABEL_544F_:
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     inc  a
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     pop  bc
     ld   a, b
     and  $0F
@@ -4985,25 +5022,25 @@ _LABEL_544F_:
     bit  1, c
     jr   z, _LABEL_5468_
     set  7, a
-_LABEL_5468_:   
+_LABEL_5468_:
     call _LABEL_5480_
     jr   _LABEL_547E_
 
-_LABEL_546D_:   
+_LABEL_546D_:
     call _LABEL_612_
     jr   _LABEL_547E_
 
-_LABEL_5472_:   
+_LABEL_5472_:
     add  $C0
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     bit  1, c
     jr   nz, _LABEL_546D_
     call _LABEL_612_
-_LABEL_547E_:   
+_LABEL_547E_:
     pop  hl
     ret
 
-_LABEL_5480_:   
+_LABEL_5480_:
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     push bc
     push hl
@@ -5012,17 +5049,17 @@ _LABEL_5480_:
     ld   hl, _TILEMAP0; $9800
     jr   z, _LABEL_5490_
     ld   hl, _TILEMAP0; $9800
-_LABEL_5490_:   
+_LABEL_5490_:
     call calc_vram_addr_of_tile_xy_base_in_hl__4932_
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
     call _LABEL_549D_
     pop  de
     pop  hl
     pop  bc
     ret
-    
 
-_LABEL_549D_:   
+
+_LABEL_549D_:
     ld   a, [_RAM_C8CC_]    ; _RAM_C8CC_ = $C8CC
     ld   [hl], a
     ld   d, $00
@@ -5035,17 +5072,17 @@ _LABEL_549D_:
     pop  hl
     ret
 
-_LABEL_54AE_:   
+_LABEL_54AE_:
     ld   a, [_RAM_D059_]
     and  $F0
     cp   $C0
     jr   z, _LABEL_54BC_
     ld   a, $C0
     ld   [_RAM_D059_], a
-_LABEL_54BC_:   
+_LABEL_54BC_:
     xor  a
     ld   [_RAM_D05A_], a
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
     call _LABEL_94C_
     ld   de, $1FFA
     ld   bc, $0000
@@ -5057,15 +5094,15 @@ _LABEL_54BC_:
     ld   hl, $8000
     ld   a, $80
     call _LABEL_48CD_
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
     call _LABEL_94C_
     ld   a, $00
     ld   de, _DATA_266A_
     call _LABEL_8C4_
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
     call _LABEL_94C_
     ld   hl, $9980
-_LABEL_54F9_:   
+_LABEL_54F9_:
     xor  a
     ldi  [hl], a
     ld   a, h
@@ -5073,7 +5110,7 @@ _LABEL_54F9_:
     jr   nz, _LABEL_54F9_
     ld   a, $0C
     ld   [_RAM_D036_], a    ; _RAM_D036_ = $D036
-_LABEL_5505_:   
+_LABEL_5505_:
     call _LABEL_AEF_
     call _LABEL_289_
     ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
@@ -5083,9 +5120,9 @@ _LABEL_5505_:
     or   $02
     ldh  [rLCDC], a
     xor  a
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, $03
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     ld   [_RAM_D20C_], a
     ld   a, $5F
     call _LABEL_57BC_
@@ -5093,7 +5130,7 @@ _LABEL_5505_:
     ld   hl, _RAM_D03C_    ; _RAM_D03C_ = $D03C
     ld   b, $0C
     xor  a
-_LABEL_5532_:   
+_LABEL_5532_:
     ldi  [hl], a
     dec  b
     jr   nz, _LABEL_5532_
@@ -5104,7 +5141,7 @@ _LABEL_5532_:
     ld   [_RAM_D068_], a
     ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
     ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
-_LABEL_5549_:   
+_LABEL_5549_:
     ld   a, [_RAM_D1A7_]    ; _RAM_D1A7_ = $D1A7
     inc  a
     ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
@@ -5125,10 +5162,10 @@ _LABEL_5549_:
     call _LABEL_5D50_
     call _LABEL_5B5F_
     call _LABEL_55A0_
-_LABEL_5579_:   
+_LABEL_5579_:
     jr   _LABEL_5549_
 
-_LABEL_557B_:   
+_LABEL_557B_:
     call _LABEL_289_
     call _LABEL_C8D_
     ld   a, [_RAM_D006_]    ; _RAM_D006_ = $D006
@@ -5142,13 +5179,13 @@ _LABEL_557B_:
     jp   nz, _LABEL_54BC_
     jr   _LABEL_5549_
 
-_LABEL_5599_:   
+_LABEL_5599_:
     ldh  a, [rLCDC]
     and  $FD
     ldh  [rLCDC], a
     ret
 
-_LABEL_55A0_:   
+_LABEL_55A0_:
     ld   a, [_RAM_D059_]
     and  $0F
     and  a
@@ -5159,11 +5196,11 @@ _LABEL_55A0_:
     ld   a, $90
     jr   nz, _LABEL_55B3_
     ld   a, $81
-_LABEL_55B3_:   
+_LABEL_55B3_:
     ld   [_RAM_D400_], a
     ld   a, $8D
     ld   [_RAM_D401_], a
-_LABEL_55BB_:   
+_LABEL_55BB_:
     ld   a, $BE
     ld   [_RAM_D402_], a
     ld   de, _RAM_D056_
@@ -5171,7 +5208,7 @@ _LABEL_55BB_:
     call _LABEL_56BC_
     jr   _LABEL_5600_
 
-_LABEL_55CB_:   
+_LABEL_55CB_:
     ld   a, $BE
     ld   [_RAM_D400_], a
     ld   [_RAM_D401_], a
@@ -5189,14 +5226,14 @@ _LABEL_55CB_:
     jr   c, _LABEL_55F1_
     sub  $0A
     add  $10
-_LABEL_55F1_:   
+_LABEL_55F1_:
     add  $10
     add  b
     ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
     ld   de, _RAM_D03A_ ; _RAM_D03A_ = $D03A
     ld   hl, _RAM_D403_
     call _LABEL_56BC_
-_LABEL_5600_:   
+_LABEL_5600_:
     ld   a, $73
     ld   [_RAM_D405_], a
     ld   de, _RAM_D057_
@@ -5265,11 +5302,11 @@ _LABEL_5600_:
     ld   a, $C0
     jr   _LABEL_569E_
 
-_LABEL_5697_:   
+_LABEL_5697_:
     ld   a, $C1
     ld   [_RAM_D40D_], a
     ld   a, $C9
-_LABEL_569E_:   
+_LABEL_569E_:
     ld   [_RAM_D40E_], a
     ld   de, _RAM_D051_
     ld   hl, _RAM_D40F_
@@ -5283,7 +5320,7 @@ _LABEL_569E_:
     call _LABEL_4944_
     ret
 
-_LABEL_56BC_:   
+_LABEL_56BC_:
     ld   a, [de]
     swap a
     and  $0F
@@ -5295,7 +5332,7 @@ _LABEL_56BC_:
     ldi  [hl], a
     ret
 
-_LABEL_56CB_:   
+_LABEL_56CB_:
     xor  a
     ld   [_RAM_D05A_], a
     ld   [_RAM_D06B_], a
@@ -5313,7 +5350,7 @@ _LABEL_56CB_:
     call _LABEL_522_
     ret
 
-_LABEL_56EE_:   
+_LABEL_56EE_:
     ld   a, [_RAM_D006_]    ; _RAM_D006_ = $D006
     and  $C4
     ret  z
@@ -5326,7 +5363,7 @@ _LABEL_56EE_:
     jr   nz, _LABEL_5740_
     ret
 
-_LABEL_5704_:   
+_LABEL_5704_:
     ld   hl, _RAM_D068_
     ld   a, [_RAM_D20C_]
     cp   $06
@@ -5334,18 +5371,18 @@ _LABEL_5704_:
     ld   [hl], $00
     jr   _LABEL_571C_
 
-_LABEL_5712_:   
+_LABEL_5712_:
     cp   $09
     jr   nz, _LABEL_571A_
     ld   [hl], $01
     jr   _LABEL_571C_
 
-_LABEL_571A_:   
+_LABEL_571A_:
     ld   [hl], $02
-_LABEL_571C_:   
+_LABEL_571C_:
     jp   _LABEL_5737_
 
-_LABEL_571F_:   
+_LABEL_571F_:
     ld   hl, _RAM_D068_
     ld   a, [_RAM_D20C_]
     cp   $06
@@ -5353,21 +5390,21 @@ _LABEL_571F_:
     ld   [hl], $02
     jr   _LABEL_5737_
 
-_LABEL_572D_:   
+_LABEL_572D_:
     cp   $03
     jr   z, _LABEL_5735_
     ld   [hl], $00
     jr   _LABEL_5737_
 
-_LABEL_5735_:   
+_LABEL_5735_:
     ld   [hl], $01
-_LABEL_5737_:   
+_LABEL_5737_:
     call _LABEL_5792_
     ld   a, $05
     call _LABEL_4A72_
     ret
 
-_LABEL_5740_:   
+_LABEL_5740_:
     ld   a, [_RAM_D068_]
     cp   $00
     jr   nz, _LABEL_5763_
@@ -5383,23 +5420,23 @@ _LABEL_5740_:
     call _LABEL_289_
     ret
 
-_LABEL_5763_:   
+_LABEL_5763_:
     cp   $01
     jr   nz, _LABEL_576B_
     call _LABEL_57D5_
     ret
 
-_LABEL_576B_:   
+_LABEL_576B_:
     call _LABEL_5774_
     ld   a, $01
     ld   [_RAM_D05A_], a
     ret
 
-_LABEL_5774_:   
+_LABEL_5774_:
     ld   hl, _RAM_D05F_ ; _RAM_D05F_ = $D05F
     ld   b, $02
     ld   c, $02
-_LABEL_577B_:   
+_LABEL_577B_:
     ldi  a, [hl]
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     push bc
@@ -5415,11 +5452,11 @@ _LABEL_577B_:
     jr   nz, _LABEL_577B_
     ret
 
-_LABEL_5792_:   
+_LABEL_5792_:
     xor  a
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, [_RAM_D20C_]
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     ld   a, $63
     call _LABEL_57BC_
     ld   a, [_RAM_D068_]
@@ -5428,21 +5465,21 @@ _LABEL_5792_:
     ld   a, e
     add  $03
     ld   [_RAM_D20C_], a
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     xor  a
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, $5F
     call _LABEL_57BC_
     ret
 
-_LABEL_57BC_:   
+_LABEL_57BC_:
     push af
     ld   hl, _TILEMAP0; $9800
     call calc_vram_addr_of_tile_xy_base_in_hl__4932_
     ld   c, $02
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
     pop  af
-_LABEL_57C9_:   
+_LABEL_57C9_:
     ldi  [hl], a
     inc  a
     ldd  [hl], a
@@ -5453,14 +5490,14 @@ _LABEL_57C9_:
     jr   nz, _LABEL_57C9_
     ret
 
-_LABEL_57D5_:   
+_LABEL_57D5_:
     xor  a
     ld   [_RAM_D06C_], a    ; _RAM_D06C_ = $D06C
     ldh  a, [rLCDC]
     and  $FD
     ldh  [rLCDC], a
     call _LABEL_5774_
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
     call _LABEL_94C_
     ld   de, $2F2A
     ld   bc, $0000
@@ -5468,7 +5505,7 @@ _LABEL_57D5_:
     ld   a, $80
     call _LABEL_48CD_
     ld   hl, _TILEMAP0; $9800
-_LABEL_57F9_:   
+_LABEL_57F9_:
     xor  a
     ldi  [hl], a
     ld   a, h
@@ -5486,7 +5523,7 @@ _LABEL_57F9_:
     jr   nz, _LABEL_581C_
     xor  a
     ld   [_RAM_D056_], a
-_LABEL_581C_:   
+_LABEL_581C_:
     ld   de, _RAM_D055_
     ld   a, [de]
     inc  de
@@ -5502,13 +5539,13 @@ _LABEL_581C_:
     jr   c, _LABEL_5835_
     sub  $0A
     add  $10
-_LABEL_5835_:   
+_LABEL_5835_:
     add  $10
     add  b
     ld   [_RAM_D402_], a
     ld   [_RAM_D056_], a
     ld   de, _RAM_D402_
-_LABEL_5841_:   
+_LABEL_5841_:
     ld   hl, _RAM_D400_
     call _LABEL_56BC_
     ld   a, $BE
@@ -5555,7 +5592,7 @@ _LABEL_5841_:
     ld   a, $04
     ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
     call _LABEL_58EA_
-_LABEL_58AD_:   
+_LABEL_58AD_:
     call _LABEL_49C2_
     call _LABEL_5919_
     ld   a, [_RAM_D06B_]
@@ -5567,7 +5604,7 @@ _LABEL_58AD_:
     ldh  [rLCDC], a
     ret
 
-_LABEL_58C3_:   
+_LABEL_58C3_:
     ld   a, [_RAM_D03B_]    ; _RAM_D03B_ = $D03B
     inc  a
     ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
@@ -5576,13 +5613,13 @@ _LABEL_58C3_:
     call _LABEL_58DC_
     jr   _LABEL_58AD_
 
-_LABEL_58D3_:   
+_LABEL_58D3_:
     cp   $04
     jr   nz, _LABEL_58AD_
     call _LABEL_58EA_
     jr   _LABEL_58AD_
 
-_LABEL_58DC_:   
+_LABEL_58DC_:
     ld   a, [_RAM_D069_]
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     call _LABEL_89B_
@@ -5590,15 +5627,15 @@ _LABEL_58DC_:
     ld   [_RAM_D069_], a
     ret
 
-_LABEL_58EA_:   
+_LABEL_58EA_:
     ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
     sla  a
     ld   hl, _DATA_590F_
     call _LABEL_486E_
     ldi  a, [hl]
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ldi  a, [hl]
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     ld   a, $FF
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     ld   a, $80
@@ -5608,11 +5645,11 @@ _LABEL_58EA_:
     ld   [_RAM_D069_], a
     ret
 
-; Data from 590F to 5918 (10 bytes) 
-_DATA_590F_:    
+; Data from 590F to 5918 (10 bytes)
+_DATA_590F_:
 db $20, $48, $48, $48, $20, $68, $40, $68, $68, $68
 
-_LABEL_5919_:   
+_LABEL_5919_:
     xor  a
     ld   [_RAM_D06B_], a
     ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
@@ -5625,13 +5662,13 @@ _LABEL_5919_:
     cp   $05
     jr   nz, _LABEL_5931_
     xor  a
-_LABEL_5931_:   
+_LABEL_5931_:
     ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
     ld   a, $FF
     ld   [_RAM_D181_], a    ; _RAM_D181_ = $D181
     jp   _LABEL_59F1_
 
-_LABEL_593C_:   
+_LABEL_593C_:
     cp   $3E
     jr   nz, _LABEL_5950_
     xor  a
@@ -5643,7 +5680,7 @@ _LABEL_593C_:
     ld   a, $04
     jr   _LABEL_5931_
 
-_LABEL_5950_:   
+_LABEL_5950_:
     cp   $C0
     jr   c, _LABEL_5987_
     cp   $CA
@@ -5661,7 +5698,7 @@ _LABEL_5950_:
     cp   $00
     jr   nz, _LABEL_5975_
     ld   [hl], $00
-_LABEL_5975_:   
+_LABEL_5975_:
     ld   a, $01
     ld   [_RAM_D06C_], a    ; _RAM_D06C_ = $D06C
     ld   a, [hl]
@@ -5672,7 +5709,7 @@ _LABEL_5975_:
     call _LABEL_59F2_
     jp   _LABEL_59F1_
 
-_LABEL_5987_:   
+_LABEL_5987_:
     cp   $2E
     jr   nz, _LABEL_59ED_
     ld   a, [_RAM_D056_]
@@ -5688,7 +5725,7 @@ _LABEL_5987_:
     xor  a
     jr   _LABEL_59B7_
 
-_LABEL_59A4_:   
+_LABEL_59A4_:
     sub  $0C
     ld   d, $00
     ld   e, a
@@ -5699,7 +5736,7 @@ _LABEL_59A4_:
     or   l
     ld   [_RAM_D056_], a
     ld   a, $01
-_LABEL_59B7_:   
+_LABEL_59B7_:
     ld   [_RAM_D055_], a
     call _LABEL_5A2B_
     ld   a, [_RAM_D06A_]
@@ -5712,7 +5749,7 @@ _LABEL_59B7_:
     call _LABEL_482B_
     ld   a, $0B
     ld   [_RAM_D035_], a    ; _RAM_D035_ = $D035
-_LABEL_59D5_:   
+_LABEL_59D5_:
     call _LABEL_A34_
     ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
     cp   $FC
@@ -5720,19 +5757,19 @@ _LABEL_59D5_:
     call _LABEL_289_
     jr   _LABEL_59D5_
 
-_LABEL_59E4_:   
+_LABEL_59E4_:
     ld   a, $01
     ld   [_RAM_D06B_], a
     call _LABEL_4B84_
     ret
 
-_LABEL_59ED_:   
+_LABEL_59ED_:
     cp   $2A
     jr   z, _LABEL_59E4_
-_LABEL_59F1_:   
+_LABEL_59F1_:
     ret
 
-_LABEL_59F2_:   
+_LABEL_59F2_:
     push hl
     pop  de
     ld   hl, _RAM_D400_
@@ -5759,11 +5796,11 @@ _LABEL_59F2_:
     call _LABEL_4944_
     ret
 
-; Data from 5A21 to 5A2A (10 bytes) 
-_DATA_5A21_:    
+; Data from 5A21 to 5A2A (10 bytes)
+_DATA_5A21_:
 db $02, $07, $07, $07, $02, $0B, $06, $0B, $0B, $0B
 
-_LABEL_5A2B_:   
+_LABEL_5A2B_:
     ld   hl, _RAM_D051_
     call _LABEL_5B03_
     cp   $0C
@@ -5772,7 +5809,7 @@ _LABEL_5A2B_:
     jr   nc, _LABEL_5A3B_
     jr   _LABEL_5A9A_
 
-_LABEL_5A3B_:   
+_LABEL_5A3B_:
     inc  hl
     call _LABEL_5B03_
     cp   $00
@@ -5815,7 +5852,7 @@ _LABEL_5A3B_:
     cp   $29
     jr   z, _LABEL_5A9A_
     dec  hl
-_LABEL_5A7F_:   
+_LABEL_5A7F_:
     ld   a, $04
     call _LABEL_486E_
     call _LABEL_5B03_
@@ -5829,13 +5866,13 @@ _LABEL_5A7F_:
     ld   a, $01
     jr   _LABEL_5A9B_
 
-_LABEL_5A9A_:   
+_LABEL_5A9A_:
     xor  a
-_LABEL_5A9B_:   
+_LABEL_5A9B_:
     ld   [_RAM_D06A_], a
     ret
 
-_LABEL_5A9F_:   
+_LABEL_5A9F_:
     ld   hl, _RAM_D051_
     call _LABEL_5B03_
     ld   e, a
@@ -5844,9 +5881,9 @@ _LABEL_5A9F_:
     add  $08
     jr   _LABEL_5AB0_
 
-_LABEL_5AAE_:   
+_LABEL_5AAE_:
     sub  $5C
-_LABEL_5AB0_:   
+_LABEL_5AB0_:
     ld   hl, $5DBE
     call _LABEL_486E_
     ld   b, [hl]
@@ -5860,9 +5897,9 @@ _LABEL_5AB0_:
     ld   de, _DATA_5DB2_
     jr   _LABEL_5ACB_
 
-_LABEL_5AC8_:   
+_LABEL_5AC8_:
     ld   de, _DATA_5DA6_
-_LABEL_5ACB_:   
+_LABEL_5ACB_:
     ld   hl, _RAM_D052_
     push de
     call _LABEL_5B03_
@@ -5874,13 +5911,13 @@ _LABEL_5ACB_:
     ld   l, b
     ld   h, $00
     jr   z, _LABEL_5AE4_
-_LABEL_5ADC_:   
+_LABEL_5ADC_:
     ld   a, [de]
     call _LABEL_486E_
     inc  de
     dec  c
     jr   nz, _LABEL_5ADC_
-_LABEL_5AE4_:   
+_LABEL_5AE4_:
     push de
     dec  hl
     push hl
@@ -5896,12 +5933,12 @@ _LABEL_5AE4_:
     and  a
     jr   nz, _LABEL_5AFE_
     ld   a, $07
-_LABEL_5AFE_:   
+_LABEL_5AFE_:
     ld   [_RAM_D054_], a
     pop  de
     ret
 
-_LABEL_5B03_:   
+_LABEL_5B03_:
     ld   a, [hl]
     swap a
     and  $0F
@@ -5912,20 +5949,20 @@ _LABEL_5B03_:
     add  e
     ret
 
-_LABEL_5B12_:   
+_LABEL_5B12_:
     ld   de, _DATA_5DE1_
     ld   hl, _LABEL_10F_
-    ld   c, $01
-    call _LABEL_4A46_
+    ld   c, PRINT_NORMAL  ; $01
+    call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
     ld   de, _DATA_5DF4_
     ld   hl, _LABEL_10F_ + 1
-    ld   c, $01
-    call _LABEL_4A46_
+    ld   c, PRINT_NORMAL  ; $01
+    call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
     ld   de, _DATA_5E08_
     ld   hl, $0111
-    ld   c, $01
-    call _LABEL_4A46_
-_LABEL_5B33_:   
+    ld   c, PRINT_NORMAL  ; $01
+    call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
+_LABEL_5B33_:
     call _LABEL_49C2_
     ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
     cp   $2A
@@ -5936,10 +5973,10 @@ _LABEL_5B33_:
     ld   c, $03
     ld   hl, $99C0
     ld   de, $000C
-_LABEL_5B4C_:   
-    call _LABEL_92C_
+_LABEL_5B4C_:
+    call wait_until_vbl__92C_
     ld   b, $14
-_LABEL_5B51_:   
+_LABEL_5B51_:
     ld   a, $BE
     ldi  [hl], a
     dec  b
@@ -5950,7 +5987,7 @@ _LABEL_5B51_:
     call _LABEL_4B84_
     ret
 
-_LABEL_5B5F_:   
+_LABEL_5B5F_:
     ld   a, $05
     ldh  [rIE], a
     ei
@@ -5962,7 +5999,7 @@ _LABEL_5B5F_:
     cp   $0C
     jr   nz, _LABEL_5B73_
     xor  a
-_LABEL_5B73_:   
+_LABEL_5B73_:
     ld   b, $05
     call multiply_a_x_b__result_in_de__4853_
     ld   a, e
@@ -5993,7 +6030,7 @@ _LABEL_5B73_:
     call _LABEL_5BC8_
     ret
 
-_LABEL_5BB9_:   
+_LABEL_5BB9_:
     ld   a, [hl]
     swap a
     and  $0F
@@ -6004,10 +6041,10 @@ _LABEL_5BB9_:
     add  e
     ret
 
-_LABEL_5BC8_:   
+_LABEL_5BC8_:
     ld   b, $04
     call _LABEL_5D30_
-_LABEL_5BCD_:   
+_LABEL_5BCD_:
     ld   a, [hl]
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     xor  a
@@ -6037,12 +6074,12 @@ _LABEL_5BCD_:
     ldi  a, [hl]
     sub  $10
     add  $01
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ldi  a, [hl]
     sub  $10
     jr   _LABEL_5C61_
 
-_LABEL_5C0D_:   
+_LABEL_5C0D_:
     ld   [hl], $04
     ld   b, a
     ld   a, $2D
@@ -6055,11 +6092,11 @@ _LABEL_5C0D_:
     ldi  a, [hl]
     sub  $10
     add  $01
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ldi  a, [hl]
     jr   _LABEL_5C61_
 
-_LABEL_5C2B_:   
+_LABEL_5C2B_:
     ld   [hl], $01
     ld   b, a
     ld   a, $0F
@@ -6071,12 +6108,12 @@ _LABEL_5C2B_:
     ld   hl, _DATA_5D9F_
     ldi  a, [hl]
     add  $08
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ldi  a, [hl]
     sub  $10
     jr   _LABEL_5C61_
 
-_LABEL_5C49_:   
+_LABEL_5C49_:
     ld   [hl], $02
     sub  $0F
     ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
@@ -6086,10 +6123,10 @@ _LABEL_5C49_:
     ld   hl, _DATA_5D9F_
     ldi  a, [hl]
     add  $08
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ldi  a, [hl]
-_LABEL_5C61_:   
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+_LABEL_5C61_:
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     ld   hl, _RAM_D037_
     ld   a, $00
     add  [hl]
@@ -6102,21 +6139,21 @@ _LABEL_5C61_:
     xor  a
     jr   _LABEL_5C8E_
 
-_LABEL_5C7C_:   
+_LABEL_5C7C_:
     bit  2, a
     jr   z, _LABEL_5C84_
     ld   a, $40
     jr   _LABEL_5C8E_
 
-_LABEL_5C84_:   
+_LABEL_5C84_:
     bit  1, a
     jr   z, _LABEL_5C8C_
     ld   a, $60
     jr   _LABEL_5C8E_
 
-_LABEL_5C8C_:   
+_LABEL_5C8C_:
     ld   a, $20
-_LABEL_5C8E_:   
+_LABEL_5C8E_:
     ld   [_RAM_C8CD_], a    ; _RAM_C8CD_ = $C8CD
     call _LABEL_623_
     call _LABEL_5D30_
@@ -6125,15 +6162,15 @@ _LABEL_5C8E_:
     ld   a, [_RAM_D04A_]
     and  $0C
     jr   nz, _LABEL_5CA7_
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     sub  $08
     jr   _LABEL_5CAC_
 
-_LABEL_5CA7_:   
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+_LABEL_5CA7_:
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     add  $08
-_LABEL_5CAC_:   
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+_LABEL_5CAC_:
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, [_RAM_D037_]
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     push hl
@@ -6151,30 +6188,30 @@ _LABEL_5CAC_:
     ld   a, [_RAM_D04A_]
     and  $0C
     jr   nz, _LABEL_5CD9_
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     add  b
     jr   _LABEL_5CDD_
 
-_LABEL_5CD9_:   
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+_LABEL_5CD9_:
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     sub  b
-_LABEL_5CDD_:   
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+_LABEL_5CDD_:
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, $10
     call _LABEL_486E_
     ld   b, [hl]
     ld   a, [_RAM_D04A_]
     and  $09
     jr   nz, _LABEL_5CF3_
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     add  b
     jr   _LABEL_5CF7_
 
-_LABEL_5CF3_:   
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+_LABEL_5CF3_:
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     sub  b
-_LABEL_5CF7_:   
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+_LABEL_5CF7_:
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     ld   a, [_RAM_D037_]
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     call _LABEL_623_
@@ -6186,15 +6223,15 @@ _LABEL_5CF7_:
     ld   a, [_RAM_D04A_]
     and  $0C
     jr   nz, _LABEL_5D18_
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     add  $08
     jr   _LABEL_5D1D_
 
-_LABEL_5D18_:   
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+_LABEL_5D18_:
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     sub  $08
-_LABEL_5D1D_:   
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+_LABEL_5D1D_:
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, [_RAM_D037_]
     sub  $02
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
@@ -6203,10 +6240,10 @@ _LABEL_5D1D_:
     pop  hl
     ld   a, b
     ldi  [hl], a
-_LABEL_5D2F_:   
+_LABEL_5D2F_:
     ret
 
-_LABEL_5D30_:   
+_LABEL_5D30_:
     ld   hl, _RAM_D03C_
     ld   a, [_RAM_D048_]
     sla  a
@@ -6214,7 +6251,7 @@ _LABEL_5D30_:
     call _LABEL_486E_
     ret
 
-_LABEL_5D3E_:   
+_LABEL_5D3E_:
     ld   a, [_RAM_D059_]
     and  $0F
     and  a
@@ -6226,7 +6263,7 @@ _LABEL_5D3E_:
     ld   [_RAM_D02D_], a
     ret
 
-_LABEL_5D50_:   
+_LABEL_5D50_:
     call _LABEL_5D3E_
     ld   b, $08
     ld   hl, _RAM_D028_ ; _RAM_D028_ = $D028
@@ -6234,14 +6271,14 @@ _LABEL_5D50_:
     call _LABEL_482B_
     ret
 
-_LABEL_5D5F_:   
+_LABEL_5D5F_:
     call _LABEL_5D3E_
     xor  a
     ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
     ld   b, $08
     ld   hl, _RAM_D028_ ; _RAM_D028_ = $D028
     ld   de, _RAM_D051_
-_LABEL_5D6E_:   
+_LABEL_5D6E_:
     ld   a, [de]
     cp   [hl]
     jr   z, _LABEL_5D79_
@@ -6249,71 +6286,71 @@ _LABEL_5D6E_:
     ld   [de], a
     ld   a, $01
     ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
-_LABEL_5D79_:   
+_LABEL_5D79_:
     inc  de
     inc  hl
     dec  b
     jr   nz, _LABEL_5D6E_
     ret
 
-; Data from 5D7F to 5D9E (32 bytes) 
-_DATA_5D7F_:    
+; Data from 5D7F to 5D9E (32 bytes)
+_DATA_5D7F_:
 db $08, $08, $08, $08, $07, $07, $06, $06, $05, $05, $04, $03, $02, $02, $01, $00
 db $00, $01, $02, $02, $03, $04, $05, $05, $06, $06, $07, $07, $08, $08, $08, $08
 
-; Data from 5D9F to 5DA5 (7 bytes)  
-_DATA_5D9F_:    
+; Data from 5D9F to 5DA5 (7 bytes)
+_DATA_5D9F_:
 db $68, $42
 
-_DATA_5DA1_:   
+_DATA_5DA1_:
 db $05, $06, $01, $02, $00
 
-; Data from 5DA6 to 5DB1 (12 bytes) 
-_DATA_5DA6_:    
+; Data from 5DA6 to 5DB1 (12 bytes)
+_DATA_5DA6_:
 db $1F, $1C, $1F, $1E, $1F, $1E, $1F, $1F, $1E, $1F, $1E, $1F
 
-; Data from 5DB2 to 5DD1 (32 bytes) 
-_DATA_5DB2_:    
+; Data from 5DB2 to 5DD1 (32 bytes)
+_DATA_5DB2_:
 db $1F, $1D, $1F, $1E, $1F, $1E, $1F, $1F, $1E, $1F, $1E, $1F, $03, $05, $06, $07
 db $01, $03, $04, $05, $06, $01, $02, $03, $04, $06, $07, $01, $02, $04, $05, $06
 
-; Data from 5DD2 to 5DE0 (15 bytes) 
-_DATA_5DD2_:    
+; Data from 5DD2 to 5DE0 (15 bytes)
+_DATA_5DD2_:
 db $90, $95, $85, $93, $94, $81, $BE, $85, $8E, $BE, $88, $8F, $92, $81, $00
 
-; Data from 5DE1 to 5DF3 (19 bytes) 
-_DATA_5DE1_:    
+; Data from 5DE1 to 5DF3 (19 bytes)
+_DATA_5DE1_:
 db $BE, $BE, $90, $81, $92, $81, $BE, $83, $8F, $8E, $94, $89, $8E, $95, $81, $92
 db $BE, $8F, $00
 
-; Data from 5DF4 to 5E07 (20 bytes) 
-_DATA_5DF4_:    
+; Data from 5DF4 to 5E07 (20 bytes)
+_DATA_5DF4_:
 db $89, $8E, $96, $81, $8C, $89, $84, $81, $92, $BE, $90, $92, $85, $93, $89, $8F
 db $8E, $81, $92, $00
 
-; Data from 5E08 to 5E18 (17 bytes) 
-_DATA_5E08_:    
+; Data from 5E08 to 5E18 (17 bytes)
+_DATA_5E08_:
 db $BE, $BE, $BE, $85, $93, $83, $81, $90, $85, $BE, $93, $81, $8C, $89, $84, $81
 db $00
 
-; Data from 5E19 to 5E30 (24 bytes) 
-_DATA_5E19_:    
+; Data from 5E19 to 5E30 (24 bytes)
+_DATA_5E19_:
 db $8C, $95, $8E, $8D, $81, $92, $8D, $89, $D7, $8A, $95, $85, $96, $89, $85, $93
 db $D6, $82, $84, $8F, $8D, $8C, $95, $8E
 
-; Data from 5E31 to 5E54 (36 bytes) 
-_DATA_5E31_:    
+; Data from 5E31 to 5E54 (36 bytes)
+_DATA_5E31_:
 db $85, $8E, $85, $86, $85, $82, $8D, $81, $92, $81, $82, $92, $8D, $81, $99, $8A
 db $95, $8E, $8A, $95, $8C, $81, $87, $8F, $93, $85, $90, $8F, $83, $94, $8E, $8F
 db $96, $84, $89, $83
 
-_LABEL_5E55_:   
+_LABEL_5E55_:
     ldh  a, [rLCDC]
     and  $FD
     ldh  [rLCDC], a
     call _LABEL_620A_
     ld   hl, $8800
-_LABEL_5E61_:   
+_LABEL_5E61_:
     xor  a
     ldi  [hl], a
     ld   a, h
@@ -6336,12 +6373,12 @@ _LABEL_5E61_:
     ld   a, $BE
     ld   b, $10
     ld   hl, _RAM_D6D0_
-_LABEL_5E93_:   
+_LABEL_5E93_:
     ldi  [hl], a
     dec  b
     jr   nz, _LABEL_5E93_
     call _LABEL_6240_
-_LABEL_5E9A_:   
+_LABEL_5E9A_:
     call _LABEL_49C2_
     call _LABEL_6230_
     ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
@@ -6351,13 +6388,13 @@ _LABEL_5E9A_:
     call _LABEL_4B84_
     ret
 
-_LABEL_5EAE_:   
+_LABEL_5EAE_:
     cp   $2F
     jr   nz, _LABEL_5EB7_
     call _LABEL_522_
     jr   _LABEL_5E9A_
 
-_LABEL_5EB7_:   
+_LABEL_5EB7_:
     cp   $44
     jp   nz, _LABEL_5ED1_
     ld   a, [_RAM_D20D_]
@@ -6369,7 +6406,7 @@ _LABEL_5EB7_:
     ld   [_RAM_D717_], a
     jp   _LABEL_6030_
 
-_LABEL_5ED1_:   
+_LABEL_5ED1_:
     cp   $45
     jr   nz, _LABEL_5EEA_
     ld   a, [_RAM_D20D_]
@@ -6381,7 +6418,7 @@ _LABEL_5ED1_:
     ld   [_RAM_D717_], a
     jp   _LABEL_6030_
 
-_LABEL_5EEA_:   
+_LABEL_5EEA_:
     cp   $3E
     jr   nz, _LABEL_5F13_
     ld   a, [_RAM_D6D0_]
@@ -6394,13 +6431,13 @@ _LABEL_5EEA_:
     jp   nz, _LABEL_5F08_
     ld   a, $18
     ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
-_LABEL_5F08_:   
+_LABEL_5F08_:
     call _LABEL_621C_
     ld   a, $02
     call _LABEL_4A72_
     jp   _LABEL_5E9A_
 
-_LABEL_5F13_:   
+_LABEL_5F13_:
     cp   $3F
     jr   nz, _LABEL_5F34_
     ld   a, [_RAM_D6D0_]
@@ -6415,7 +6452,7 @@ _LABEL_5F13_:
     ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
     jp   _LABEL_5F08_
 
-_LABEL_5F34_:   
+_LABEL_5F34_:
     cp   $2C
     jr   nz, _LABEL_5F50_
     ld   a, [_RAM_D03B_]    ; _RAM_D03B_ = $D03B
@@ -6428,10 +6465,10 @@ _LABEL_5F34_:
     call _LABEL_621C_
     jp   _LABEL_5F54_
 
-_LABEL_5F50_:   
+_LABEL_5F50_:
     cp   $3C
     jr   nz, _LABEL_5F7A_
-_LABEL_5F54_:   
+_LABEL_5F54_:
     ld   a, [_RAM_D03B_]    ; _RAM_D03B_ = $D03B
     srl  a
     srl  a
@@ -6439,7 +6476,7 @@ _LABEL_5F54_:
     sub  $03
     ld   hl, $D6D0
     call _LABEL_486E_
-_LABEL_5F65_:   
+_LABEL_5F65_:
     ld   a, l
     cp   $DF
     jr   nz, _LABEL_5F73_
@@ -6448,7 +6485,7 @@ _LABEL_5F65_:
     call _LABEL_62BD_
     jp   _LABEL_5E9A_
 
-_LABEL_5F73_:   
+_LABEL_5F73_:
     inc  l
     ld   a, [hl]
     dec  l
@@ -6456,7 +6493,7 @@ _LABEL_5F73_:
     inc  l
     jr   _LABEL_5F65_
 
-_LABEL_5F7A_:   
+_LABEL_5F7A_:
     cp   $2E
     jp   z, _LABEL_6022_
     cp   $CB
@@ -6467,14 +6504,14 @@ _LABEL_5F7A_:
     jp   z, _LABEL_5E9A_
     ld   a, $CB
     ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
-_LABEL_5F93_:   
+_LABEL_5F93_:
     cp   $BE
     jr   nz, _LABEL_5FA1_
     ld   a, [_RAM_D03B_]    ; _RAM_D03B_ = $D03B
     cp   $18
     jp   z, _LABEL_5E9A_
     ld   a, $BE
-_LABEL_5FA1_:   
+_LABEL_5FA1_:
     cp   $81
     jp   c, _LABEL_5E9A_
     cp   $9E
@@ -6489,7 +6526,7 @@ _LABEL_5FA1_:
     ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
     jr   _LABEL_5FDA_
 
-_LABEL_5FBF_:   
+_LABEL_5FBF_:
     cp   $D6
     jp   c, _LABEL_5E9A_
     cp   $DB
@@ -6501,7 +6538,7 @@ _LABEL_5FBF_:
     jp   c, _LABEL_5FDA_
     sub  $07
     ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
-_LABEL_5FDA_:   
+_LABEL_5FDA_:
     ld   a, [_RAM_D20D_]
     and  a
     jp   z, _LABEL_6007_
@@ -6514,7 +6551,7 @@ _LABEL_5FDA_:
     ld   a, $BE
     ld   b, $10
     ld   hl, _RAM_D6D0_
-_LABEL_5FF7_:   
+_LABEL_5FF7_:
     ldi  [hl], a
     dec  b
     jr   nz, _LABEL_5FF7_
@@ -6522,7 +6559,7 @@ _LABEL_5FF7_:
     call _LABEL_62BD_
     call _LABEL_60F3_
     call _display_bg_sprites_on__627_
-_LABEL_6007_:   
+_LABEL_6007_:
     ld   a, [_RAM_D03B_]    ; _RAM_D03B_ = $D03B
     add  $08
     cp   $A0
@@ -6534,14 +6571,14 @@ _LABEL_6007_:
     call _LABEL_6230_
     jp   _LABEL_5E9A_
 
-_LABEL_6022_:   
+_LABEL_6022_:
     ld   hl, _RAM_D6D0_
     ld   a, [hl]
     cp   $BE
     jp   z, _LABEL_5E9A_
     ld   a, $0F
     ld   [_RAM_D717_], a
-_LABEL_6030_:   
+_LABEL_6030_:
     call _LABEL_6227_
     ld   a, $A0
     cp   $B0
@@ -6551,7 +6588,7 @@ _LABEL_6030_:
     ld   a, $01
     call _switch_bank_jump_hl_RAM__C920_
     ei
-_LABEL_6044_:   
+_LABEL_6044_:
     ld   a, [_RAM_D717_]
     cp   $0F
     jr   z, _LABEL_605F_
@@ -6563,7 +6600,7 @@ _LABEL_6044_:
     call _display_bg_sprites_on__627_
     jp   _LABEL_5E9A_
 
-_LABEL_605F_:   
+_LABEL_605F_:
     ld   a, [_RAM_D6E3_]
     bit  7, a
     jr   nz, _LABEL_60B7_
@@ -6579,7 +6616,7 @@ _LABEL_605F_:
     ld   a, $01
     call _switch_bank_jump_hl_RAM__C920_
     ei
-_LABEL_6080_:   
+_LABEL_6080_:
     ld   a, $10
     ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
     call _LABEL_6278_
@@ -6602,7 +6639,7 @@ _LABEL_6080_:
     call _display_bg_sprites_on__627_
     jp   _LABEL_5E9A_
 
-_LABEL_60B7_:   
+_LABEL_60B7_:
     ld   a, [_RAM_D20D_]
     cp   $01
     ld   a, $03
@@ -6613,7 +6650,7 @@ _LABEL_60B7_:
     ld   a, $18
     ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
     ld   a, $03
-_LABEL_60CE_:   
+_LABEL_60CE_:
     ld   [_RAM_D20D_], a
     ld   a, $A0
     cp   $B0
@@ -6622,16 +6659,16 @@ _LABEL_60CE_:
     call _LABEL_4B84_
     jp   _LABEL_5E9A_
 
-_LABEL_60E1_:   
+_LABEL_60E1_:
     call _LABEL_620A_
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
     call _LABEL_94C_
     call _LABEL_60F3_
     ld   a, $01
     ld   [_RAM_D20D_], a
     ret
 
-_LABEL_60F3_:   
+_LABEL_60F3_:
     ld   de, _DATA_62CF_
     ld   c, $00
     ld   b, $02
@@ -6649,7 +6686,7 @@ _LABEL_60F3_:
     call _LABEL_4944_
     ret
 
-_LABEL_611B_:   
+_LABEL_611B_:
     call _LABEL_620A_
     call _LABEL_62BD_
     ld   a, [_RAM_D715_]
@@ -6670,7 +6707,7 @@ _LABEL_611B_:
     pop  hl
     push hl
     call _switch_bank_read_byte_at_hl_RAM__C980_
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
     call _LABEL_94C_
     ld   a, [_rombank_readbyte_result__D6E7_]
     bit  7, a
@@ -6678,13 +6715,13 @@ _LABEL_611B_:
     ld   hl, $8800
     ld   bc, $0340
     call _switch_bank_memcopy_hl_to_de_len_bc_RAM__C960_
-_LABEL_615A_:   
+_LABEL_615A_:
     pop  hl
     inc  hl
     ld   a, [_rombank_readbyte_result__D6E7_]
     ld   b, $10
     call multiply_a_x_b__result_in_de__4853_
-    add  hl, de        
+    add  hl, de
     call _switch_bank_read_byte_at_hl_RAM__C980_
     ld   a, [_rombank_readbyte_result__D6E7_]
     ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
@@ -6723,13 +6760,13 @@ _LABEL_615A_:
     ld   c, b
     ld   b, $00
     add  hl, bc
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
     call _LABEL_94C_
     ld   de, _RAM_D800_
-_LABEL_61B4_:   
+_LABEL_61B4_:
     ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
     ld   c, a
-_LABEL_61B8_:   
+_LABEL_61B8_:
     ld   a, [de]
     inc  de
     ldi  [hl], a
@@ -6749,7 +6786,7 @@ _LABEL_61B8_:
     ldh  [rLCDC], a
     ret
 
-_LABEL_61D8_:   
+_LABEL_61D8_:
     xor  a
     ld   [_RAM_D401_], a
     ld   a, [_RAM_D03B_]    ; _RAM_D03B_ = $D03B
@@ -6778,11 +6815,11 @@ _LABEL_61D8_:
     call _LABEL_4944_
     ret
 
-_LABEL_620A_:   
-    call _LABEL_92C_
+_LABEL_620A_:
+    call wait_until_vbl__92C_
     call _LABEL_94C_
     ld   hl, _TILEMAP0; $9800
-_LABEL_6213_:   
+_LABEL_6213_:
     ld   a, $FA
     ldi  [hl], a
     ld   a, h
@@ -6790,19 +6827,19 @@ _LABEL_6213_:
     jr   nz, _LABEL_6213_
     ret
 
-_LABEL_621C_:   
+_LABEL_621C_:
     ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
     cp   $05
     call c, _LABEL_6265_
     jp   _LABEL_6240_
 
-_LABEL_6227_:   
+_LABEL_6227_:
     ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
     cp   $05
     jp   c, _LABEL_6265_
     ret
 
-_LABEL_6230_:   
+_LABEL_6230_:
     ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
     inc  a
     ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
@@ -6812,16 +6849,16 @@ _LABEL_6230_:
     jr   z, _LABEL_6240_
     ret
 
-_LABEL_6240_:   
+_LABEL_6240_:
     ld   a, [_RAM_D20D_]
     and  a
     ret  nz
     xor  a
     ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
     ld   a, $88
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     ld   a, [_RAM_D03B_]    ; _RAM_D03B_ = $D03B
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, $FB
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     xor  a
@@ -6831,7 +6868,7 @@ _LABEL_6240_:
     ld   [_RAM_D04B_], a
     ret
 
-_LABEL_6265_:   
+_LABEL_6265_:
     ld   a, $05
     ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
     ld   a, [_RAM_D04B_]
@@ -6841,9 +6878,9 @@ _LABEL_6265_:
     ld   [_RAM_D04B_], a
     ret
 
-_LABEL_6278_:   
+_LABEL_6278_:
     call _LABEL_620A_
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
     call _LABEL_94C_
     call _LABEL_62BD_
     ld   de, _DATA_6312_
@@ -6851,7 +6888,7 @@ _LABEL_6278_:
     bit  7, a
     jr   nz, _LABEL_6291_
     ld   de, _DATA_62FF_
-_LABEL_6291_:   
+_LABEL_6291_:
     ld   c, $00
     ld   b, $02
     ld   hl, $0504
@@ -6862,7 +6899,7 @@ _LABEL_6291_:
     call _LABEL_4944_
     call _display_bg_sprites_on__627_
     ld   b, $19
-_LABEL_62AA_:   
+_LABEL_62AA_:
     push bc
     call _LABEL_49C2_
     pop  bc
@@ -6871,11 +6908,11 @@ _LABEL_62AA_:
     jr   nz, _LABEL_62B9_
     dec  b
     jr   nz, _LABEL_62AA_
-_LABEL_62B9_:   
+_LABEL_62B9_:
     call _LABEL_4B84_
     ret
 
-_LABEL_62BD_:   
+_LABEL_62BD_:
     xor  a
     ld   [_RAM_D6E0_], a
     ld   de, _RAM_D6D0_
@@ -6885,31 +6922,31 @@ _LABEL_62BD_:
     call _LABEL_4944_
     ret
 
-; Data from 62CF to 62E2 (20 bytes) 
-_DATA_62CF_:    
+; Data from 62CF to 62E2 (20 bytes)
+_DATA_62CF_:
 db $85, $93, $83, $92, $89, $82, $89, $92, $BE, $8C, $81, $BE, $90, $81, $8C, $81
 db $82, $92, $81, $00
 
-; Data from 62E3 to 62EC (10 bytes) 
-_DATA_62E3_:    
+; Data from 62E3 to 62EC (10 bytes)
+_DATA_62E3_:
 db $64, $83, $8C, $81, $96, $85, $64, $BE, $99, $00
 
-; Data from 62ED to 62FE (18 bytes) 
-_DATA_62ED_:    
+; Data from 62ED to 62FE (18 bytes)
+_DATA_62ED_:
 db $90, $92, $85, $93, $89, $8F, $8E, $81, $92, $BE, $85, $8E, $94, $92, $81, $84
 db $81, $00
 
-; Data from 62FF to 6311 (19 bytes) 
-_DATA_62FF_:    
+; Data from 62FF to 6311 (19 bytes)
+_DATA_62FF_:
 db $BE, $85, $8E, $94, $92, $81, $84, $81, $00, $8E, $8F, $BE, $96, $81, $8C, $89
 db $84, $81, $00
 
-; Data from 6312 to 6327 (22 bytes) 
-_DATA_6312_:    
+; Data from 6312 to 6327 (22 bytes)
+_DATA_6312_:
 db $BE, $BE, $90, $81, $8C, $81, $82, $92, $81, $00, $84, $85, $93, $83, $8F, $8E
 db $8F, $83, $89, $84, $81, $00
 
-_LABEL_6328_:   
+_LABEL_6328_:
     xor  a
     ld   [_RAM_D06C_], a    ; _RAM_D06C_ = $D06C
     ld   [_RAM_D06D_], a    ; _RAM_D06D_ = $D06D
@@ -6926,32 +6963,32 @@ _LABEL_6328_:
     cp   $04
     ret  z
     push af
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
     call _LABEL_94C_
     pop  af
     cp   $02
     jr   z, _LABEL_6369_
     ld   hl, $8800
-_LABEL_6357_:   
+_LABEL_6357_:
     xor  a
     ldi  [hl], a
     ld   a, h
     cp   $98
     jr   nz, _LABEL_6357_
     ld   hl, _TILEMAP0; $9800
-_LABEL_6361_:   
+_LABEL_6361_:
     ld   a, $C8
     ldi  [hl], a
     ld   a, h
     cp   $A0
     jr   nz, _LABEL_6361_
-_LABEL_6369_:   
+_LABEL_6369_:
     ld   de, $18B2
     ld   bc, $0000
     ld   hl, $8C40
     ld   a, $1E
     call _LABEL_48CD_
-    call _LABEL_92C_
+    call wait_until_vbl__92C_
     call _LABEL_94C_
     ld   a, $FF
     ld   de, _DATA_1A92_
@@ -6966,11 +7003,11 @@ _LABEL_6369_:
     ld   [_RAM_D19C_], a    ; _RAM_D19C_ = $D19C
     ld   [_RAM_D19D_], a    ; _RAM_D19D_ = $D19D
     ld   a, $50
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     ld   a, $58
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     call _LABEL_6510_
-_LABEL_63A7_:   
+_LABEL_63A7_:
     xor  a
     ld   [_RAM_D05D_], a    ; _RAM_D05D_ = $D05D
     ld   [_RAM_D05E_], a    ; _RAM_D05E_ = $D05E
@@ -6987,14 +7024,14 @@ _LABEL_63A7_:
 ; Data from 63C9 to 63D0 (8 bytes)
 db $EA, $73, $D0, $CD, $A6, $67, $18, $E3
 
-_LABEL_63D1_:   
+_LABEL_63D1_:
     cp   $31
     jr   nz, _LABEL_63E0_
     ld   a, [_RAM_D19D_]    ; _RAM_D19D_ = $D19D
 ; Data from 63D8 to 63DF (8 bytes)
 db $EA, $73, $D0, $CD, $AC, $67, $18, $D4
 
-_LABEL_63E0_:   
+_LABEL_63E0_:
     cp   $32
     jp   z, _LABEL_667A_
     cp   $33
@@ -7019,7 +7056,7 @@ db $D1, $A7, $20, $FA, $FA, $06, $D0, $E6, $CF, $EA, $06, $D0, $E6, $F0, $CA, $B
 db $63, $3E, $01, $EA, $95, $D1, $FA, $4B, $D0, $EA, $CC, $C8, $CD, $53, $09, $FB
 db $FA, $95, $D1, $A7, $20, $FA, $C3, $B4, $63
 
-_LABEL_6510_:   
+_LABEL_6510_:
     ld   a, $D9
     ld   hl, _RAM_D06C_ ; _RAM_D06C_ = $D06C
     add  [hl]
@@ -7056,24 +7093,24 @@ db $EA, $CA, $C8, $FA, $4B, $D0, $EA, $CC, $C8, $3E, $00, $EA, $CB, $C8, $CD, $5
 db $08, $FA, $96, $D1, $A7, $C8, $3E, $01, $EA, $CA, $C8, $FA, $99, $D1, $EA, $CC
 db $C8, $3E, $00, $EA, $CB, $C8, $CD, $51, $08, $C9
 
-_LABEL_6673_:   
+_LABEL_6673_:
     ld   a, $03
     ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
     jr   _LABEL_667F_
 
-_LABEL_667A_:   
+_LABEL_667A_:
     ld   a, $02
     ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
-_LABEL_667F_:   
+_LABEL_667F_:
     ld   a, [_RAM_D195_ + 1]    ; _RAM_D195_ + 1 = $D196
     and  a
     jp   nz, _LABEL_694E_
     ld   a, [_RAM_D04B_]
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     call _LABEL_953_
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     ld   [_RAM_D073_], a
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     ld   [_RAM_D074_], a
     call _LABEL_89B_
     ld   hl, $0018
@@ -7129,13 +7166,13 @@ db $EA, $9E, $D1, $18, $07, $EA, $9E, $D1, $7E, $EA, $A0, $D1, $21, $3B, $D0, $F
 db $CA, $C8, $C6, $04, $BE, $38, $09, $EA, $A1, $D1, $7E, $EA, $9F, $D1, $18, $07
 db $EA, $9F, $D1, $7E, $EA, $A1, $D1, $CD, $92, $69
 
-_LABEL_694E_:   
+_LABEL_694E_:
     ld   a, [_RAM_D197_]
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     call _LABEL_953_
     ld   hl, _RAM_D197_
     ld   b, $03
-_LABEL_695C_:   
+_LABEL_695C_:
     ldi  a, [hl]
     ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
     push bc
@@ -7150,12 +7187,12 @@ _LABEL_695C_:
     call _LABEL_89B_
     xor  a
     ld   [_RAM_D196_], a
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     add  $04
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     add  $04
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     call _LABEL_6510_
     ld   a, $0A
     call _LABEL_4A72_
@@ -7176,7 +7213,7 @@ _LABEL_695C_:
 _LABEL_6A26_:
     ld   a, [_RAM_D19C_]    ; _RAM_D19C_ = $D19C
     ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     and  $07
     ld   b, $80
     jr   z, _LABEL_6A3A_
@@ -7192,7 +7229,7 @@ _LABEL_6A3A_:
     jp   z, _LABEL_6A6E_
 _LABEL_6A45_:
     push hl
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     and  $07
     sla  a
     call _LABEL_486E_
@@ -7202,9 +7239,9 @@ _LABEL_6A45_:
     dec  a
     ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
     ret  z
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     inc  a
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     and  $07
     jr   nz, _LABEL_6A45_
     push bc
@@ -7214,7 +7251,7 @@ _LABEL_6A45_:
 
 _LABEL_6A6E_:
     push hl
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     and  $07
     sla  a
     call _LABEL_486E_
@@ -7224,9 +7261,9 @@ _LABEL_6A6E_:
     dec  a
     ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
     ret  z
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     inc  a
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     and  $07
     jr   z, _LABEL_6A94_
     srl  b
@@ -7479,9 +7516,9 @@ db $D1, $C9
 
 _LABEL_6F40_:
     ld   a, [_RAM_D1A2_]    ; _RAM_D1A2_ = $D1A2
-    ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, [_RAM_D1A3_]    ; _RAM_D1A3_ = $D1A3
-    ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     call _LABEL_6FA0_
     ld   a, [_RAM_D1A3_]    ; _RAM_D1A3_ = $D1A3
     ld   b, a
@@ -7534,13 +7571,13 @@ _LABEL_6F87_:
 db $FA, $4B, $D0, $EA, $CC, $C8, $CD, $53, $09
 
 _LABEL_6FA0_:
-    ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
     srl  a
     srl  a
     srl  a
     sub  $04
     ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
-    ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
     srl  a
     srl  a
     srl  a
@@ -7602,15 +7639,15 @@ db $88, $89, $96, $8F, $00, $86, $C4, $FE, $BE, $8C, $8C, $85, $8E, $8F, $00, $8
 db $C5, $FE, $BE, $82, $8F, $92, $92, $81, $92, $00, $86, $C6, $FE, $BE, $90, $8C
 db $95, $8D, $81, $BE, $84, $85, $00, $BE, $BE, $BE, $BE, $84, $89, $82, $95, $8A
     db $8F, $00, $86, $C7, $FE, $BE, $86, $8C, $85, $83, $88, $81, $00
-    
-_LABEL_711A_:   
-        call _LABEL_92C_
+
+_LABEL_711A_:
+        call wait_until_vbl__92C_
         call _LABEL_94C_
         ld   hl, $9000
         ld   de, $40BA
         ld   bc, $0800
         call _memcopy_in_RAM__C900_
-        call _LABEL_92C_
+        call wait_until_vbl__92C_
         call _LABEL_94C_
         ld   hl, $8800
         ld   de, $2F2A
@@ -7650,15 +7687,15 @@ _LABEL_711A_:
         ldh  [rSC], a
         call _LABEL_784F_
         jp   _LABEL_711A_
-    
-_LABEL_7185_:   
-        call _LABEL_92C_
+
+_LABEL_7185_:
+        call wait_until_vbl__92C_
         call _LABEL_94C_
         ld   hl, $8800
         ld   de, $2F2A
         ld   bc, $0800
         call _memcopy_in_RAM__C900_
-        call _LABEL_92C_
+        call wait_until_vbl__92C_
         call _LABEL_94C_
         ld   hl, $9000
         ld   de, $27FA
@@ -7671,7 +7708,7 @@ _LABEL_7185_:
         ld   [_RAM_D04B_], a
         ld   a, $FF
         ld   [_RAM_D079_], a
-_LABEL_71BB_:   
+_LABEL_71BB_:
         call _LABEL_289_
         call _LABEL_C8D_
         ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
@@ -7681,8 +7718,8 @@ _LABEL_71BB_:
         jr   nz, _LABEL_71D1_
         call _LABEL_522_
         jr   _LABEL_71BB_
-    
-_LABEL_71D1_:   
+
+_LABEL_71D1_:
         cp   $18
         jr   nc, _LABEL_71F6_
         ld   hl, _RAM_D079_
@@ -7691,8 +7728,8 @@ _LABEL_71D1_:
         ld   a, $F9
         ld   [_RAM_CC23_], a    ; _RAM_CC23_ = $CC23
         jr   _LABEL_71BB_
-    
-_LABEL_71E2_:   
+
+_LABEL_71E2_:
         ld   [hl], a
         sla  a
         ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
@@ -7701,8 +7738,8 @@ _LABEL_71E2_:
         call _LABEL_2A2_
         call _LABEL_77D3_
         jr   _LABEL_71BB_
-    
-_LABEL_71F6_:   
+
+_LABEL_71F6_:
         ld   a, $FF
         ld   [_RAM_D079_], a
         call _LABEL_77B0_
@@ -7710,12 +7747,12 @@ _LABEL_71F6_:
         ld   [_RAM_CC00_], a    ; _RAM_CC00_ = $CC00
         call _LABEL_787C_
         jr   _LABEL_71BB_
-    
-_LABEL_7207_:   
+
+_LABEL_7207_:
         call _LABEL_77B0_
         ret
-    
-_LABEL_720B_:   
+
+_LABEL_720B_:
         ld   b, $00
         call _LABEL_7242_
         ret  z
@@ -7727,8 +7764,8 @@ _LABEL_720B_:
         ld   [_RAM_D07B_], a
         call _LABEL_7310_
         jr   _LABEL_720B_
-    
-_LABEL_7226_:   
+
+_LABEL_7226_:
         ld   b, $01
         call _LABEL_7242_
         ret  z
@@ -7740,23 +7777,23 @@ _LABEL_7226_:
         ld   [_RAM_D07B_], a
         call _LABEL_7310_
         jr   _LABEL_7226_
-    
-_LABEL_7242_:   
+
+_LABEL_7242_:
         push bc
-        call _LABEL_92C_
+        call wait_until_vbl__92C_
         call _LABEL_94C_
         ld   hl, $8800
         ld   de, $2F2A
         ld   bc, $0800
         call _memcopy_in_RAM__C900_
-        call _LABEL_92C_
+        call wait_until_vbl__92C_
         call _LABEL_94C_
         ld   hl, $9000
         ld   de, $27FA
         ld   bc, $0800
         call _memcopy_in_RAM__C900_
         call _LABEL_4875_
-        call _LABEL_92C_
+        call wait_until_vbl__92C_
         call _LABEL_94C_
         call _LABEL_761F_
         pop  bc
@@ -7764,23 +7801,23 @@ _LABEL_7242_:
         jr   nz, _LABEL_727D_
         call _LABEL_765B_
         jr   _LABEL_7280_
-    
-_LABEL_727D_:   
+
+_LABEL_727D_:
         call _LABEL_766D_
-_LABEL_7280_:   
+_LABEL_7280_:
         call _display_bg_sprites_on__627_
         ld   de, _DATA_78FF_
         ld   hl, $0109
-        ld   c, $01
-        call _LABEL_4A46_
+        ld   c, PRINT_NORMAL  ; $01
+        call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
         ld   de, _DATA_7912_
         ld   hl, $030B
-        ld   c, $01
-        call _LABEL_4A46_
+        ld   c, PRINT_NORMAL  ; $01
+        call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
         xor  a
         ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
         ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
-_LABEL_72A0_:   
+_LABEL_72A0_:
         call _LABEL_72F0_
         call _LABEL_289_
         call _LABEL_C8D_
@@ -7790,16 +7827,16 @@ _LABEL_72A0_:
         xor  a
         ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
         ret
-    
-_LABEL_72B5_:   
+
+_LABEL_72B5_:
         cp   $2E
         jr   nz, _LABEL_72C0_
         ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
         and  a
         jr   z, _LABEL_72A0_
         ret
-    
-_LABEL_72C0_:   
+
+_LABEL_72C0_:
         cp   $2F
         jr   nz, _LABEL_72D9_
         ld   a, $0E
@@ -7811,62 +7848,62 @@ _LABEL_72C0_:
         pop  af
         ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
         jr   _LABEL_72A0_
-    
-_LABEL_72D9_:   
+
+_LABEL_72D9_:
         cp   $C1
         jr   c, _LABEL_72A0_
         cp   $CA
         jr   nc, _LABEL_72A0_
         ld   b, a
-        call _LABEL_92C_
+        call wait_until_vbl__92C_
         ld   a, b
         ld   [$994B], a
         sub  $C0
         ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
         jr   _LABEL_72A0_
-    
-_LABEL_72F0_:   
+
+_LABEL_72F0_:
         ld   a, [_RAM_D03B_]    ; _RAM_D03B_ = $D03B
         inc  a
         ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
         and  $0F
         jr   nz, _LABEL_7304_
-        call _LABEL_92C_
+        call wait_until_vbl__92C_
         ld   a, $BF
         ld   [$9949], a
         ret
-    
-_LABEL_7304_:   
+
+_LABEL_7304_:
         cp   $08
         ret  nz
-        call _LABEL_92C_
+        call wait_until_vbl__92C_
         ld   a, $BE
         ld   [$9949], a
         ret
-    
-_LABEL_7310_:   
+
+_LABEL_7310_:
         ld   hl, _DATA_F45_
         ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
         dec  a
         jr   z, _LABEL_7322_
         ld   b, a
-_LABEL_731A_:   
+_LABEL_731A_:
         ldi  a, [hl]
         cp   $FF
         jr   nz, _LABEL_731A_
         dec  b
         jr   nz, _LABEL_731A_
-_LABEL_7322_:   
+_LABEL_7322_:
         xor  a
         ld   [_RAM_D07C_], a
-_LABEL_7326_:   
+_LABEL_7326_:
         push hl
         call _LABEL_7704_
         call _LABEL_76D4_
         call _LABEL_4B84_
         xor  a
         ld   [_RAM_D04B_], a
-_LABEL_7334_:   
+_LABEL_7334_:
         xor  a
         ld   [_RAM_CC00_], a    ; _RAM_CC00_ = $CC00
         call _LABEL_787C_
@@ -7885,8 +7922,8 @@ _LABEL_7334_:
         inc  hl
         push hl
         jr   _LABEL_7334_
-    
-_LABEL_7354_:   
+
+_LABEL_7354_:
         ld   a, b
         sub  $18
         ld   b, a
@@ -7898,18 +7935,18 @@ _LABEL_7354_:
         ld   a, [_RAM_D07B_]
         and  a
         jr   nz, _LABEL_7375_
-_LABEL_7366_:   
+_LABEL_7366_:
         call _LABEL_C8D_
         ld   a, [_RAM_D027_]    ; _RAM_D027_ = $D027
         bit  0, a
         jr   z, _LABEL_7375_
         call _LABEL_289_
         jr   _LABEL_7366_
-    
-_LABEL_7375_:   
+
+_LABEL_7375_:
         pop  bc
         pop  hl
-_LABEL_7377_:   
+_LABEL_7377_:
         ld   a, b
         ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
         sla  a
@@ -7920,7 +7957,7 @@ _LABEL_7377_:
         xor  a
         ld   [_RAM_D400_], a
         call _LABEL_77D3_
-_LABEL_738C_:   
+_LABEL_738C_:
         call _LABEL_289_
         call _LABEL_C8D_
         ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
@@ -7930,8 +7967,8 @@ _LABEL_738C_:
         jr   nz, _LABEL_73A4_
         call _LABEL_522_
         jp   _LABEL_738C_
-    
-_LABEL_73A4_:   
+
+_LABEL_73A4_:
         ld   a, [_RAM_D07B_]
         and  a
         jr   nz, _LABEL_73C5_
@@ -7947,26 +7984,26 @@ _LABEL_73A4_:
         ld   [_RAM_CC00_], a    ; _RAM_CC00_ = $CC00
         call _LABEL_787C_
         jr   _LABEL_738C_
-    
-_LABEL_73C5_:   
+
+_LABEL_73C5_:
         ld   hl, $7980
         ld   a, [_RAM_D03B_]    ; _RAM_D03B_ = $D03B
         cp   $3C
         jr   nz, _LABEL_73D1_
         ld   a, $18
-_LABEL_73D1_:   
+_LABEL_73D1_:
         sla  a
         call _LABEL_486E_
         ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
         and  a
         jr   nz, _LABEL_73DF_
         call _LABEL_2A2_
-_LABEL_73DF_:   
+_LABEL_73DF_:
         ld   a, [_RAM_D07C_]
         and  a
         jr   nz, _LABEL_73E8_
         call _LABEL_289_
-_LABEL_73E8_:   
+_LABEL_73E8_:
         ld   a, $01
         ld   [_RAM_D400_], a
         ld   a, [_RAM_D07A_]
@@ -7980,29 +8017,29 @@ _LABEL_73E8_:
         jr   z, _LABEL_738C_
         call _LABEL_77B0_
         jp   _LABEL_738C_
-    
-_LABEL_7407_:   
+
+_LABEL_7407_:
         call _LABEL_7704_
         call _LABEL_76E0_
-_LABEL_740D_:   
+_LABEL_740D_:
         call _LABEL_77B0_
         call _LABEL_784F_
         call _LABEL_4B84_
         ret
-    
-_LABEL_7417_:   
+
+_LABEL_7417_:
         pop  hl
         call _LABEL_7704_
         jr   _LABEL_740D_
-    
-_LABEL_741D_:   
-        call _LABEL_92C_
+
+_LABEL_741D_:
+        call wait_until_vbl__92C_
         call _LABEL_94C_
         ld   hl, $8800
         ld   de, $2F2A
         ld   bc, $0800
         call _memcopy_in_RAM__C900_
-        call _LABEL_92C_
+        call wait_until_vbl__92C_
         call _LABEL_94C_
         ld   hl, $9000
         ld   de, $27FA
@@ -8021,23 +8058,23 @@ _LABEL_741D_:
         ld   [_RAM_D07F_], a
         ld   a, $3C
         ld   [_RAM_D079_], a
-_LABEL_7465_:   
+_LABEL_7465_:
         ld   e, $00
-_LABEL_7467_:   
+_LABEL_7467_:
         push de
         call _LABEL_289_
         call _LABEL_C8D_
         pop  de
         inc  e
-_LABEL_7470_:   
+_LABEL_7470_:
         ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
-_LABEL_7473_:   
+_LABEL_7473_:
         cp   $2A
         jr   nz, _LABEL_747B_
         call _LABEL_77B0_
         ret
-    
-_LABEL_747B_:   
+
+_LABEL_747B_:
         ld   b, a
         ld   a, [_RAM_D079_]
         cp   $3C
@@ -8056,8 +8093,8 @@ _LABEL_747B_:
         call _LABEL_7704_
         ld   e, $00
         jp   _LABEL_7470_
-    
-_LABEL_74A6_:   
+
+_LABEL_74A6_:
         cp   $31
         jp   z, _LABEL_75F0_
         cp   $2E
@@ -8067,7 +8104,7 @@ _LABEL_74A6_:
         cp   $2D
         jp   nz, _LABEL_74BD_
         call _LABEL_7733_
-_LABEL_74BD_:   
+_LABEL_74BD_:
         ld   a, [_RAM_D07F_]
         and  a
         jr   nz, _LABEL_74D9_
@@ -8075,14 +8112,14 @@ _LABEL_74BD_:
         cp   $1E
         jr   nz, _LABEL_74CB_
         call _LABEL_7704_
-_LABEL_74CB_:   
+_LABEL_74CB_:
         ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
         cp   $2F
         jp   nz, _LABEL_7467_
         call _LABEL_522_
         jp   _LABEL_7465_
-    
-_LABEL_74D9_:   
+
+_LABEL_74D9_:
         ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
         cp   $18
         jp   nc, _LABEL_756E_
@@ -8092,8 +8129,8 @@ _LABEL_74D9_:
         ld   a, $F9
         ld   [_RAM_CC23_], a    ; _RAM_CC23_ = $CC23
         jp   _LABEL_7593_
-    
-_LABEL_74EF_:   
+
+_LABEL_74EF_:
         ld   b, a
         ld   a, [hl]
         ld   [_RAM_D07E_], a
@@ -8107,7 +8144,7 @@ _LABEL_74EF_:
         call _LABEL_77D3_
         ld   a, $01
         ld   [_RAM_D07F_], a
-_LABEL_750C_:   
+_LABEL_750C_:
         ld   a, [_RAM_D07D_]
         bit  7, a
         jr   nz, _LABEL_7532_
@@ -8125,8 +8162,8 @@ _LABEL_750C_:
         ld   a, $03
         ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
         jp   _LABEL_7465_
-    
-_LABEL_7532_:   
+
+_LABEL_7532_:
         call _LABEL_76BC_
         ld   a, $01
         ld   [_RAM_D07C_], a
@@ -8141,7 +8178,7 @@ _LABEL_7532_:
         call _LABEL_77B0_
         call _LABEL_4B84_
         ld   b, $32
-_LABEL_7556_:   
+_LABEL_7556_:
         push bc
         call _LABEL_289_
         call _LABEL_C8D_
@@ -8151,11 +8188,11 @@ _LABEL_7556_:
         jr   nz, _LABEL_7568_
         dec  b
         jr   nz, _LABEL_7556_
-_LABEL_7568_:   
+_LABEL_7568_:
         call _LABEL_7704_
         jp   _LABEL_7473_
-    
-_LABEL_756E_:   
+
+_LABEL_756E_:
         ld   a, [_RAM_D07F_]
         bit  1, a
         jp   nz, _LABEL_7465_
@@ -8170,17 +8207,17 @@ _LABEL_756E_:
         ld   [_RAM_D079_], a
         jp   nz, _LABEL_750C_
         ld   [_RAM_D07E_], a
-_LABEL_7593_:   
+_LABEL_7593_:
         ld   a, [_RAM_D03B_]    ; _RAM_D03B_ = $D03B
         inc  a
         cp   $FA
         jr   nz, _LABEL_759D_
         ld   a, $F9
-_LABEL_759D_:   
+_LABEL_759D_:
         ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
         jp   _LABEL_7465_
-    
-_LABEL_75A3_:   
+
+_LABEL_75A3_:
         xor  a
         ld   [_RAM_D07D_], a
         ld   [_RAM_D07C_], a
@@ -8191,16 +8228,16 @@ _LABEL_75A3_:
         ld   [_RAM_D07F_], a
         call _LABEL_4B84_
         jp   _LABEL_7465_
-    
-_LABEL_75BD_:   
+
+_LABEL_75BD_:
         call _LABEL_75CF_
         call _LABEL_7704_
         call _LABEL_76B0_
         call _LABEL_77B0_
         call _LABEL_4B84_
         jp   _LABEL_7465_
-    
-_LABEL_75CF_:   
+
+_LABEL_75CF_:
         ld   hl, _RAM_D080_
         ld   a, [_RAM_D07D_]
         bit  7, a
@@ -8208,10 +8245,10 @@ _LABEL_75CF_:
         sla  a
         call _LABEL_486E_
         jr   _LABEL_75E3_
-    
-_LABEL_75E0_:   
+
+_LABEL_75E0_:
         ld   hl, _RAM_D180_
-_LABEL_75E3_:   
+_LABEL_75E3_:
         ld   a, $FF
         ld   [hl], a
         ld   a, $01
@@ -8219,8 +8256,8 @@ _LABEL_75E3_:
         xor  a
         ld   [_RAM_D07F_], a
         ret
-    
-_LABEL_75F0_:   
+
+_LABEL_75F0_:
         ld   a, [_RAM_D07C_]
         and  a
         jr   z, _LABEL_760A_
@@ -8231,8 +8268,8 @@ _LABEL_75F0_:
         call _LABEL_7326_
         call _LABEL_4B84_
         jp   _LABEL_7465_
-    
-_LABEL_760A_:   
+
+_LABEL_760A_:
         call _LABEL_7704_
         call _LABEL_76EC_
         call _LABEL_77B0_
@@ -8241,8 +8278,8 @@ _LABEL_760A_:
         ld   [_RAM_D07F_], a
         call _LABEL_4B84_
         jp   _LABEL_7473_
-    
-_LABEL_761F_:   
+
+_LABEL_761F_:
         ld   hl, $9820
         call _LABEL_7643_
         ld   de, _DATA_78D7_
@@ -8250,8 +8287,8 @@ _LABEL_761F_:
         ld   b, $05
         call _LABEL_764C_
         ret
-    
-_LABEL_7631_:   
+
+_LABEL_7631_:
         ld   hl, $9860
         call _LABEL_7643_
         ld   de, _DATA_78DC_
@@ -8259,14 +8296,14 @@ _LABEL_7631_:
         ld   b, $09
         call _LABEL_764C_
         ret
-    
-_LABEL_7643_:   
+
+_LABEL_7643_:
         ld   de, _DATA_78C3_
         ld   b, $14
         call _LABEL_764C_
         ret
-    
-_LABEL_764C_:   
+
+_LABEL_764C_:
         ld   a, [de]
         inc  de
         ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
@@ -8277,8 +8314,8 @@ _LABEL_764C_:
         dec  b
         jr   nz, _LABEL_764C_
         ret
-    
-_LABEL_765B_:   
+
+_LABEL_765B_:
         ld   hl, $9860
         call _LABEL_7643_
         ld   de, _DATA_78E5_
@@ -8286,8 +8323,8 @@ _LABEL_765B_:
         ld   b, $07
         call _LABEL_764C_
         ret
-    
-_LABEL_766D_:   
+
+_LABEL_766D_:
         ld   hl, $9860
         call _LABEL_7643_
         ld   de, _DATA_78EC_
@@ -8295,8 +8332,8 @@ _LABEL_766D_:
         ld   b, $0A
         call _LABEL_764C_
         ret
-    
-_LABEL_767F_:   
+
+_LABEL_767F_:
         ld   hl, $9820
         call _LABEL_7643_
         ld   de, _DATA_78F6_
@@ -8304,15 +8341,15 @@ _LABEL_767F_:
         ld   b, $09
         call _LABEL_764C_
         ret
-    
-_LABEL_7691_:   
+
+_LABEL_7691_:
         call _LABEL_4875_
         ld   de, _DATA_438A_
         ld   hl, $9940
-        call _LABEL_92C_
+        call wait_until_vbl__92C_
         call _LABEL_94C_
         ld   c, $06
-_LABEL_76A2_:   
+_LABEL_76A2_:
         ld   b, $14
         call _LABEL_481F_
         ld   a, $0C
@@ -8320,76 +8357,76 @@ _LABEL_76A2_:
         dec  c
         jr   nz, _LABEL_76A2_
         ret
-    
-_LABEL_76B0_:   
+
+_LABEL_76B0_:
         ld   de, _DATA_7918_
         ld   hl, $0107
-        ld   c, $01
-        call _LABEL_4A46_
+        ld   c, PRINT_NORMAL  ; $01
+        call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
         ret
-    
-_LABEL_76BC_:   
+
+_LABEL_76BC_:
         ld   de, _DATA_7927_
         ld   hl, $0107
-        ld   c, $01
-        call _LABEL_4A46_
+        ld   c, PRINT_NORMAL  ; $01
+        call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
         ret
-    
-_LABEL_76C8_:   
+
+_LABEL_76C8_:
         ld   de, _DATA_7979_
         ld   hl, $0107
-        ld   c, $01
-        call _LABEL_4A46_
+        ld   c, PRINT_NORMAL  ; $01
+        call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
         ret
-    
-_LABEL_76D4_:   
+
+_LABEL_76D4_:
         ld   de, _DATA_795A_
         ld   hl, $0107
-        ld   c, $01
-        call _LABEL_4A46_
+        ld   c, PRINT_NORMAL  ; $01
+        call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
         ret
-    
-_LABEL_76E0_:   
+
+_LABEL_76E0_:
         ld   de, _DATA_796B_
         ld   hl, $0107
-        ld   c, $01
-        call _LABEL_4A46_
+        ld  c, PRINT_NORMAL  ; $01
+        call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
         ret
-    
-_LABEL_76EC_:   
+
+_LABEL_76EC_:
         ld   de, _DATA_7935_
         ld   hl, $0107
-        ld   c, $01
-        call _LABEL_4A46_
+        ld  c, PRINT_NORMAL  ; $01
+        call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
         ret
-    
-_LABEL_76F8_:   
+
+_LABEL_76F8_:
         ld   de, _DATA_7948_
         ld   hl, $0107
-        ld   c, $01
-        call _LABEL_4A46_
+        ld  c, PRINT_NORMAL  ; $01
+        call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
         ret
-    
-_LABEL_7704_:   
+
+_LABEL_7704_:
         ld   hl, $98C0
         ld   b, $14
-        call _LABEL_92C_
+        call wait_until_vbl__92C_
         ld   a, $BE
-_LABEL_770E_:   
+_LABEL_770E_:
         ldi  [hl], a
         dec  b
         jr   nz, _LABEL_770E_
         ld   hl, $98E0
         ld   b, $14
-        call _LABEL_92C_
+        call wait_until_vbl__92C_
         ld   a, $BE
-_LABEL_771C_:   
+_LABEL_771C_:
         ldi  [hl], a
         dec  b
         jr   nz, _LABEL_771C_
         ret
-    
-_LABEL_7721_:   
+
+_LABEL_7721_:
         call _LABEL_49C2_
         ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
         push af
@@ -8399,19 +8436,19 @@ _LABEL_7721_:
         cp   $FF
         jr   z, _LABEL_7721_
         ret
-    
-_LABEL_7733_:   
-        call _LABEL_92C_
+
+_LABEL_7733_:
+        call wait_until_vbl__92C_
         call _LABEL_94C_
         ld   hl, $8800
         ld   de, $2F2A
         ld   bc, $0800
         call _memcopy_in_RAM__C900_
-        call _LABEL_92C_
+        call wait_until_vbl__92C_
         call _LABEL_94C_
         ld   hl, _TILEMAP0; $9800
         ld   de, $9C00
-_LABEL_7751_:   
+_LABEL_7751_:
         ldi  a, [hl]
         ld   [de], a
         inc  de
@@ -8425,16 +8462,16 @@ _LABEL_7751_:
         call _LABEL_48EB_
         ld   de, _DATA_7888_
         ld   hl, $0707
-        ld   c, $01
-        call _LABEL_4A46_
+        ld   c, PRINT_NORMAL  ; $01
+        call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
         ld   de, _DATA_788E_
         ld   hl, _DATA_20A_
         ld   b, $04
-        ld   c, $01
-_LABEL_777C_:   
+        ld   c, PRINT_NORMAL  ; $01
+_LABEL_777C_:
         push bc
         push hl
-        call _LABEL_4A46_
+        call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
         pop  hl
         pop  bc
         inc  l
@@ -8446,11 +8483,11 @@ _LABEL_777C_:
         ldh  [rLCDC], a
         call _LABEL_4B84_
         call _LABEL_7721_
-        call _LABEL_92C_
+        call wait_until_vbl__92C_
         call _LABEL_94C_
         ld   hl, $9C00
         ld   de, _TILEMAP0; $9800
-_LABEL_77A1_:   
+_LABEL_77A1_:
         ldi  a, [hl]
         ld   [de], a
         inc  de
@@ -8460,8 +8497,8 @@ _LABEL_77A1_:
         call _display_bg_sprites_on__627_
         call _LABEL_4B84_
         ret
-    
-_LABEL_77B0_:   
+
+_LABEL_77B0_:
         ld   a, [_RAM_D04B_]
         ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
         call _LABEL_89B_
@@ -8469,7 +8506,7 @@ _LABEL_77B0_:
         ld   [_RAM_D04B_], a
         ld   b, $04
         ld   hl, _RAM_D03C_
-_LABEL_77C2_:   
+_LABEL_77C2_:
         ld   a, [hl]
         ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
         xor  a
@@ -8482,8 +8519,8 @@ _LABEL_77C2_:
         dec  b
         jr   nz, _LABEL_77C2_
         ret
-    
-_LABEL_77D3_:   
+
+_LABEL_77D3_:
         call _LABEL_77B0_
         ld   hl, _DATA_79B2_
         ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
@@ -8491,8 +8528,8 @@ _LABEL_77D3_:
         jr   nz, _LABEL_77E4_
         call _LABEL_787C_
         ret
-    
-_LABEL_77E4_:   
+
+_LABEL_77E4_:
         push bc
         srl  a
         ld   b, $06
@@ -8500,17 +8537,17 @@ _LABEL_77E4_:
         add  hl, de
         pop  bc
         ldi  a, [hl]
-        ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+        ld   [_tilemap_pos_x__RAM_C8CB_], a
         ldi  a, [hl]
-        ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+        ld   [_tilemap_pos_y__RAM_C8CA_], a
         ld   a, $80
         ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
-        ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+        ld   a, [_tilemap_pos_y__RAM_C8CA_]
         cp   $90
         jr   z, _LABEL_7807_
         ld   a, $FD
         ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
-_LABEL_7807_:   
+_LABEL_7807_:
         xor  a
         ld   [_RAM_C8CD_], a    ; _RAM_C8CD_ = $C8CD
         push hl
@@ -8518,21 +8555,21 @@ _LABEL_7807_:
         pop  hl
         ld   a, b
         ld   [_RAM_D04B_], a
-        ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+        ld   a, [_tilemap_pos_x__RAM_C8CB_]
         sub  $06
-        ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
-        ld   a, [_tile_pos_y__RAM_C8CA_]    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+        ld   [_tilemap_pos_x__RAM_C8CB_], a
+        ld   a, [_tilemap_pos_y__RAM_C8CA_]
         add  $08
         cp   $98
         jr   z, _LABEL_7827_
         sub  $10
-_LABEL_7827_:   
-        ld   [_tile_pos_y__RAM_C8CA_], a    ; _tile_pos_y__RAM_C8CA_ = $C8CA
+_LABEL_7827_:
+        ld   [_tilemap_pos_y__RAM_C8CA_], a
         xor  a
         ld   [_RAM_C8CD_], a    ; _RAM_C8CD_ = $C8CD
         ld   b, $04
         ld   de, _RAM_D03B_ + 1 ; _RAM_D03B_ + 1 = $D03C
-_LABEL_7833_:   
+_LABEL_7833_:
         ldi  a, [hl]
         ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
         push bc
@@ -8545,14 +8582,14 @@ _LABEL_7833_:
         ld   [de], a
         inc  de
         pop  bc
-        ld   a, [_tile_pos_x__RAM_C8CB_]    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+        ld   a, [_tilemap_pos_x__RAM_C8CB_]
         add  $07
-        ld   [_tile_pos_x__RAM_C8CB_], a    ; _tile_pos_x__RAM_C8CB_ = $C8CB
+        ld   [_tilemap_pos_x__RAM_C8CB_], a
         dec  b
         jr   nz, _LABEL_7833_
         ret
-    
-_LABEL_784F_:   
+
+_LABEL_784F_:
         xor  a
         ldh  [rAUDENA], a
         xor  a
@@ -8561,7 +8598,7 @@ _LABEL_784F_:
         ldh  [rAUD3LEN], a
         ld   a, $55
         ld   bc, $0800 | _PORT_3F_
-_LABEL_785E_:   
+_LABEL_785E_:
         ldh  [c], a
         dec  c
         dec  b
@@ -8579,8 +8616,8 @@ _LABEL_785E_:
         ld   [_RAM_CC00_], a    ; _RAM_CC00_ = $CC00
         call _LABEL_289_
         ret
-    
-_LABEL_787C_:   
+
+_LABEL_787C_:
         xor  a
         ldh  [rAUDENA], a
         ld   a, $80
@@ -8588,89 +8625,89 @@ _LABEL_787C_:
         ld   a, $77
         ldh  [rAUDVOL], a
         ret
-    
-; Data from 7888 to 788D (6 bytes)  
-_DATA_7888_:    
+
+; Data from 7888 to 788D (6 bytes)
+_DATA_7888_:
     db $81, $99, $95, $84, $81, $00
-    
-; Data from 788E to 78C2 (53 bytes) 
-_DATA_788E_:    
+
+; Data from 788E to 78C2 (53 bytes)
+_DATA_788E_:
     db $86, $C1, $BE, $FE, $BE, $87, $92, $81, $82, $81, $83, $89, $8F, $8E, $00, $86
     db $C2, $BE, $FE, $BE, $94, $8F, $83, $81, $00, $86, $C3, $BE, $FE, $BE, $82, $8F
     db $92, $92, $81, $00, $85, $8E, $94, $92, $81, $BE, $FE, $BE, $83, $8F, $8E, $86
     db $89, $92, $8D, $81, $00
-    
-; Data from 78C3 to 78D6 (20 bytes) 
-_DATA_78C3_:    
+
+; Data from 78C3 to 78D6 (20 bytes)
+_DATA_78C3_:
     db $58, $5A, $5C, $5E, $60
 ds 11, $18
     db $62, $64, $66, $68
-    
-; Data from 78D7 to 78DB (5 bytes)  
-_DATA_78D7_:    
+
+; Data from 78D7 to 78DB (5 bytes)
+_DATA_78D7_:
     db $38, $2A, $1A, $34, $36
-    
-; Data from 78DC to 78E4 (9 bytes)  
-_DATA_78DC_:    
+
+; Data from 78DC to 78E4 (9 bytes)
+_DATA_78DC_:
     db $20, $22, $18, $18, $38, $2A, $1A, $34, $36
-    
-; Data from 78E5 to 78EB (7 bytes)  
-_DATA_78E5_:    
+
+; Data from 78E5 to 78EB (7 bytes)
+_DATA_78E5_:
     db $22, $3E, $1E, $42, $22, $30, $1A
-    
-; Data from 78EC to 78F5 (10 bytes) 
-_DATA_78EC_:    
+
+; Data from 78EC to 78F5 (10 bytes)
+_DATA_78EC_:
     db $1A, $42, $40, $36, $32, $1A, $40, $2A, $1E, $36
-    
-; Data from 78F6 to 78FE (9 bytes)  
-_DATA_78F6_:    
+
+; Data from 78F6 to 78FE (9 bytes)
+_DATA_78F6_:
     db $26, $3C, $1A, $1C, $1A, $1E, $2A, $36, $34
-    
-; Data from 78FF to 7911 (19 bytes) 
-_DATA_78FF_:    
+
+; Data from 78FF to 7911 (19 bytes)
+_DATA_78FF_:
     db $93, $85, $8C, $85, $83, $83, $89, $8F, $8E, $81, $BE, $8D, $85, $8C, $8F, $84
     db $89, $81, $00
-    
-; Data from 7912 to 7917 (6 bytes)  
-_DATA_7912_:    
+
+; Data from 7912 to 7917 (6 bytes)
+_DATA_7912_:
     db $C1, $BE, $CB, $BE, $C9, $00
-    
-; Data from 7918 to 7926 (15 bytes) 
-_DATA_7918_:    
+
+; Data from 7918 to 7926 (15 bytes)
+_DATA_7918_:
     db $84, $85, $8A, $81, $BE, $84, $85, $BE, $87, $92, $81, $82, $81, $92, $00
-    
-; Data from 7927 to 7934 (14 bytes) 
-_DATA_7927_:    
+
+; Data from 7927 to 7934 (14 bytes)
+_DATA_7927_:
     db $8D, $85, $8D, $8F, $92, $89, $81, $BE, $8C, $8C, $85, $8E, $81, $00
-    
-; Data from 7935 to 7947 (19 bytes) 
-_DATA_7935_:    
+
+; Data from 7935 to 7947 (19 bytes)
+_DATA_7935_:
     db $8D, $85, $8C, $8F, $84, $89, $81, $BE, $8E, $8F, $BE, $87, $92, $81, $82, $81
     db $84, $81, $00
-    
-; Data from 7948 to 7959 (18 bytes) 
-_DATA_7948_:    
+
+; Data from 7948 to 7959 (18 bytes)
+_DATA_7948_:
     db $83, $8F, $8D, $89, $85, $8E, $9A, $81, $BE, $81, $BE, $87, $92, $81, $82, $81
     db $92, $00
-    
-; Data from 795A to 796A (17 bytes) 
-_DATA_795A_:    
+
+; Data from 795A to 796A (17 bytes)
+_DATA_795A_:
     db $83, $8F, $8D, $89, $85, $8E, $9A, $81, $BE, $81, $BE, $94, $8F, $83, $81, $92
     db $00
-    
-; Data from 796B to 7978 (14 bytes) 
-_DATA_796B_:    
+
+; Data from 796B to 7978 (14 bytes)
+_DATA_796B_:
     db $84, $85, $8A, $81, $BE, $84, $85, $BE, $94, $8F, $83, $81, $92, $00
-    
-; Data from 7979 to 79B1 (57 bytes) 
-_DATA_7979_:    
+
+; Data from 7979 to 79B1 (57 bytes)
+_DATA_7979_:
     db $82, $8F, $92, $92, $81, $92, $00, $18, $F9, $19, $F9, $1A, $F9, $1B, $F9, $1C
     db $F9, $1D, $F9, $1E, $F9, $1F, $F9, $20, $F9, $21, $F9, $22, $F9, $23, $F9, $24
     db $F9, $25, $F9, $26, $F9, $27, $F9, $28, $F9, $29, $F9, $2A, $F9, $2B, $F9, $2C
     db $F9, $2D, $F9, $2E, $F9, $2F, $F9, $54, $F9
-    
-; Data from 79B2 to 7FFF (1614 bytes)   
-_DATA_79B2_:    
+
+; Data from 79B2 to 7FFF (1614 bytes)
+_DATA_79B2_:
     db $1C, $90, $84, $8F, $BE, $BE, $20, $58, $84, $8F, $FC, $BE, $24, $90, $92, $85
     db $BE, $BE, $28, $58, $92, $85, $FC, $BE, $2C, $90, $8D, $89, $BE, $BE, $34, $90
     db $86, $81, $BE, $BE, $38, $58, $86, $81, $FC, $BE, $3C, $90, $93, $8F, $8C, $BE
