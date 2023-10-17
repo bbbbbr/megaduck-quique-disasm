@@ -376,9 +376,9 @@ _LABEL_249_:
 
 ; TODO : Maybe the "Run Cart from slot" Main menu item?
 _LABEL_253_:
-    cp   $0B
+    cp   $0B ; TODO: Add constant for this command
     jp   nz, _LABEL_15C_
-    call _LABEL_5E1_
+    call maybe_try_run_cart_from_slot__5E1_
     jp   _LABEL_15C_
 
 _LABEL_25E_:
@@ -408,10 +408,11 @@ _LABEL_27B_:
     call _LABEL_289_
     jr   _LABEL_27B_
 
+; TODO: Turn on interrupts, check value at _RAM_D000_ for bit 2 ($04) then
 _LABEL_289_:
     ei
 _LABEL_28A_:
-    ld   hl, _RAM_D000_ ; _RAM_D000_ = $D000
+    ld   hl, _RAM_D000_
     bit  2, [hl]
     jp   nz, _LABEL_43C_
     jr   _LABEL_28A_
@@ -638,6 +639,8 @@ _LABEL_433_:
     ld   [_RAM_CC10_], a    ; _RAM_CC10_ = $CC10
     ret
 
+
+; Clears bit 2 in [hl]
 _LABEL_43C_:
     res  2, [hl]
     ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
@@ -770,7 +773,7 @@ _LABEL_522_:
     di
     ld   hl, $0030
     res  7, h
-    ld   a, $02
+    ld   a, $02  ; Bank 2
     call _switch_bank_jump_hl_RAM__C920_
     ei
     ret
@@ -883,19 +886,26 @@ _window_scroll_up__5C3_:
 ; TODO: Seems to check and see whether a cart was found in the slot
 ; If one isn't found then it displays a message indicating that
 ; try_run_cart_from_slot__5E1_:
-_LABEL_5E1_:
+maybe_try_run_cart_from_slot__5E1_:
+    ; TODO: Request booting from the cart slot?
     ld   a, $08
     ld   [maybe_serial_link_data__RAM_D023_], a
     call _LABEL_B64_  ; Maybe Serial port (or special hardware) send
     call _LABEL_B8F_
     and  a
-    jr   z, _LABEL_5E1_
+    jr   z, maybe_try_run_cart_from_slot__5E1_  ; TODO: Waiting for a response about the cart slot?
+
     ld   a, [_RAM_D021_]    ; _RAM_D021_ = $D021
-    cp   $06
+    cp   $06  ; 0x06 seems to indicate cart was not in slot
     jr   z, display_message__no_cart_in_slot_to_run__5F9
-_LABEL_5F6_:
-    nop
-    jr   _LABEL_5F6_
+    ; TODO: If starting the cart slot succeeded then execute NOPs until the cart starts
+    ; Presumably there may be some small delay before the system ROM unmaps itself?
+    ;
+    ; What about a jump to the entry point and resetting state? Does the hardware handle that
+    ; by strobing the reset line?
+    _idle_until_cart_starts_5F6_:
+        nop
+        jr   _idle_until_cart_starts_5F6_
 
 
 ; After a short delay this message is cleared and the program
@@ -913,7 +923,8 @@ display_message__no_cart_in_slot_to_run__5F9:
     ld   hl, $030B         ; Column 3, Row 11 (zero based)
     call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
     ld   a, $64
-    jp   _LABEL_4A72_
+    jp   _LABEL_4A72_ ; TODO: there is a small delay after string is shown, is part of this call handling that (sort of wait_vsync N times)?
+
 
 _LABEL_612_:
         push af
@@ -3714,6 +3725,7 @@ render_string_at_de_to_tilemap0_xy_in_hl__4A46_:
         jr   _loop_erase_chars_to_tilemap__4A68_
 
 
+; TODO:
 _LABEL_4A72_:
     push af
     call _LABEL_289_
