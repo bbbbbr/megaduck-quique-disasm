@@ -32,7 +32,15 @@ DEF SERIAL_STATUS_DONE            EQU $01
 
 
 DEF SYS_CMD_RUN_CART_IN_SLOT      EQU $08
+DEF SYS_CMD_INIT_SEQ_NO_MATCH     EQU $04  ; TODO: What does this do and why?
+DEF SYS_CMD_INIT_SEQ_MATCH        EQU $01  ; TODO: What does this do and why?
+DEF SYS_CMD_INIT_SEQ_REQUEST      EQU $00  ; Value sent to request the 255..0 countdown sequence (be sent into the serial port)
+
 DEF SYS_REPLY_NO_CART_IN_SLOT     EQU $06
+
+
+DEF SYS_REPLY_BOOT_OK             EQU $01  ; Reply on startup that allows rest of code to proceed
+DEF SYS_REPLY__BIT_BOOT_FAIL      EQU 0
 
 ; Turn on to enable skipping some Megaduck QuiQue hardware specific code
 ; def GB_DEBUG = 1
@@ -100,8 +108,8 @@ SECTION "wram_d020", WRAMX[$d020], BANK[$1]
 _RAM_D020_: db
 serial_link_rx_data__RAM_D021_: db
 serial_link_status__RAM_D022_: db
-serial_link_tx_data__RAM_D023_: db  ; maybe serial link SEND data
-_RAM_D024_: db
+serial_link_tx_data__RAM_D023_: db
+serial_system_status__RAM_D024_: db
 _RAM_D025_: db
 _RAM_D026_: db
 _RAM_D027_: db

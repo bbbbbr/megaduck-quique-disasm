@@ -190,10 +190,11 @@ _GB_ENTRY_POINT_100_:
     di
     xor  a
     ld   [_RAM_D195_], a
-    call _LABEL_9CF_
-    ld   a, [_RAM_D024_]
-    bit  0, a
-    jr   nz, @ - 5
+    call serial_system_init_check__9CF_
+    wait_serial_status_ok__108_:
+        ld   a, [serial_system_status__RAM_D024_]
+        bit  SYS_REPLY__BIT_BOOT_FAIL, a  ; 0, a
+        jr   nz, wait_serial_status_ok__108_ ; @ - 5
 _LABEL_10F_:
     ld   a, $09
     ld   [serial_link_tx_data__RAM_D023_], a
@@ -1450,47 +1451,65 @@ _LABEL_9A3_:
     ret
 
 
-_LABEL_9CF_:
+; Does some kind of serial port system startup init
+; and sends count up sequence / then waits for and checks a count down sequence in reverse
+;
+; - Does this have anything to do with the "first time boot up" voice greeting?
+;
+; - Turns on Serial interrupt
+serial_system_init_check__9CF_:
     ld   a, IEF_SERIAL ; $08
     ldh  [rIE], a
     xor  a
-    ld   [_RAM_D024_], a
+    ld   [serial_system_status__RAM_D024_], a  ; TODO: System startup status var? (success/failure?)
     xor  a
-    _LABEL_9D8_:
+    ; Sending some kind of init(? TODO) count up sequence through the serial port (0,1,2,3...255)
+    ; Then wait for a response with no timeout
+    loop_send_sequence__9D8_:
         ld   [serial_link_tx_data__RAM_D023_], a
         call serial_io_send_byte__B64_
         inc  a
-        jr   nz, _LABEL_9D8_
+        jr   nz, loop_send_sequence__9D8_
     call serial_io_read_byte_no_timeout__B7D_
-    cp   $01
-    ld   b, $00
-    call nz, _LABEL_BBA_
+
+    ; Handle reply
+    cp   SYS_REPLY_BOOT_OK  ; $01
+    ld   b, $00             ; This might not do anything... (not used and later overwritten)
+    call nz, serial_system_status_set_fail__BBA_
+
+    ; Send a "0" byte (SYS_CMD_INIT_SEQ_REQUEST)
+    ; That maybe requests a 255..0 countdown sequence (be sent into the serial port)
     xor  a
     ld   [serial_link_tx_data__RAM_D023_], a
     call serial_io_send_byte__B64_
-    ld   b, $01
+
+    ; ? Expects a reply sequence through the serial port of (255,254...0) ?
+    ld   b, $01             ; This might not do anything, again... (not used and later overwritten)
     ld   c, $FF
-    _LABEL_9F6_:
+    loop_receive_sequence__9F6_:
         call serial_io_read_byte_no_timeout__B7D_
         cp   c
-        call nz, _LABEL_BBA_
+        call nz, serial_system_status_set_fail__BBA_  ; Set status failed if reply doesn't match expected  sequence value
         dec  c
         ld   a, c
         cp   $FF
-        jr   nz, _LABEL_9F6_
-    ld   a, [_RAM_D024_]
-    bit  0, a
-    jr   nz, _LABEL_A0E_
-    ld   a, $01
-    jr   _LABEL_A10_
-; Data from A0E to A0F (2 bytes)
-_LABEL_A0E_:
-db $3E, $04
+        jr   nz, loop_receive_sequence__9F6_
 
-_LABEL_A10_:
-    ld   [serial_link_tx_data__RAM_D023_], a
-    call serial_io_send_byte__B64_
-    ret
+    ; Check for failures during the reply sequence
+    ld   a, [serial_system_status__RAM_D024_]
+    bit  SYS_REPLY__BIT_BOOT_FAIL, a  ; 0, a
+    jr   nz, set_send_if_sequence_no_match__A0E_  ; If there were any failures in the sequence, send
+    ld   a, SYS_CMD_INIT_SEQ_MATCH  ; $01
+    jr   send_response_to_sequence__A10_
+
+    set_send_if_sequence_no_match__A0E_:
+        ld   a, SYS_CMD_INIT_SEQ_NO_MATCH  ; $04  ; TODO: THis gets sent if the startup sequence didn't match... but what is it?
+
+    send_response_to_sequence__A10_:
+        ld   [serial_link_tx_data__RAM_D023_], a
+        call serial_io_send_byte__B64_
+        ret
+
 
 ; Prepares to receive data through the serial (or special?) IO
 serial_io_enable_receive_byte__A17_:
@@ -1756,11 +1775,12 @@ serial_io_wait_receive_w_timeout_50msec__B8F_:
         ret
 
 
-_LABEL_BBA_:
+; Sets the serial system status to OK (making some assumptions right now)
+serial_system_status_set_fail__BBA_:
     push af
-    ld   a, [_RAM_D024_]
-    set  0, a
-    ld   [_RAM_D024_], a
+    ld   a, [serial_system_status__RAM_D024_]
+    set  SYS_REPLY__BIT_BOOT_FAIL, a  ; 0, a
+    ld   [serial_system_status__RAM_D024_], a
     pop  af
     ret
 
