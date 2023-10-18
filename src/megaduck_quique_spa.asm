@@ -27,6 +27,13 @@ DEF CHAR_BLANKSPACE               EQU $BE
 DEF PRINT_NORMAL                  EQU $01
 DEF PRINT_ERASE                   EQU $00
 
+DEF SERIAL_STATUS_RESET           EQU $00
+DEF SERIAL_STATUS_DONE            EQU $01
+
+
+DEF SYS_CMD_RUN_CART_IN_SLOT      EQU $08
+DEF SYS_REPLY_NO_CART_IN_SLOT     EQU $06
+
 ; Turn on to enable skipping some Megaduck QuiQue hardware specific code
 ; def GB_DEBUG = 1
 
@@ -91,9 +98,9 @@ _RAM_D007_: ds $19
 
 SECTION "wram_d020", WRAMX[$d020], BANK[$1]
 _RAM_D020_: db
-_RAM_D021_: db
-_RAM_D022_: db
-maybe_serial_link_data__RAM_D023_: db
+serial_link_rx_data__RAM_D021_: db
+serial_link_status__RAM_D022_: db
+serial_link_tx_data__RAM_D023_: db  ; maybe serial link SEND data
 _RAM_D024_: db
 _RAM_D025_: db
 _RAM_D026_: db
