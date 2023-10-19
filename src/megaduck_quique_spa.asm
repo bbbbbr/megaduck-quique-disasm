@@ -12,6 +12,9 @@ _PORT_3F_ EQU $3F
 ; Maybe Serial IO related
 _PORT_60_ EQU $60   
 
+
+; TODO: add _ to the front of all these defs
+
 ; MegaDuck QuiQue specific defines
 ; Megaduck QuiQue System ROM Bank Switching
 ; 32K bank selected by writing to 0x1000
@@ -21,6 +24,9 @@ DEF ROM_SWITCH_DELAY              EQU $0A  ; Delay of ~41 M-Cycles after write t
 DEF LY_LAST_SCREEN_LINE           EQU 143 
 DEF LY_VBL_FIRST_LINE             EQU (LY_LAST_SCREEN_LINE + 1)
 DEF LY_VBL_SECOND_LINE            EQU (LY_LAST_SCREEN_LINE + 2)
+
+DEF TILEMAP_0                     EQU $00 ; $9800
+; DEF TILEMAP_1                     EQU $01 ; $9C00  ; Theoretical, doesn't ever seem to get used so far...?
 
 DEF STR_TERMINATOR                EQU $00
 DEF CHAR_BLANKSPACE               EQU $BE
@@ -57,7 +63,7 @@ _RAM_C8C8_: db
 SECTION "wram_c8ca", WRAM0[$c8ca]
 _tilemap_pos_y__RAM_C8CA_: db
 _tilemap_pos_x__RAM_C8CB_: db
-_RAM_C8CC_: db
+maybe_vram_data_to_write__RAM_C8CC_: db
 _RAM_C8CD_: ds $a
 _rombank_currrent__C8D7_: db
 _rombank_saved__C8D8_: ds $28

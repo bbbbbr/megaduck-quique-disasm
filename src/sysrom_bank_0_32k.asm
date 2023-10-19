@@ -953,14 +953,18 @@ display_message__no_cart_in_slot_to_run__5F9:
     jp   _LABEL_4A72_ ; TODO: there is a small delay after string is shown, is part of this call handling that (sort of wait_vsync N times)?
 
 
-_LABEL_612_:
+; Waits until VBL then Writes byte to Tile Map 0 VRAM at preset address X,Y
+;
+; - Tilemap X,Y and byte to write in global vars
+;
+wait_vbl_write_byte_tilemap0_preset_xy_and_data__612_:
         push af
         push bc
         push de
         push hl
         call wait_until_vbl__92C_
-        ld   a, $00
-        call _LABEL_8FB_
+        ld   a, TILEMAP_0  ; $00
+        call write_tilemap_in_a_preset_xy_and_data_8FB_
         pop  hl
         pop  de
         pop  bc
@@ -1192,7 +1196,7 @@ SECTION "rom0_end_bankswitch_functions_0851", ROM0[$0851]
 
 
 _LABEL_851_:
-        ld   a, [_RAM_C8CC_]
+        ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
         dec  a
         sla  a
         sla  a
@@ -1247,7 +1251,7 @@ _LABEL_88A_:
     ret
 
 _LABEL_89B_:
-    ld   a, [_RAM_C8CC_]    ; _RAM_C8CC_ = $C8CC
+    ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
     cp   $00
     jr   z, _LABEL_8C3_
     dec  a
@@ -1261,7 +1265,7 @@ _LABEL_89B_:
     ldi  [hl], a
     ldi  [hl], a
     ld   de, _RAM_C8A0_ ; _RAM_C8A0_ = $C8A0
-    ld   a, [_RAM_C8CC_]    ; _RAM_C8CC_ = $C8CC
+    ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
     dec  a
     add  e
     ld   e, a
@@ -1300,46 +1304,62 @@ _LABEL_8D2_:
     ldh  [rLCDC], a
     ret
 
-_LABEL_8EA_:
-        push af
-        push bc
-        push de
-        push hl
-        ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
-        ld   a, $00
-        call _LABEL_8FB_
-        pop  hl
-        pop  de
-        pop  bc
-        pop  af
-        ret
 
-_LABEL_8FB_:
-        ld   hl, _TILEMAP0; $9800
-        cp   $00
-        jr   z, _LABEL_905_
-        ld   hl, $9C00
-_LABEL_905_:
+; Writes byte to Tile Map 0 VRAM at preset address X,Y
+;
+; - Byte to write in :A
+; - Tilemap X,Y to write in global vars
+;
+write_tilemap0_byte_in_a_preset_xy__8EA_:
+    push af
+    push bc
+    push de
+    push hl
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
+    ld   a, TILEMAP_0  ; $00
+    call write_tilemap_in_a_preset_xy_and_data_8FB_
+    pop  hl
+    pop  de
+    pop  bc
+    pop  af
+    ret
+
+
+; Writes to Tile Map VRAM at preset address X,Y with preset byte 
+;
+; - Tilemap select [0/1 = Tilemap0/1] in :A
+; - Tilemap X,Y and byte to write in global vars
+;
+; - Destroys: A, DE, HL
+write_tilemap_in_a_preset_xy_and_data_8FB_:
+    ; Select which between Tilemap 0 or 1
+    ld   hl, _TILEMAP0  ; $9800
+    cp   $00
+    jr   z, _tilemap_sel_done__905_
+    ld   hl, _TILEMAP1  ; $9C00
+
+    _tilemap_sel_done__905_:
+        ; Calculate vram address into Tile Map for X, Y in global vars
+        ; First add X
         ld   a, $00
         ld   d, a
         ld   a, [_tilemap_pos_x__RAM_C8CB_]
         ld   e, a
         add  hl, de
+
+        ; Then add Y (upshift << 5 to multiply by 32)
         ld   a, [_tilemap_pos_y__RAM_C8CA_]
         dec  a
         ld   e, a
-        sla  e
-        rl   d
-        sla  e
-        rl   d
-        sla  e
-        rl   d
-        sla  e
-        rl   d
-        sla  e
-        rl   d
+        REPT 5
+            sla  e
+            rl   d
+        ENDR
         add  hl, de
-        ld   a, [_RAM_C8CC_]    ; _RAM_C8CC_ = $C8CC
+
+        ; HL now has X,Y offset into Tile Map VRAM
+        ; Write byte to it and return
+        ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
         ld   [hl], a
         ret
 
@@ -1388,7 +1408,7 @@ _LABEL_94C_:
     ret
 
 _LABEL_953_:
-    ld   a, [_RAM_C8CC_]    ; _RAM_C8CC_ = $C8CC
+    ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
     dec  a
     sla  a
     sla  a
@@ -3502,8 +3522,9 @@ _LABEL_48E0_:
     pop  de
     ret
 
+; BC = Tilemap XY
 _LABEL_48EB_:
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     ld   a, c
     ld   [_tilemap_pos_y__RAM_C8CA_], a
     ld   a, b
@@ -3514,16 +3535,16 @@ _LABEL_48EB_:
     pop  de
     ld   b, e
     dec  b
-    ld   a, [_RAM_C8CC_]    ; _RAM_C8CC_ = $C8CC
+    ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
     call _LABEL_491B_
     dec  b
 _LABEL_4907_:
-    ld   a, [_RAM_C8CC_]    ; _RAM_C8CC_ = $C8CC
+    ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
     add  $03
     call _LABEL_491B_
     dec  b
     jr   nz, _LABEL_4907_
-    ld   a, [_RAM_C8CC_]    ; _RAM_C8CC_ = $C8CC
+    ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
     add  $06
     call _LABEL_491B_
     ret
@@ -3819,7 +3840,7 @@ _LABEL_4A72_:
 _LABEL_4A7B_:
     call _LABEL_4875_
     xor  a
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     ld   a, $03
     ld   [_tilemap_pos_y__RAM_C8CA_], a
     ld   c, $00
@@ -3843,13 +3864,13 @@ _LABEL_4A8E_:
     ld   c, $03
     call wait_until_vbl__92C_
 _LABEL_4AAB_:
-    ld   a, [_RAM_C8CC_]    ; _RAM_C8CC_ = $C8CC
+    ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
     ld   b, $03
 _LABEL_4AB0_:
     ld   [hl], a
     inc  a
     inc  hl
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     dec  b
     jr   nz, _LABEL_4AB0_
     xor  d
@@ -3969,7 +3990,7 @@ _LABEL_4B92_:
     push af
     ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
     call _LABEL_4D19_
     pop  af
@@ -4002,7 +4023,7 @@ _LABEL_4BD7_:
     push af
     ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
     call _LABEL_4D19_
     pop  af
@@ -4035,7 +4056,7 @@ _LABEL_4C1A_:
     jp   nc, _LABEL_4B0E_
     ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
     call _LABEL_4D19_
     ld   a, [_tilemap_pos_y__RAM_C8CA_]
@@ -4052,7 +4073,7 @@ _LABEL_4C47_:
     jp   c, _LABEL_4B0E_
     ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
     call _LABEL_4D19_
     ld   a, [_tilemap_pos_y__RAM_C8CA_]
@@ -4127,7 +4148,7 @@ _LABEL_4CCD_:
 
 _LABEL_4CD1_:
     ld   a, $ED
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     xor  a
     ld   [_RAM_C8CD_], a    ; _RAM_C8CD_ = $C8CD
     ld   hl, _RAM_D05F_ ; _RAM_D05F_ = $D05F
@@ -4142,9 +4163,9 @@ _LABEL_4CDF_:
     ld   a, [_tilemap_pos_x__RAM_C8CB_]
     add  $08
     ld   [_tilemap_pos_x__RAM_C8CB_], a
-    ld   a, [_RAM_C8CC_]    ; _RAM_C8CC_ = $C8CC
+    ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
     inc  a
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     push hl
     call _LABEL_86F_
     pop  hl
@@ -4157,9 +4178,9 @@ _LABEL_4CDF_:
     ld   a, [_tilemap_pos_x__RAM_C8CB_]
     sub  $08
     ld   [_tilemap_pos_x__RAM_C8CB_], a
-    ld   a, [_RAM_C8CC_]    ; _RAM_C8CC_ = $C8CC
+    ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
     inc  a
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     dec  b
     jr   nz, _LABEL_4CDF_
     ret
@@ -4171,7 +4192,7 @@ _LABEL_4D1E_:
     ld   a, [hl]
     ld   [hl], $00
     inc  hl
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     push hl
     push bc
     call _LABEL_89B_
@@ -4301,9 +4322,9 @@ _LABEL_4E10_:
     sla  a
     add  $1A
     ld   c, $00
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     push de
-    call _LABEL_549D_
+    call maybe__vram_write_byte_2rows_addr_in_hl_preset_data__5494_
     pop  de
     inc  hl
     dec  b
@@ -4314,20 +4335,20 @@ _LABEL_4E10_:
     cp   $90
     jr   nz, _LABEL_4E3E_
     ld   a, $02
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
-    call _LABEL_549D_
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
+    call maybe__vram_write_byte_2rows_addr_in_hl_preset_data__5494_
     ld   a, $12
     jr   _LABEL_4E48_
 
 _LABEL_4E3E_:
     ld   a, $04
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
-    call _LABEL_549D_
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
+    call maybe__vram_write_byte_2rows_addr_in_hl_preset_data__5494_
     ld   a, $00
 _LABEL_4E48_:
     inc  hl
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
-    call _LABEL_549D_
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
+    call maybe__vram_write_byte_2rows_addr_in_hl_preset_data__5494_
     ld   a, $10
     ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, $02
@@ -4412,7 +4433,7 @@ _LABEL_4ED4_:
     xor  a
     ld   [_RAM_C8CD_], a    ; _RAM_C8CD_ = $C8CD
     ld   a, $80
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_623_
     ld   a, b
     ld   [_RAM_D05F_], a    ; _RAM_D05F_ = $D05F
@@ -4585,7 +4606,7 @@ _LABEL_5059_:
     jr   nc, _LABEL_5096_
     ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
     call _LABEL_89B_
     ld   a, [_tilemap_pos_x__RAM_C8CB_]
@@ -4606,7 +4627,7 @@ _LABEL_5087_:
 
 _LABEL_5096_:
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_89B_
     xor  a
     ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
@@ -4616,7 +4637,7 @@ _LABEL_5096_:
     ld   [_tilemap_pos_y__RAM_C8CA_], a
 _LABEL_50AF_:
     ld   a, $80
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_623_
     ld   a, b
     ld   [_RAM_D05F_], a    ; _RAM_D05F_ = $D05F
@@ -4633,7 +4654,7 @@ _LABEL_50C3_:
     jr   z, _LABEL_5100_
     ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
     call _LABEL_89B_
     ld   a, [_tilemap_pos_x__RAM_C8CB_]
@@ -4654,7 +4675,7 @@ _LABEL_50F0_:
 
 _LABEL_5100_:
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_89B_
     ld   a, [_RAM_D06D_]    ; _RAM_D06D_ = $D06D
     dec  a
@@ -4669,7 +4690,7 @@ _LABEL_511F_:
     xor  a
     ld   [_RAM_D05B_], a    ; _RAM_D05B_ = $D05B
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
     call _LABEL_89B_
     ld   a, [_RAM_D06E_]    ; _RAM_D06E_ = $D06E
@@ -4703,7 +4724,7 @@ _LABEL_5167_:
     xor  a
     ld   [_RAM_D05C_], a    ; _RAM_D05C_ = $D05C
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
     call _LABEL_89B_
     ld   a, [_RAM_D06E_]    ; _RAM_D06E_ = $D06E
@@ -4738,7 +4759,7 @@ _LABEL_519C_:
 
 _LABEL_51B0_:
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
     ld   a, [_tilemap_pos_x__RAM_C8CB_]
     cp   $A0
@@ -4820,7 +4841,7 @@ _LABEL_5240_:
     ld   a, $12
     ld   [_RAM_D028_ + 1], a    ; _RAM_D028_ + 1 = $D029
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_89B_
     jp   _LABEL_4DCD_
 
@@ -4828,7 +4849,7 @@ _LABEL_525D_:
     call _LABEL_5379_
     ld   [_RAM_D028_ + 1], a    ; _RAM_D028_ + 1 = $D029
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_89B_
     jp   _LABEL_4DCD_
 
@@ -4852,7 +4873,7 @@ _LABEL_5286_:
     ld   a, $01
     ld   [_RAM_D028_ + 1], a    ; _RAM_D028_ + 1 = $D029
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_89B_
     jp   _LABEL_4DCD_
 
@@ -4860,13 +4881,13 @@ _LABEL_52A3_:
     call _LABEL_5379_
     ld   [_RAM_D028_ + 1], a    ; _RAM_D028_ + 1 = $D029
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_89B_
     jp   _LABEL_4DCD_
 
 _LABEL_52B5_:
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_89B_
     ret
 
@@ -4912,9 +4933,9 @@ _LABEL_52F5_:
 _LABEL_5310_:
     ld   a, $BE
 _LABEL_5312_:
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call wait_until_vbl__92C_
-    ld   a, [_RAM_C8CC_]    ; _RAM_C8CC_ = $C8CC
+    ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
     ldi  [hl], a
     ld   a, [_tilemap_pos_x__RAM_C8CB_]
     inc  a
@@ -4922,7 +4943,7 @@ _LABEL_5312_:
     ld   a, [_RAM_D053_]    ; _RAM_D053_ = $D053
     and  $0F
     add  $F1
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     ld   [hl], a
     ret
 
@@ -5028,14 +5049,14 @@ _LABEL_53CC_:
     add  $02
     ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, $BE
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     push af
     push bc
     push de
     push hl
     call wait_until_vbl__92C_
-    ld   a, $00
-    call _LABEL_8FB_
+    ld   a, TILEMAP_0  ; $00
+    call write_tilemap_in_a_preset_xy_and_data_8FB_
     pop  hl
     pop  de
     pop  bc
@@ -5048,8 +5069,8 @@ _LABEL_53CC_:
     push de
     push hl
     call wait_until_vbl__92C_
-    ld   a, $00
-    call _LABEL_8FB_
+    ld   a, TILEMAP_0  ; $00
+    call write_tilemap_in_a_preset_xy_and_data_8FB_
     pop  hl
     pop  de
     pop  bc
@@ -5090,18 +5111,18 @@ _LABEL_542E_:
     jr   nz, _LABEL_543A_
     ld   a, $BE
 _LABEL_543A_:
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     push hl
     push bc
     bit  0, c
     jr   nz, _LABEL_544C_
     bit  1, c
     jr   nz, _LABEL_544C_
-    call _LABEL_612_
+    call wait_vbl_write_byte_tilemap0_preset_xy_and_data__612_
     jr   _LABEL_544F_
 
 _LABEL_544C_:
-    call _LABEL_612_
+    call wait_vbl_write_byte_tilemap0_preset_xy_and_data__612_
 _LABEL_544F_:
     ld   a, [_tilemap_pos_x__RAM_C8CB_]
     inc  a
@@ -5121,21 +5142,21 @@ _LABEL_5468_:
     jr   _LABEL_547E_
 
 _LABEL_546D_:
-    call _LABEL_612_
+    call wait_vbl_write_byte_tilemap0_preset_xy_and_data__612_
     jr   _LABEL_547E_
 
 _LABEL_5472_:
     add  $C0
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     bit  1, c
     jr   nz, _LABEL_546D_
-    call _LABEL_612_
+    call wait_vbl_write_byte_tilemap0_preset_xy_and_data__612_
 _LABEL_547E_:
     pop  hl
     ret
 
 _LABEL_5480_:
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     push bc
     push hl
     push de
@@ -5146,25 +5167,31 @@ _LABEL_5480_:
 _LABEL_5490_:
     call calc_vram_addr_of_tile_xy_base_in_hl__4932_
     call wait_until_vbl__92C_
-    call _LABEL_549D_
+    call maybe__vram_write_byte_2rows_addr_in_hl_preset_data__5494_
     pop  de
     pop  hl
     pop  bc
     ret
 
 
-_LABEL_549D_:
-    ld   a, [_RAM_C8CC_]    ; _RAM_C8CC_ = $C8CC
+; Writes preset byte to vram HL, then writes (preset byte + 1) at the next row down
+;
+; - VRAM Address to write: HL
+;
+; Destroys A, DE
+maybe__vram_write_byte_2rows_addr_in_hl_preset_data__5494_:
+    ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
     ld   [hl], a
     ld   d, $00
     ld   e, $20
     push hl
     add  hl, de
     inc  a
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     ld   [hl], a
     pop  hl
     ret
+
 
 _LABEL_54AE_:
     ld   a, [_RAM_D059_]
@@ -5532,7 +5559,7 @@ _LABEL_5774_:
     ld   c, $02
 _LABEL_577B_:
     ldi  a, [hl]
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     push bc
     push hl
     call _LABEL_89B_
@@ -5715,7 +5742,7 @@ _LABEL_58D3_:
 
 _LABEL_58DC_:
     ld   a, [_RAM_D069_]
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_89B_
     xor  a
     ld   [_RAM_D069_], a
@@ -5731,7 +5758,7 @@ _LABEL_58EA_:
     ldi  a, [hl]
     ld   [_tilemap_pos_y__RAM_C8CA_], a
     ld   a, $FF
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     ld   a, $80
     ld   [_RAM_C8CD_], a    ; _RAM_C8CD_ = $C8CD
     call _LABEL_623_
@@ -6140,7 +6167,7 @@ _LABEL_5BC8_:
     call _LABEL_5D30_
 _LABEL_5BCD_:
     ld   a, [hl]
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     xor  a
     ldi  [hl], a
     push bc
@@ -6224,7 +6251,7 @@ _LABEL_5C61_:
     ld   hl, _RAM_D037_
     ld   a, $00
     add  [hl]
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     add  $02
     ld   [_RAM_D037_], a
     ld   a, [_RAM_D04A_]
@@ -6266,7 +6293,7 @@ _LABEL_5CA7_:
 _LABEL_5CAC_:
     ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, [_RAM_D037_]
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     push hl
     call _LABEL_623_
     pop  hl
@@ -6307,7 +6334,7 @@ _LABEL_5CF3_:
 _LABEL_5CF7_:
     ld   [_tilemap_pos_y__RAM_C8CA_], a
     ld   a, [_RAM_D037_]
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_623_
     call _LABEL_5D30_
     inc  hl
@@ -6328,7 +6355,7 @@ _LABEL_5D1D_:
     ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, [_RAM_D037_]
     sub  $02
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     push hl
     call _LABEL_623_
     pop  hl
@@ -6954,7 +6981,7 @@ _LABEL_6240_:
     ld   a, [_RAM_D03B_]    ; _RAM_D03B_ = $D03B
     ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, $FB
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     xor  a
     ld   [_RAM_C8CD_], a    ; _RAM_C8CD_ = $C8CD
     call _LABEL_623_
@@ -6966,7 +6993,7 @@ _LABEL_6265_:
     ld   a, $05
     ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
     ld   a, [_RAM_D04B_]
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_89B_
     xor  a
     ld   [_RAM_D04B_], a
@@ -7156,7 +7183,7 @@ _LABEL_6510_:
     add  [hl]
     ld   hl, _RAM_D192_
     add  [hl]
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     xor  a
     ld   [_RAM_C8CD_], a    ; _RAM_C8CD_ = $C8CD
     call _LABEL_623_
@@ -7200,7 +7227,7 @@ _LABEL_667F_:
     and  a
     jp   nz, _LABEL_694E_
     ld   a, [_RAM_D04B_]
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
     ld   a, [_tilemap_pos_x__RAM_C8CB_]
     ld   [_RAM_D073_], a
@@ -7262,13 +7289,13 @@ db $EA, $9F, $D1, $7E, $EA, $A1, $D1, $CD, $92, $69
 
 _LABEL_694E_:
     ld   a, [_RAM_D197_]
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
     ld   hl, _RAM_D197_
     ld   b, $03
 _LABEL_695C_:
     ldi  a, [hl]
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     push bc
     push hl
     call _LABEL_89B_
@@ -7277,7 +7304,7 @@ _LABEL_695C_:
     dec  b
     jr   nz, _LABEL_695C_
     ld   a, [_RAM_D04B_]
-    ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_89B_
     xor  a
     ld   [_RAM_D196_], a
@@ -8400,9 +8427,9 @@ _LABEL_7643_:
 _LABEL_764C_:
         ld   a, [de]
         inc  de
-        ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+        ld   [maybe_vram_data_to_write__RAM_C8CC_], a
         push de
-        call _LABEL_549D_
+        call maybe__vram_write_byte_2rows_addr_in_hl_preset_data__5494_
         pop  de
         inc  hl
         dec  b
@@ -8594,7 +8621,7 @@ _LABEL_77A1_:
 
 _LABEL_77B0_:
         ld   a, [_RAM_D04B_]
-        ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+        ld   [maybe_vram_data_to_write__RAM_C8CC_], a
         call _LABEL_89B_
         xor  a
         ld   [_RAM_D04B_], a
@@ -8602,7 +8629,7 @@ _LABEL_77B0_:
         ld   hl, _RAM_D03C_
 _LABEL_77C2_:
         ld   a, [hl]
-        ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+        ld   [maybe_vram_data_to_write__RAM_C8CC_], a
         xor  a
         ldi  [hl], a
         push hl
@@ -8635,12 +8662,12 @@ _LABEL_77E4_:
         ldi  a, [hl]
         ld   [_tilemap_pos_y__RAM_C8CA_], a
         ld   a, $80
-        ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+        ld   [maybe_vram_data_to_write__RAM_C8CC_], a
         ld   a, [_tilemap_pos_y__RAM_C8CA_]
         cp   $90
         jr   z, _LABEL_7807_
         ld   a, $FD
-        ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+        ld   [maybe_vram_data_to_write__RAM_C8CC_], a
 _LABEL_7807_:
         xor  a
         ld   [_RAM_C8CD_], a    ; _RAM_C8CD_ = $C8CD
@@ -8665,7 +8692,7 @@ _LABEL_7827_:
         ld   de, _RAM_D03B_ + 1 ; _RAM_D03B_ + 1 = $D03C
 _LABEL_7833_:
         ldi  a, [hl]
-        ld   [_RAM_C8CC_], a    ; _RAM_C8CC_ = $C8CC
+        ld   [maybe_vram_data_to_write__RAM_C8CC_], a
         push bc
         push de
         push hl
