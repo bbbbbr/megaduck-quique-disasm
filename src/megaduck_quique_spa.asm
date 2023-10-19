@@ -45,6 +45,21 @@ DEF SYS_CMD_INIT_SEQ_REQUEST      EQU $00  ; Value sent to request the 255..0 co
 DEF SYS_REPLY_NO_CART_IN_SLOT     EQU $06
 
 
+DEF SYS_KEY_UP                    EQU $3D
+DEF SYS_KEY_LEFT                  EQU $3E
+DEF SYS_KEY_RIGHT                 EQU $3F
+DEF SYS_KEY_DOWN                  EQU $40
+
+DEF SYS_KEY_UP_RIGHT              EQU $CA
+DEF SYS_KEY_DOWN_RIGHT            EQU $CB
+DEF SYS_KEY_DOWN_LEFT             EQU $CC
+DEF SYS_KEY_UP_LEFT               EQU $CD
+; TODO: Naming may be incorrect here, either they are joystick specific, or mapped to something else more general such as Enter, etc
+DEF SYS_KEY_A                     EQU $44
+DEF SYS_KEY_B                     EQU $45
+DEF SYS_KEY_START                 EQU $2A
+DEF SYS_KEY_SELECT                EQU $2E  ; SELECT seems to be mapped to Enter (instead of START, confusingly)
+
 DEF SYS_REPLY_BOOT_OK             EQU $01  ; Reply on startup that allows rest of code to proceed
 DEF SYS_REPLY__BIT_BOOT_FAIL      EQU 0
 
@@ -121,7 +136,7 @@ serial_link_rx_data__RAM_D021_: db
 serial_link_status__RAM_D022_: db
 serial_link_tx_data__RAM_D023_: db
 serial_system_status__RAM_D024_: db
-_RAM_D025_: db
+maybe_input_key_new_pressed__RAM_D025_: db  ; TODO: Looking like input keycode (gamepad/"mouse" input gets mapped to this too)
 _RAM_D026_: db
 _RAM_D027_: db
 _RAM_D028_: ds $5

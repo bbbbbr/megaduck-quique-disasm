@@ -403,7 +403,7 @@ _LABEL_249_:
 
 ; TODO : Maybe the "Run Cart from slot" Main menu item?
 _LABEL_253_:
-    cp   $0B ; TODO: Add constant for this command
+    cp   $0B ; TODO: Add constant for this SYS command
     jp   nz, _LABEL_15C_
     call maybe_try_run_cart_from_slot__5E1_
     jp   _LABEL_15C_
@@ -429,7 +429,7 @@ _LABEL_25E_:
     ld   [_RAM_D034_], a    ; _RAM_D034_ = $D034
 _LABEL_27B_:
     call _LABEL_A34_
-    ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+    ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     cp   $FC
     ret  z
     call _LABEL_289_
@@ -877,7 +877,7 @@ _LABEL_56E_:
     ldh  [rWY], a
     call _LABEL_488F_
     ld   hl, _string_table_630_
-    ld   a, [_RAM_D06E_]    ; _RAM_D06E_ = $D06E
+    ld   a, [_RAM_D06E_]
     cp   $00
     jr   z, _LABEL_59A_
     ld   b, a
@@ -1641,7 +1641,7 @@ _LABEL_A46_:
     jr   nz, _LABEL_A63_
 _LABEL_A5B_:
     ld   a, $FD
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
+    ld   [maybe_input_key_new_pressed__RAM_D025_], a
     jp   _LABEL_AE9_
 
 _LABEL_A63_:
@@ -1704,9 +1704,10 @@ _LABEL_A8B_:
 _LABEL_AE4_:
     ld   a, $FB
 _LABEL_AE6_:
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
+    ld   [maybe_input_key_new_pressed__RAM_D025_], a
 _LABEL_AE9_:
-    ld   a, [_rIE_saved_serial__RAM_D078_]    ; TODO: interrupt enable save variable?
+    ; Restore previous interrupt enable state
+    ld   a, [_rIE_saved_serial__RAM_D078_]
     ldh  [rIE], a
     ret
 
@@ -1728,7 +1729,7 @@ _LABEL_AEF_:
     jr   c, _LABEL_B1C_
 _LABEL_B13_:
     ld   a, $FA
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
+    ld   [maybe_input_key_new_pressed__RAM_D025_], a
     ld   a, $04
     jr   _LABEL_B58_
 
@@ -1762,7 +1763,7 @@ _LABEL_B28_:
     add  [hl]
     jr   nz, _LABEL_B13_
     ld   a, $F9
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
+    ld   [maybe_input_key_new_pressed__RAM_D025_], a
     ld   a, $01
 _LABEL_B58_:
     ld   [serial_link_tx_data__RAM_D023_], a
@@ -1936,7 +1937,7 @@ _LABEL_CB0_:
     jr   nz, _LABEL_CC8_
 _LABEL_CB9_:
     ld   a, $FF
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
+    ld   [maybe_input_key_new_pressed__RAM_D025_], a
     ld   a, $04
     ld   [serial_link_tx_data__RAM_D023_], a
     call serial_io_send_byte__B64_
@@ -1952,7 +1953,7 @@ _LABEL_CC8_:
     and  a
     jr   z, _LABEL_CB9_
     ld   a, [serial_link_rx_data__RAM_D021_]
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
+    ld   [maybe_input_key_new_pressed__RAM_D025_], a
     ld   hl, _RAM_D026_ ; _RAM_D026_ = $D026
     add  [hl]
     ld   [_RAM_D026_], a    ; _RAM_D026_ = $D026
@@ -1967,7 +1968,7 @@ _LABEL_CC8_:
     ld   [serial_link_tx_data__RAM_D023_], a
     call serial_io_send_byte__B64_
     call _LABEL_D0F_
-    ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+    ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     ld   [_RAM_D181_], a    ; _RAM_D181_ = $D181
 _LABEL_D06_:
     ld   a, [_rIE_saved_serial__RAM_D078_]
@@ -1983,11 +1984,11 @@ _LABEL_D0F_:
     bit  3, a
     jr   z, _LABEL_D24_
     ld   a, $2F
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
+    ld   [maybe_input_key_new_pressed__RAM_D025_], a
     ret
 
 _LABEL_D24_:
-    ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+    ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     and  a
     jp   z, _LABEL_DCF_
     bit  7, a
@@ -1998,7 +1999,7 @@ _LABEL_D24_:
     ld   hl, $0EBF
     call _LABEL_486E_
     ld   a, [hl]
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
+    ld   [maybe_input_key_new_pressed__RAM_D025_], a
     ld   b, a
     ld   a, [_RAM_D027_]    ; _RAM_D027_ = $D027
     and  $0E
@@ -2017,7 +2018,7 @@ _LABEL_D24_:
     jr   nc, _LABEL_DC5_
 _LABEL_D61_:
     res  5, a
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
+    ld   [maybe_input_key_new_pressed__RAM_D025_], a
     jr   _LABEL_DC5_
 
 _LABEL_D68_:
@@ -2027,7 +2028,7 @@ _LABEL_D68_:
     cp   $43
     jr   nz, _LABEL_D78_
     ld   a, $70
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
+    ld   [maybe_input_key_new_pressed__RAM_D025_], a
     jr   _LABEL_DC5_
 
 _LABEL_D78_:
@@ -2044,7 +2045,7 @@ _LABEL_D86_:
     cp   $43
     jr   nz, _LABEL_D92_
     ld   a, $70
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
+    ld   [maybe_input_key_new_pressed__RAM_D025_], a
     jr   _LABEL_DC5_
 
 _LABEL_D92_:
@@ -2062,7 +2063,7 @@ _LABEL_DA0_:
     cp   $CA
     jr   nc, _LABEL_DAF_
     sub  $5E
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
+    ld   [maybe_input_key_new_pressed__RAM_D025_], a
     jr   _LABEL_DC5_
 
 _LABEL_DAF_:
@@ -2084,9 +2085,9 @@ _LABEL_DBD_:
 _LABEL_DC1_:
     ldi  a, [hl]
 _LABEL_DC2_:
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
+    ld   [maybe_input_key_new_pressed__RAM_D025_], a
 _LABEL_DC5_:
-    ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+    ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     cp   $F0
     ret  nc
     ld   [_RAM_D181_], a    ; _RAM_D181_ = $D181
@@ -2094,7 +2095,7 @@ _LABEL_DC5_:
 
 _LABEL_DCF_:
     ld   a, $FF
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
+    ld   [maybe_input_key_new_pressed__RAM_D025_], a
     ret
 
 _LABEL_DD5_:
@@ -2116,15 +2117,15 @@ _LABEL_DD5_:
 _LABEL_DF6_:
     ld   a, $FF
 _LABEL_DF8_:
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
+    ld   [maybe_input_key_new_pressed__RAM_D025_], a
     ret
 
 _LABEL_DFC_:
-    ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+    ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     cp   $65
     jr   nz, _LABEL_E0A_
     ld   a, $9F
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
+    ld   [maybe_input_key_new_pressed__RAM_D025_], a
     jr   _LABEL_E37_
 
 _LABEL_E0A_:
@@ -2134,11 +2135,11 @@ _LABEL_E0A_:
     bit  2, a
     jr   z, _LABEL_E37_
     ld   a, $D2
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
+    ld   [maybe_input_key_new_pressed__RAM_D025_], a
     jr   _LABEL_E37_
 
 _LABEL_E1C_:
-    ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+    ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     cp   $DC
     jr   nz, _LABEL_E37_
     ld   a, [_RAM_D027_]    ; _RAM_D027_ = $D027
@@ -2151,9 +2152,9 @@ _LABEL_E1C_:
     xor  b
     jr   z, _LABEL_E37_
     ld   a, $D5
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
+    ld   [maybe_input_key_new_pressed__RAM_D025_], a
 _LABEL_E37_:
-    ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+    ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     ld   c, a
     ld   a, [_RAM_D226_]    ; _RAM_D226_ = $D226
     cp   $AA
@@ -2186,11 +2187,11 @@ _LABEL_E4C_:
     ld   [hl], a
 _LABEL_E6A_:
     ld   a, $FF
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
+    ld   [maybe_input_key_new_pressed__RAM_D025_], a
     ret
 
 _LABEL_E70_:
-    ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+    ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     cp   $FF
     ret  z
     ld   hl, _RAM_D222_ ; _RAM_D222_ = $D222
@@ -2205,7 +2206,7 @@ _LABEL_E70_:
     ld   h, d
     ld   a, $01
     ld   [_RAM_D221_], a    ; _RAM_D221_ = $D221
-    ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+    ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     ld   b, a
 _LABEL_E8B_:
     ld   a, c
@@ -2215,7 +2216,7 @@ _LABEL_E8B_:
     cp   b
     jr   nz, _LABEL_E9D_
     ld   a, [hl]
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
+    ld   [maybe_input_key_new_pressed__RAM_D025_], a
 _LABEL_E97_:
     xor  a
     ld   [_RAM_D226_], a    ; _RAM_D226_ = $D226
@@ -3718,95 +3719,103 @@ _LABEL_49BE_:
     inc  de
     jr   _LABEL_4991_
 
-_LABEL_49C2_:
+
+; TODO: checks buttons...
+; TODO: maybe: input_map_buttons_to_keycodes
+input_map_gamepad_buttons_to_keycodes__49C2_:
     call _LABEL_289_
     call _LABEL_C8D_
     ld   a, [buttons_new_pressed__RAM_D006_]
     cp   $00
     ret  z
-    bit  3, a
-    jr   nz, _LABEL_4A00_
-    bit  2, a
-    jr   nz, _LABEL_49FA_
-    bit  0, a
-    jr   nz, _LABEL_49EE_
-    bit  1, a
-    jr   nz, _LABEL_49F4_
-    bit  4, a
-    jr   nz, _LABEL_4A06_
-    bit  5, a
-    jr   nz, _LABEL_4A14_
-    bit  6, a
-    jr   nz, _LABEL_4A22_
-    bit  7, a
-    jr   nz, _LABEL_4A28_
-_LABEL_49EE_:
-    ld   a, $44
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
-    ret
+    bit  PADB_START, a  ; 3, a
+    jr   nz, _handle_btn_start__4A00_
+    bit  PADB_SELECT, a  ; 2, a
+    jr   nz, _handle_btn_select__49FA_
+    bit  PADB_A, a  ; 0, a
+    jr   nz, _handle_btn_a__49EE_
+    bit  PADB_B, a  ; 1, a
+    jr   nz, _handle_btn_b__49F4_
 
-_LABEL_49F4_:
-    ld   a, $45
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
-    ret
+    bit  PADB_RIGHT, a  ; 4, a
+    jr   nz, handle_joy_right__4A06_
+    bit  PADB_LEFT, a  ; 5, a
+    jr   nz, handle_joy_left__4A14_
+    bit  PADB_UP, a  ; 6, a
+    jr   nz, handle_joy_up__4A22_
+    bit  PADB_DOWN, a  ; 7, a
+    jr   nz, handle_joy_down__4A28_
 
-_LABEL_49FA_:
-    ld   a, $2E
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
-    ret
+    ; Handle A/B/Start/Select mapping
+    _handle_btn_a__49EE_:
+        ld   a, SYS_KEY_A  ; $44
+        ld   [maybe_input_key_new_pressed__RAM_D025_], a
+        ret
 
-_LABEL_4A00_:
-    ld   a, $2A
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
-    ret
+    _handle_btn_b__49F4_:
+        ld   a, SYS_KEY_B  ; $45
+        ld   [maybe_input_key_new_pressed__RAM_D025_], a
+        ret
 
-_LABEL_4A06_:
-    bit  6, a
-    jr   nz, _LABEL_4A2E_
-    bit  7, a
-    jr   nz, _LABEL_4A34_
-    ld   a, $3F
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
-    ret
+    _handle_btn_select__49FA_:
+        ld   a, SYS_KEY_SELECT  ; $2E
+        ld   [maybe_input_key_new_pressed__RAM_D025_], a
+        ret
 
-_LABEL_4A14_:
-    bit  6, a
-    jr   nz, _LABEL_4A3A_
-    bit  7, a
-    jr   nz, _LABEL_4A40_
-    ld   a, $3E
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
-    ret
+    _handle_btn_start__4A00_:
+        ld   a, SYS_KEY_START  ; $2A
+        ld   [maybe_input_key_new_pressed__RAM_D025_], a
+        ret
 
-_LABEL_4A22_:
-    ld   a, $3D
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
-    ret
+    ; Handle Joypad mapping
+    handle_joy_right__4A06_:
+        bit  6, a
+        jr   nz, handle_joy_up_and_right___4A2E_
+        bit  7, a
+        jr   nz, handle_joy_down_and_right___4A34_
+        ld   a, SYS_KEY_RIGHT  ; $3F
+        ld   [maybe_input_key_new_pressed__RAM_D025_], a
+        ret
 
-_LABEL_4A28_:
-    ld   a, $40
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
-    ret
+    handle_joy_left__4A14_:
+        bit  6, a
+        jr   nz, handle_joy_up_and_left__4A3A_
+        bit  7, a
+        jr   nz, handle_joy_down_and_left__4A40_
+        ld   a, SYS_KEY_LEFT  ; $3E
+        ld   [maybe_input_key_new_pressed__RAM_D025_], a
+        ret
 
-_LABEL_4A2E_:
-    ld   a, $CA
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
-    ret
+    handle_joy_up__4A22_:
+        ld   a, SYS_KEY_UP  ; $3D
+        ld   [maybe_input_key_new_pressed__RAM_D025_], a
+        ret
 
-_LABEL_4A34_:
-    ld   a, $CB
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
-    ret
+    handle_joy_down__4A28_:
+        ld   a, SYS_KEY_DOWN  ; $40
+        ld   [maybe_input_key_new_pressed__RAM_D025_], a
+        ret
 
-_LABEL_4A3A_:
-    ld   a, $CD
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
-    ret
+        ; Extra mapping for JoyPad diagonals
+        handle_joy_up_and_right___4A2E_:
+            ld   a, SYS_KEY_UP_RIGHT  ; $CA
+            ld   [maybe_input_key_new_pressed__RAM_D025_], a
+            ret
 
-_LABEL_4A40_:
-    ld   a, $CC
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
-    ret
+        handle_joy_down_and_right___4A34_:
+            ld   a, SYS_KEY_DOWN_RIGHT  ; $CB
+            ld   [maybe_input_key_new_pressed__RAM_D025_], a
+            ret
+
+        handle_joy_up_and_left__4A3A_:
+            ld   a, SYS_KEY_UP_LEFT  ; $CD
+            ld   [maybe_input_key_new_pressed__RAM_D025_], a
+            ret
+
+        handle_joy_down_and_left__4A40_:
+            ld   a, SYS_KEY_DOWN_LEFT  ; $CC
+            ld   [maybe_input_key_new_pressed__RAM_D025_], a
+            ret
 
 
 ; Draws a text string to the Tilemap at X,Y
@@ -3935,6 +3944,7 @@ _LABEL_4ADC_:
     ld   [_tilemap_pos_y__RAM_C8CA_], a
     jr   _LABEL_4A89_
 
+; TODO: maybe initializing the main menu
 _LABEL_4AE6_:
     ld   a, $28
     ld   [_tilemap_pos_y__RAM_C8CA_], a
@@ -3946,7 +3956,7 @@ _LABEL_4AE6_:
     or   $C1
     ldh  [rLCDC], a
     xor  a
-    ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
+    ld   [_RAM_D06E_], a    ; TODO: maybe main menu action index
     ld   [_RAM_D05D_], a    ; _RAM_D05D_ = $D05D
     ld   [_RAM_D05E_], a    ; _RAM_D05E_ = $D05E
     ld   [_RAM_D05C_], a    ; _RAM_D05C_ = $D05C
@@ -3956,7 +3966,7 @@ _LABEL_4B0E_:
     call _LABEL_289_
     call _LABEL_C8D_
     ld   hl, _RAM_D06D_ ; _RAM_D06D_ = $D06D
-    ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+    ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     cp   $2E
     jp   z, _LABEL_4C83_
     cp   $2A
@@ -3967,7 +3977,7 @@ _LABEL_4B0E_:
     jr   c, _LABEL_4B36_
     cp   [hl]
     jr   nc, _LABEL_4B36_
-    ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
+    ld   [_RAM_D06E_], a
     jp   _LABEL_4C83_
 
 _LABEL_4B36_:
@@ -4009,7 +4019,7 @@ _LABEL_4B78_:
 _LABEL_4B84_:
     call _LABEL_289_
     call _LABEL_C8D_
-    ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+    ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     cp   $FF
     jr   nz, _LABEL_4B84_
     ret
@@ -4017,13 +4027,13 @@ _LABEL_4B84_:
 _LABEL_4B92_:
     xor  a
     ld   [_RAM_D05E_], a    ; _RAM_D05E_ = $D05E
-    ld   a, [_RAM_D06E_]    ; _RAM_D06E_ = $D06E
+    ld   a, [_RAM_D06E_]
     inc  a
     ld   hl, _RAM_D06D_ ; _RAM_D06D_ = $D06D
     cp   [hl]
     jp   nc, _LABEL_4B0E_
     push af
-    ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
+    ld   [_RAM_D06E_], a
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
@@ -4051,12 +4061,12 @@ _LABEL_4BD1_:
 _LABEL_4BD7_:
     xor  a
     ld   [_RAM_D05D_], a    ; _RAM_D05D_ = $D05D
-    ld   a, [_RAM_D06E_]    ; _RAM_D06E_ = $D06E
+    ld   a, [_RAM_D06E_]
     dec  a
     cp   $FF
     jp   z, _LABEL_4B0E_
     push af
-    ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
+    ld   [_RAM_D06E_], a
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
@@ -4084,12 +4094,12 @@ _LABEL_4C14_:
 _LABEL_4C1A_:
     xor  a
     ld   [_RAM_D05B_], a    ; _RAM_D05B_ = $D05B
-    ld   a, [_RAM_D06E_]    ; _RAM_D06E_ = $D06E
+    ld   a, [_RAM_D06E_]
     add  $04
     ld   hl, _RAM_D06D_ ; _RAM_D06D_ = $D06D
     cp   [hl]
     jp   nc, _LABEL_4B0E_
-    ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
+    ld   [_RAM_D06E_], a
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
@@ -4103,10 +4113,10 @@ _LABEL_4C1A_:
 _LABEL_4C47_:
     xor  a
     ld   [_RAM_D05C_], a    ; _RAM_D05C_ = $D05C
-    ld   a, [_RAM_D06E_]    ; _RAM_D06E_ = $D06E
+    ld   a, [_RAM_D06E_]
     sub  $04
     jp   c, _LABEL_4B0E_
-    ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
+    ld   [_RAM_D06E_], a
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
@@ -4126,7 +4136,7 @@ _LABEL_4C76_:
     and  a
     jp   z, _LABEL_4B0E_
     ld   a, [_RAM_D06D_]    ; _RAM_D06D_ = $D06D
-    ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
+    ld   [_RAM_D06E_], a
 _LABEL_4C83_:
     call _LABEL_4D19_
     ret
@@ -4237,8 +4247,10 @@ _LABEL_4D1E_:
     jr   nz, _LABEL_4D1E_
     ret
 
+; TODO: maybe reverse mapping of keyboard input codes to gamepad buttons pressed
+; - convert all these to their constants
 _LABEL_4D30_:
-    ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+    ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     ld   hl, buttons_new_pressed__RAM_D006_
     cp   $3D
     jr   nz, _LABEL_4D3C_
@@ -4297,7 +4309,7 @@ _LABEL_4D7F_:
     ld   [_RAM_D036_], a    ; _RAM_D036_ = $D036
 _LABEL_4D94_:
     call _LABEL_AEF_
-    ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+    ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     cp   $F9
     jr   nz, _LABEL_4D94_
     call wait_until_vbl__92C_
@@ -4426,7 +4438,7 @@ _LABEL_4E69_:
     or   l
     ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
     xor  a
-    ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
+    ld   [_RAM_D06E_], a
     ld   a, $07
     ld   [_tilemap_pos_y__RAM_C8CA_], a
 _LABEL_4EAB_:
@@ -4555,7 +4567,7 @@ _LABEL_4F95_:
     jr   nz, _LABEL_4FAE_
     call _LABEL_538C_
 _LABEL_4FAE_:
-    ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+    ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     cp   $2F
     jp   nz, _LABEL_4FEE_
     ld   a, [_RAM_D074_ + 1]    ; _RAM_D074_ + 1 = $D075
@@ -4634,12 +4646,12 @@ _LABEL_5022_:
 _LABEL_5059_:
     xor  a
     ld   [_RAM_D05E_], a    ; _RAM_D05E_ = $D05E
-    ld   a, [_RAM_D06E_]    ; _RAM_D06E_ = $D06E
+    ld   a, [_RAM_D06E_]
     inc  a
     ld   hl, _RAM_D06D_ ; _RAM_D06D_ = $D06D
     cp   [hl]
     jr   nc, _LABEL_5096_
-    ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
+    ld   [_RAM_D06E_], a
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
@@ -4665,7 +4677,7 @@ _LABEL_5096_:
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_89B_
     xor  a
-    ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
+    ld   [_RAM_D06E_], a
     ld   a, [_RAM_D06E_ + 1]    ; _RAM_D06E_ + 1 = $D06F
     ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, [_RAM_D06E_ + 2]    ; _RAM_D06E_ + 2 = $D070
@@ -4683,11 +4695,11 @@ _LABEL_50AF_:
 _LABEL_50C3_:
     xor  a
     ld   [_RAM_D05D_], a    ; _RAM_D05D_ = $D05D
-    ld   a, [_RAM_D06E_]    ; _RAM_D06E_ = $D06E
+    ld   a, [_RAM_D06E_]
     dec  a
     cp   $FF
     jr   z, _LABEL_5100_
-    ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
+    ld   [_RAM_D06E_], a
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
@@ -4714,7 +4726,7 @@ _LABEL_5100_:
     call _LABEL_89B_
     ld   a, [_RAM_D06D_]    ; _RAM_D06D_ = $D06D
     dec  a
-    ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
+    ld   [_RAM_D06E_], a
     ld   a, [_RAM_D06E_ + 3]    ; _RAM_D06E_ + 3 = $D071
     ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, [_RAM_D072_]
@@ -4728,19 +4740,19 @@ _LABEL_511F_:
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
     call _LABEL_89B_
-    ld   a, [_RAM_D06E_]    ; _RAM_D06E_ = $D06E
+    ld   a, [_RAM_D06E_]
     add  $07
     ld   hl, _RAM_D06D_ ; _RAM_D06D_ = $D06D
     cp   [hl]
     jr   nc, _LABEL_5148_
-    ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
+    ld   [_RAM_D06E_], a
     ld   a, [_tilemap_pos_y__RAM_C8CA_]
     add  $10
     ld   [_tilemap_pos_y__RAM_C8CA_], a
     jp   _LABEL_50AF_
 
 _LABEL_5148_:
-    ld   a, [_RAM_D06E_]    ; _RAM_D06E_ = $D06E
+    ld   a, [_RAM_D06E_]
     ld   e, a
     ld   d, $00
     ld   h, $07
@@ -4752,7 +4764,7 @@ _LABEL_5148_:
     sub  e
     ld   [_tilemap_pos_y__RAM_C8CA_], a
     ld   a, l
-    ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
+    ld   [_RAM_D06E_], a
     jp   _LABEL_50AF_
 
 _LABEL_5167_:
@@ -4762,17 +4774,17 @@ _LABEL_5167_:
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
     call _LABEL_89B_
-    ld   a, [_RAM_D06E_]    ; _RAM_D06E_ = $D06E
+    ld   a, [_RAM_D06E_]
     sub  $07
     jr   c, _LABEL_518C_
-    ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
+    ld   [_RAM_D06E_], a
     ld   a, [_tilemap_pos_y__RAM_C8CA_]
     sub  $10
     ld   [_tilemap_pos_y__RAM_C8CA_], a
     jp   _LABEL_50AF_
 
 _LABEL_518C_:
-    ld   a, [_RAM_D06E_]    ; _RAM_D06E_ = $D06E
+    ld   a, [_RAM_D06E_]
     ld   b, $00
     ld   hl, _RAM_D06D_ ; _RAM_D06D_ = $D06D
 _LABEL_5194_:
@@ -4784,7 +4796,7 @@ _LABEL_5194_:
 
 _LABEL_519C_:
     sub  $07
-    ld   [_RAM_D06E_], a    ; _RAM_D06E_ = $D06E
+    ld   [_RAM_D06E_], a
     ld   a, $10
     call multiply_a_x_b__result_in_de__4853_
     ld   a, [_tilemap_pos_y__RAM_C8CA_]
@@ -4799,7 +4811,7 @@ _LABEL_51B0_:
     ld   a, [_tilemap_pos_x__RAM_C8CB_]
     cp   $A0
     jp   z, _LABEL_4F95_
-    ld   a, [_RAM_D06E_]    ; _RAM_D06E_ = $D06E
+    ld   a, [_RAM_D06E_]
     inc  a
     ld   e, a
     ld   d, $00
@@ -5269,7 +5281,7 @@ _LABEL_54F9_:
 _LABEL_5505_:
     call _LABEL_AEF_
     call _LABEL_289_
-    ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+    ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     cp   $F9
     jr   nz, _LABEL_5505_
     ldh  a, [rLCDC]
@@ -5308,7 +5320,7 @@ _LABEL_5549_:
     ld   a, $0C
     ld   [_RAM_D035_ + 1], a    ; _RAM_D035_ + 1 = $D036
     call _LABEL_AEF_
-    ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+    ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     cp   $F9
     jr   nz, _LABEL_5579_
     call _LABEL_5D5F_
@@ -5488,11 +5500,12 @@ _LABEL_56BC_:
     ldi  [hl], a
     ret
 
+; TODO: keycode / button constant labeling
 _LABEL_56CB_:
     xor  a
     ld   [_RAM_D05A_], a
     ld   [_RAM_D06B_], a
-    ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+    ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     cp   $2E
     jr   z, _LABEL_5740_
     cp   $3D
@@ -5506,6 +5519,8 @@ _LABEL_56CB_:
     call _LABEL_522_
     ret
 
+
+; TODO: keycode / button constant labeling
 _LABEL_56EE_:
     ld   a, [buttons_new_pressed__RAM_D006_]
     and  $C4
@@ -5749,7 +5764,7 @@ _LABEL_5841_:
     ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
     call _LABEL_58EA_
 _LABEL_58AD_:
-    call _LABEL_49C2_
+    call input_map_gamepad_buttons_to_keycodes__49C2_
     call _LABEL_5919_
     ld   a, [_RAM_D06B_]
     and  a
@@ -5808,7 +5823,7 @@ db $20, $48, $48, $48, $20, $68, $40, $68, $68, $68
 _LABEL_5919_:
     xor  a
     ld   [_RAM_D06B_], a
-    ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+    ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     cp   $3F
     jr   nz, _LABEL_593C_
     xor  a
@@ -5907,7 +5922,7 @@ _LABEL_59B7_:
     ld   [_RAM_D035_], a    ; _RAM_D035_ = $D035
 _LABEL_59D5_:
     call _LABEL_A34_
-    ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+    ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     cp   $FC
     jr   z, _LABEL_59E4_
     call _LABEL_289_
@@ -6119,8 +6134,8 @@ _LABEL_5B12_:
     ld   c, PRINT_NORMAL  ; $01
     call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
 _LABEL_5B33_:
-    call _LABEL_49C2_
-    ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+    call input_map_gamepad_buttons_to_keycodes__49C2_
+    ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     cp   $2A
     jr   nz, _LABEL_5B33_
     xor  a
@@ -6535,9 +6550,9 @@ _LABEL_5E93_:
     jr   nz, _LABEL_5E93_
     call _LABEL_6240_
 _LABEL_5E9A_:
-    call _LABEL_49C2_
+    call input_map_gamepad_buttons_to_keycodes__49C2_
     call _LABEL_6230_
-    ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+    ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     cp   $2A
     jr   nz, _LABEL_5EAE_
     call _LABEL_6265_
@@ -6617,7 +6632,7 @@ _LABEL_5F34_:
     jp   z, _LABEL_5E9A_
     ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
     ld   a, $BE
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
+    ld   [maybe_input_key_new_pressed__RAM_D025_], a
     call _LABEL_621C_
     jp   _LABEL_5F54_
 
@@ -6659,7 +6674,7 @@ _LABEL_5F7A_:
     cp   $10
     jp   z, _LABEL_5E9A_
     ld   a, $CB
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
+    ld   [maybe_input_key_new_pressed__RAM_D025_], a
 _LABEL_5F93_:
     cp   $BE
     jr   nz, _LABEL_5FA1_
@@ -6679,7 +6694,7 @@ _LABEL_5FA1_:
     cp   $BE
     jr   z, _LABEL_5FDA_
     sub  $20
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
+    ld   [maybe_input_key_new_pressed__RAM_D025_], a
     jr   _LABEL_5FDA_
 
 _LABEL_5FBF_:
@@ -6693,7 +6708,7 @@ _LABEL_5FBF_:
     cp   $DC
     jp   c, _LABEL_5FDA_
     sub  $07
-    ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
+    ld   [maybe_input_key_new_pressed__RAM_D025_], a
 _LABEL_5FDA_:
     ld   a, [_RAM_D20D_]
     and  a
@@ -6955,7 +6970,7 @@ _LABEL_61D8_:
     dec  a
     dec  a
     call _LABEL_486E_
-    ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+    ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     ld   [_RAM_D400_], a
     ld   [hl], a
     pop  af
@@ -7057,9 +7072,9 @@ _LABEL_6291_:
     ld   b, $19
 _LABEL_62AA_:
     push bc
-    call _LABEL_49C2_
+    call input_map_gamepad_buttons_to_keycodes__49C2_
     pop  bc
-    ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+    ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     cp   $FF
     jr   nz, _LABEL_62B9_
     dec  b
@@ -7171,7 +7186,7 @@ _LABEL_63A7_:
     ld   [_RAM_D05B_], a    ; _RAM_D05B_ = $D05B
     call _LABEL_289_
     call _LABEL_C8D_
-    ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+    ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     cp   $2A
     jp   z, _LABEL_6673_
     cp   $30
@@ -7819,7 +7834,7 @@ _LABEL_711A_:
         ld   a, $05
         ld   [_RAM_D06D_], a    ; _RAM_D06D_ = $D06D
         call _LABEL_4A7B_
-        ld   a, [_RAM_D06E_]    ; _RAM_D06E_ = $D06E
+        ld   a, [_RAM_D06E_]
         cp   $00
         push af
         call z, _LABEL_7185_
@@ -7867,7 +7882,7 @@ _LABEL_7185_:
 _LABEL_71BB_:
         call _LABEL_289_
         call _LABEL_C8D_
-        ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+        ld   a, [maybe_input_key_new_pressed__RAM_D025_]
         cp   $2A
         jr   z, _LABEL_7207_
         cp   $2F
@@ -7977,7 +7992,7 @@ _LABEL_72A0_:
         call _LABEL_72F0_
         call _LABEL_289_
         call _LABEL_C8D_
-        ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+        ld   a, [maybe_input_key_new_pressed__RAM_D025_]
         cp   $2A
         jr   nz, _LABEL_72B5_
         xor  a
@@ -8116,7 +8131,7 @@ _LABEL_7377_:
 _LABEL_738C_:
         call _LABEL_289_
         call _LABEL_C8D_
-        ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+        ld   a, [maybe_input_key_new_pressed__RAM_D025_]
         cp   $2A
         jp   z, _LABEL_7417_
         cp   $2F
@@ -8128,7 +8143,7 @@ _LABEL_73A4_:
         ld   a, [_RAM_D07B_]
         and  a
         jr   nz, _LABEL_73C5_
-        ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+        ld   a, [maybe_input_key_new_pressed__RAM_D025_]
         ld   b, a
         ld   a, [_RAM_D03B_]    ; _RAM_D03B_ = $D03B
         cp   b
@@ -8223,7 +8238,7 @@ _LABEL_7467_:
         pop  de
         inc  e
 _LABEL_7470_:
-        ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+        ld   a, [maybe_input_key_new_pressed__RAM_D025_]
 _LABEL_7473_:
         cp   $2A
         jr   nz, _LABEL_747B_
@@ -8269,14 +8284,14 @@ _LABEL_74BD_:
         jr   nz, _LABEL_74CB_
         call _LABEL_7704_
 _LABEL_74CB_:
-        ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+        ld   a, [maybe_input_key_new_pressed__RAM_D025_]
         cp   $2F
         jp   nz, _LABEL_7467_
         call _LABEL_522_
         jp   _LABEL_7465_
 
 _LABEL_74D9_:
-        ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+        ld   a, [maybe_input_key_new_pressed__RAM_D025_]
         cp   $18
         jp   nc, _LABEL_756E_
         ld   hl, _RAM_D079_
@@ -8339,7 +8354,7 @@ _LABEL_7556_:
         call _LABEL_289_
         call _LABEL_C8D_
         pop  bc
-        ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+        ld   a, [maybe_input_key_new_pressed__RAM_D025_]
         cp   $FF
         jr   nz, _LABEL_7568_
         dec  b
@@ -8583,8 +8598,8 @@ _LABEL_771C_:
         ret
 
 _LABEL_7721_:
-        call _LABEL_49C2_
-        ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
+        call input_map_gamepad_buttons_to_keycodes__49C2_
+        ld   a, [maybe_input_key_new_pressed__RAM_D025_]
         push af
         cp   $2F
         call z, _LABEL_522_
