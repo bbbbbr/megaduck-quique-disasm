@@ -25,24 +25,43 @@ _RST__10_:
 
 _RST__18_:
     jp   _GB_ENTRY_POINT_100_
-    db $00, $00, $00, $00, $00
+    nop
+    nop
+    nop
+    nop
+    nop
 
 _RST__20_:
     jp   _GB_ENTRY_POINT_100_
-    db $00, $00, $00, $00, $00
+    nop
+    nop
+    nop
+    nop
+    nop
 
 _RST__28_:
     jp   _GB_ENTRY_POINT_100_
-    db $00, $00, $00, $00, $00
+    nop
+    nop
+    nop
+    nop
+    nop
 
 _RST__30_:
     jp   _GB_ENTRY_POINT_100_
-    db $00, $00, $00, $00, $00
+    nop
+    nop
+    nop
+    nop
+    nop
 
 _RST__38_:
     jp   _GB_ENTRY_POINT_100_
-    db $00, $00, $00, $00, $00
-
+    nop
+    nop
+    nop
+    nop
+    nop
 
 _INT_VBL__40_:
     di
