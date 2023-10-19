@@ -684,9 +684,10 @@ _LABEL_433_:
     ret
 
 
-; Clears bit 2 in [hl]
+; Clears Timer ticked flag...
+; TODO: probably audio driver related
 _LABEL_43C_:
-    res  2, [hl]
+    res  TIMER_FLAG__BIT_TICKED, [hl]  ; 2, [hl]
     ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
     bit  0, a
     jr   nz, _LABEL_44A_
