@@ -48,6 +48,8 @@ DEF SYS_REPLY_NO_CART_IN_SLOT     EQU $06
 DEF SYS_REPLY_BOOT_OK             EQU $01  ; Reply on startup that allows rest of code to proceed
 DEF SYS_REPLY__BIT_BOOT_FAIL      EQU 0
 
+DEF TIMER_FLAG__BIT_TICKED        EQU 2    ; Set by timer interrupt, cleared by...
+
 ; Turn on to enable skipping some Megaduck QuiQue hardware specific code
 ; def GB_DEBUG = 1
 
@@ -104,11 +106,14 @@ _RAM_CC61_: ds $9f
 _RAM_CD00_: ds $300
 
 SECTION "wram_d000", WRAMX[$d000], BANK[$1]
-_RAM_D000_: db
+timer_flags__RAM_D000_: db
 
 SECTION "wram_d006", WRAMX[$d006], BANK[$1]
-_RAM_D006_: db
-_RAM_D007_: ds $19
+buttons_new_pressed__RAM_D006_: db
+buttons_current__RAM_D007_: db
+
+SECTION "wram_d008", WRAMX[$d008], BANK[$1]
+ds $18
 
 SECTION "wram_d020", WRAMX[$d020], BANK[$1]
 _RAM_D020_: db

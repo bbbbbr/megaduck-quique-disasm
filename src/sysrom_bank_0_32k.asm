@@ -104,9 +104,9 @@ _INT_SERIAL__58_:
 _INT_JOYPAD__60_:
     di
     push af
-    ld   a, [_RAM_D020_]    ; _RAM_D020_ = $D020
+    ld   a, [_RAM_D020_]
     add  $05
-    ld   [_RAM_D020_], a    ; _RAM_D020_ = $D020
+    ld   [_RAM_D020_], a
     pop  af
     ei
     reti
@@ -168,14 +168,15 @@ _VBL_HANDLER__6D_:
         ret
 
 
+; Called by Timer interrupt
 _LABEL_BB_:
     push af
-    ld   a, [_RAM_D020_]    ; _RAM_D020_ = $D020
+    ld   a, [_RAM_D020_]
     add  $07
-    ld   [_RAM_D020_], a    ; _RAM_D020_ = $D020
-    ld   a, [_RAM_D000_]    ; _RAM_D000_ = $D000
-    set  2, a
-    ld   [_RAM_D000_], a    ; _RAM_D000_ = $D000
+    ld   [_RAM_D020_], a
+    ld   a, [timer_flags__RAM_D000_]
+    set  TIMER_FLAG__BIT_TICKED, a  ; 2, a
+    ld   [timer_flags__RAM_D000_], a
     pop  af
     ret
 
@@ -434,24 +435,31 @@ _LABEL_27B_:
     call _LABEL_289_
     jr   _LABEL_27B_
 
-; TODO: Turn on interrupts, check value at _RAM_D000_ for bit 2 ($04) then
+; Turn on interrupts and wait for a Timer tick - Maybe audio driver related
+; - Turn on interrupts
+; TODO: maybe: audio_driver_wait_timer_tick__289_;
 _LABEL_289_:
     ei
-_LABEL_28A_:
-    ld   hl, _RAM_D000_
-    bit  2, [hl]
+loop_wait_timer__28A_:
+    ld   hl, timer_flags__RAM_D000_
+    bit  TIMER_FLAG__BIT_TICKED, [hl]  ; 2, [hl]
     jp   nz, _LABEL_43C_
-    jr   _LABEL_28A_
+    jr   loop_wait_timer__28A_
 
 
-_LABEL_294_:
-    ld   hl, _RAM_D000_ ; _RAM_D000_ = $D000
-    bit  2, [hl]
-    jr   nz, _LABEL_29D_
-    jr   _LABEL_294_
-_LABEL_29D_:
-    res  2, [hl]
-    jp   _LABEL_4F9_
+; Waits for a Timer tick to read the joypad & buttons
+;
+; Possibly unused?
+wait_timer_then_read_joypad_buttons__294_:
+    ld   hl, timer_flags__RAM_D000_
+    bit  TIMER_FLAG__BIT_TICKED, [hl]  ; 2, [hl]
+    jr   nz, start_read_29D_
+    jr   wait_timer_then_read_joypad_buttons__294_
+start_read_29D_:
+    ; Clear flag and read joypad
+    res  TIMER_FLAG__BIT_TICKED, [hl]  ; 2, [hl]
+    jp   joypad_and_buttons_read__4F9_
+    ; Returns at end of joypad_and_buttons_read__4F9_
 
 
 _LABEL_2A2_:
@@ -569,31 +577,41 @@ _LABEL_36F_:
     ld   [_RAM_CC11_], a    ; _RAM_CC11_ = $CC11
     jr   _LABEL_327_
 
+
+; TODO: What is this actually doing
 _LABEL_37D_:
+    ; Calculate offset (A X 2) into table at _DATA_BE3_ -> HL
     ld   a, b
     add  a
     ld   c, a
     ld   b, $00
-    ld   hl, _DATA_BE3_ ; _DATA_BE3_ = $0BE3
+    ld   hl, _DATA_BE3_
     add  hl, bc
+    ; Load u16 from table at HL into _RAM_CC27_, _RAM_CC28_
     inc  hl
     ld   a, [hl]
-    ld   [_RAM_CC28_], a    ; _RAM_CC28_ = $CC28
+    ld   [_RAM_CC28_], a
     dec  hl
     ld   a, [hl]
-    ld   [_RAM_CC27_], a    ; _RAM_CC27_ = $CC27
-    ld   a, [_RAM_CC10_]    ; _RAM_CC10_ = $CC10
+    ld   [_RAM_CC27_], a
+
+    ; Load pointer from _RAM_CC10_, _RAM_CC11_
+    ; Read a byte and save it to _RAM_CC23_
+    ; Then store pointer addr +1 back in _RAM_CC10_, _RAM_CC11_
+    ld   a, [_RAM_CC10_]
     ld   h, a
-    ld   a, [_RAM_CC11_]    ; _RAM_CC11_ = $CC11
+    ld   a, [_RAM_CC11_]
     ld   l, a
     ld   a, [hl]
-    ld   [_RAM_CC23_], a    ; _RAM_CC23_ = $CC23
+    ld   [_RAM_CC23_], a
+
     inc  hl
     ld   a, h
     ld   [_RAM_CC10_], a    ; _RAM_CC10_ = $CC10
     ld   a, l
     ld   [_RAM_CC11_], a    ; _RAM_CC11_ = $CC11
     ret
+
 
 _LABEL_3A6_:
     ld   a, [_RAM_CC10_]    ; _RAM_CC10_ = $CC10
@@ -766,8 +784,19 @@ _LABEL_4E9_:
 _LABEL_4F4_:
     ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
     ldh  [rAUDTERM], a
-_LABEL_4F9_:
-    ld   a, $20
+
+
+
+; Read D-Pad and Buttons
+;
+; - D-Pad: Upper nibble
+; - Buttons: Lower nibble
+;
+; - Newly pressed buttons saved to: buttons_new_pressed__RAM_D006_
+; - current pressed buttons saved to: buttons_current__RAM_D007_
+joypad_and_buttons_read__4F9_:
+    ; Read D-Pad
+    ld   a, P1F_GET_DPAD  ; $20
     ldh  [rP1], a
     ldh  a, [rP1]
     ldh  a, [rP1]
@@ -776,20 +805,24 @@ _LABEL_4F9_:
     and  $0F
     swap a
     ld   b, a
-    ld   a, $10
+    ; Read Buttons
+    ld   a, P1F_GET_BTN  ; $10
     ldh  [rP1], a
     ldh  a, [rP1]
     ldh  a, [rP1]
     ldh  a, [rP1]
     cpl
     and  $0F
+    ; Merge D-Pad and Buttons (active High)
     or   b
     ld   b, a
-    ld   hl, _RAM_D006_ ; _RAM_D006_ = $D006
+    ; Determine newly pressed buttons and save result
+    ld   hl, buttons_new_pressed__RAM_D006_
     xor  [hl]
     and  b
     ld   [hl], b
-    ld   [_RAM_D007_], a    ; _RAM_D007_ = $D007
+    ; Save currently pressed buttons as well
+    ld   [buttons_current__RAM_D007_], a
     ret
 
 ; TODO: RESEARCH
@@ -1325,7 +1358,7 @@ write_tilemap0_byte_in_a_preset_xy__8EA_:
     ret
 
 
-; Writes to Tile Map VRAM at preset address X,Y with preset byte 
+; Writes to Tile Map VRAM at preset address X,Y with preset byte
 ;
 ; - Tilemap select [0/1 = Tilemap0/1] in :A
 ; - Tilemap X,Y and byte to write in global vars
@@ -1864,6 +1897,7 @@ delay_quarter_msec__BD6_:
         ret
 
 ; Data from BE3 to C8C (170 bytes)
+; Some kind of table with values incrementing from 0x0022 -> 0x07FF
 _DATA_BE3_:
 db $00, $22, $00, $97, $00, $FF, $01, $72, $01, $C4, $02, $1F, $02, $80, $02, $C8
 db $03, $15, $03, $5A, $03, $98, $03, $D8, $04, $19, $04, $52, $04, $86, $04, $B9
@@ -3686,7 +3720,7 @@ _LABEL_49BE_:
 _LABEL_49C2_:
     call _LABEL_289_
     call _LABEL_C8D_
-    ld   a, [_RAM_D006_]    ; _RAM_D006_ = $D006
+    ld   a, [buttons_new_pressed__RAM_D006_]
     cp   $00
     ret  z
     bit  3, a
@@ -3937,7 +3971,7 @@ _LABEL_4B0E_:
 
 _LABEL_4B36_:
     call _LABEL_4D30_
-    ld   a, [_RAM_D006_]    ; _RAM_D006_ = $D006
+    ld   a, [buttons_new_pressed__RAM_D006_]
     and  $F4
     jr   nz, _LABEL_4B4F_
     xor  a
@@ -4108,7 +4142,7 @@ _LABEL_4C93_:
     xor  a
 _LABEL_4C94_:
     ld   [_RAM_D05E_], a    ; _RAM_D05E_ = $D05E
-    ld   a, [_RAM_D006_]    ; _RAM_D006_ = $D006
+    ld   a, [buttons_new_pressed__RAM_D006_]
     bit  5, a
     jr   z, _LABEL_4CA6_
     ld   a, [_RAM_D05D_]    ; _RAM_D05D_ = $D05D
@@ -4120,7 +4154,7 @@ _LABEL_4CA6_:
     xor  a
 _LABEL_4CA7_:
     ld   [_RAM_D05D_], a    ; _RAM_D05D_ = $D05D
-    ld   a, [_RAM_D006_]    ; _RAM_D006_ = $D006
+    ld   a, [buttons_new_pressed__RAM_D006_]
     bit  6, a
     jr   z, _LABEL_4CB9_
     ld   a, [_RAM_D05C_]    ; _RAM_D05C_ = $D05C
@@ -4132,7 +4166,7 @@ _LABEL_4CB9_:
     xor  a
 _LABEL_4CBA_:
     ld   [_RAM_D05C_], a    ; _RAM_D05C_ = $D05C
-    ld   a, [_RAM_D006_]    ; _RAM_D006_ = $D006
+    ld   a, [buttons_new_pressed__RAM_D006_]
     bit  7, a
     jr   z, _LABEL_4CCC_
     ld   a, [_RAM_D05B_]    ; _RAM_D05B_ = $D05B
@@ -4204,7 +4238,7 @@ _LABEL_4D1E_:
 
 _LABEL_4D30_:
     ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
-    ld   hl, _RAM_D006_ ; _RAM_D006_ = $D006
+    ld   hl, buttons_new_pressed__RAM_D006_
     cp   $3D
     jr   nz, _LABEL_4D3C_
     set  6, [hl]
@@ -4561,7 +4595,7 @@ _LABEL_4FEE_:
     cp   $45
     jp   z, _LABEL_526F_
     call _LABEL_4D30_
-    ld   a, [_RAM_D006_]    ; _RAM_D006_ = $D006
+    ld   a, [buttons_new_pressed__RAM_D006_]
     and  $F7
     jr   nz, _LABEL_5022_
     xor  a
@@ -4574,7 +4608,7 @@ _LABEL_4FEE_:
     jp   _LABEL_4F95_
 
 _LABEL_5022_:
-    ld   a, [_RAM_D006_]    ; _RAM_D006_ = $D006
+    ld   a, [buttons_new_pressed__RAM_D006_]
     bit  2, a
     jp   nz, _LABEL_51B0_
     bit  0, a
@@ -5289,7 +5323,7 @@ _LABEL_5579_:
 _LABEL_557B_:
     call _LABEL_289_
     call _LABEL_C8D_
-    ld   a, [_RAM_D006_]    ; _RAM_D006_ = $D006
+    ld   a, [buttons_new_pressed__RAM_D006_]
     ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
     call _LABEL_56CB_
     ld   a, [_RAM_D05A_]
@@ -5472,10 +5506,10 @@ _LABEL_56CB_:
     ret
 
 _LABEL_56EE_:
-    ld   a, [_RAM_D006_]    ; _RAM_D006_ = $D006
+    ld   a, [buttons_new_pressed__RAM_D006_]
     and  $C4
     ret  z
-    ld   a, [_RAM_D006_]    ; _RAM_D006_ = $D006
+    ld   a, [buttons_new_pressed__RAM_D006_]
     bit  6, a
     jr   nz, _LABEL_5704_
     bit  7, a
@@ -7343,7 +7377,7 @@ _LABEL_6A35_:
     dec  a
     jr   nz, _LABEL_6A35_
 _LABEL_6A3A_:
-    ld   a, [_RAM_D006_]    ; _RAM_D006_ = $D006
+    ld   a, [buttons_new_pressed__RAM_D006_]
     and  $F0
     ret  z
     and  $30
