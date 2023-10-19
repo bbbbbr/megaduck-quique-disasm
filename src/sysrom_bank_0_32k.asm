@@ -3,17 +3,15 @@
 ; Memory region 0x000 - 0x7fff
 
 SECTION "rom0", ROM0[$0]
-_LABEL_0_:
+_DUCK_ENTRY_POINT_0000_:
     di
     jp   _GB_ENTRY_POINT_100_
+    nop
+    nop
+    nop
+    nop
 
-; Data from 4 to 4 (1 bytes)
-db $00
-
-_LABEL_5_:
-    nop
-    nop
-    nop
+_RST__08_:
     ei
     call _LABEL_4A7B_
     di
@@ -167,7 +165,7 @@ _LABEL_BB_:
 ;
 ; - Stores serial data in:        serial_link_rx_data__RAM_D021_
 ; - Sets transfer status done in: serial_link_status__RAM_D022_
-; - Turns off the serial port interrupt
+; - Turns off the serial IO interrupt
 serial_isr_handler__00CE_:
     push af
     ldh  a, [rSB]
@@ -295,7 +293,7 @@ _LABEL_1B3_:
     cp   $02
     jr   nz, _LABEL_1C5_
     di
-    ld   hl, _LABEL_5_ + 3  ; _LABEL_5_ + 3 = $0008
+    ld   hl, _RST__08_  ; _RST__08_ = $0008
     res  7, h
     ld   a, $01
     call _switch_bank_jump_hl_RAM__C920_    ; Possibly invalid
@@ -1451,7 +1449,7 @@ _LABEL_9A3_:
     ret
 
 
-; Does some kind of serial port system startup init
+; Does some kind of serial IO system startup init
 ; and sends count up sequence / then waits for and checks a count down sequence in reverse
 ;
 ; - Does this have anything to do with the "first time boot up" voice greeting?
@@ -1463,7 +1461,7 @@ serial_system_init_check__9CF_:
     xor  a
     ld   [serial_system_status__RAM_D024_], a  ; TODO: System startup status var? (success/failure?)
     xor  a
-    ; Sending some kind of init(? TODO) count up sequence through the serial port (0,1,2,3...255)
+    ; Sending some kind of init(? TODO) count up sequence through the serial IO (0,1,2,3...255)
     ; Then wait for a response with no timeout
     loop_send_sequence__9D8_:
         ld   [serial_link_tx_data__RAM_D023_], a
@@ -1478,12 +1476,12 @@ serial_system_init_check__9CF_:
     call nz, serial_system_status_set_fail__BBA_
 
     ; Send a "0" byte (SYS_CMD_INIT_SEQ_REQUEST)
-    ; That maybe requests a 255..0 countdown sequence (be sent into the serial port)
+    ; That maybe requests a 255..0 countdown sequence (be sent into the serial IO)
     xor  a
     ld   [serial_link_tx_data__RAM_D023_], a
     call serial_io_send_byte__B64_
 
-    ; ? Expects a reply sequence through the serial port of (255,254...0) ?
+    ; ? Expects a reply sequence through the serial IO of (255,254...0) ?
     ld   b, $01             ; This might not do anything, again... (not used and later overwritten)
     ld   c, $FF
     loop_receive_sequence__9F6_:
@@ -1512,6 +1510,9 @@ serial_system_init_check__9CF_:
 
 
 ; Prepares to receive data through the serial (or special?) IO
+;
+; - Sets serial IO to external clock and enables ready state
+; - Turns on Serial interrupt, clears pending interrupts, turns on interrupts
 serial_io_enable_receive_byte__A17_:
     push af
     ; TODO: What does writing 0 to FF60 do here? Does it select alternate input for the serial control?
@@ -1544,11 +1545,13 @@ serial_int_disable__A2B_:
     ret
 
 
+; Turns on Serial IO interrupt
 _LABEL_A34_:
     ldh  a, [rIE]
-    ld   [_RAM_D078_], a    ; _RAM_D078_ = $D078
+    ld   [_rIE_saved_serial__RAM_D078_], a
     ld   a, IEF_SERIAL ; $08
     ldh  [rIE], a
+
     ld   a, [_RAM_D034_]    ; _RAM_D034_ = $D034
     cp   $0D
     jr   c, _LABEL_A46_
@@ -1630,13 +1633,13 @@ _LABEL_AE4_:
 _LABEL_AE6_:
     ld   [_RAM_D025_], a    ; _RAM_D025_ = $D025
 _LABEL_AE9_:
-    ld   a, [_RAM_D078_]    ; TODO: interrupt enable save variable?
+    ld   a, [_rIE_saved_serial__RAM_D078_]    ; TODO: interrupt enable save variable?
     ldh  [rIE], a
     ret
 
 _LABEL_AEF_:
     ldh  a, [rIE]
-    ld   [_RAM_D078_], a    ; _RAM_D078_ = $D078
+    ld   [_rIE_saved_serial__RAM_D078_], a
     ld   a, IEF_SERIAL ; $08
     ldh  [rIE], a
     ld   d, $00
@@ -1691,7 +1694,7 @@ _LABEL_B28_:
 _LABEL_B58_:
     ld   [serial_link_tx_data__RAM_D023_], a
     call serial_io_send_byte__B64_
-    ld   a, [_RAM_D078_]    ; _RAM_D078_ = $D078
+    ld   a, [_rIE_saved_serial__RAM_D078_]
     ldh  [rIE], a
     ret
 
@@ -1702,7 +1705,7 @@ _LABEL_B58_:
 serial_io_send_byte__B64_:
     push af
     ; TODO: What does writing 0 to FF60 do here? Does it select alternate output for the serial control?
-    ; Start an outbound (serial port?) transfer
+    ; Start an outbound (serial IO?) transfer
     ; Load byte to send
     ; Wait a quarter msec, then clear pending interrupts
     ; Set ready to receive an inbound transfer
@@ -1837,7 +1840,7 @@ db $07, $F0, $07, $F1, $07, $F2, $07, $F3, $07, $FF
 
 _LABEL_C8D_:
     ldh  a, [rIE]
-    ld   [_RAM_D078_], a    ; _RAM_D078_ = $D078
+    ld   [_rIE_saved_serial__RAM_D078_], a
     xor  a
     ldh  [rIE], a
     ld   a, $00
@@ -1893,7 +1896,7 @@ _LABEL_CC8_:
     ld   a, [_RAM_D025_]    ; _RAM_D025_ = $D025
     ld   [_RAM_D181_], a    ; _RAM_D181_ = $D181
 _LABEL_D06_:
-    ld   a, [_RAM_D078_]    ; _RAM_D078_ = $D078
+    ld   a, [_rIE_saved_serial__RAM_D078_]
     ldh  [rIE], a
     call _LABEL_DFC_
     ret

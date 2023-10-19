@@ -168,7 +168,7 @@ _RAM_D073_: db
 _RAM_D074_: db
 
 SECTION "wram_d078", WRAMX[$d078], BANK[$1]
-_RAM_D078_: db
+_rIE_saved_serial__RAM_D078_: db
 _RAM_D079_: db
 _RAM_D07A_: db
 _RAM_D07B_: db
