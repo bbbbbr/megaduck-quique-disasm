@@ -85,7 +85,7 @@ _INT_STAT__48_:
 
 _INT_TIMER__50_:
     di
-    call _LABEL_BB_
+    call timer_int_handler__00BB_
     ei
     reti
     nop
@@ -94,7 +94,7 @@ _INT_TIMER__50_:
 
 _INT_SERIAL__58_:
     di
-    call serial_isr_handler__00CE_
+    call serial_int_handler__00CE_
     ei
     reti
     nop
@@ -168,10 +168,13 @@ _VBL_HANDLER__6D_:
         ret
 
 
-; Called by Timer interrupt
-_LABEL_BB_:
+; Called by Timer interrupt vector
+;
+; Overflows/Triggers interrupt every 201 ticks (0x100 - 0x37) = 201
+; 4096 Hz / (201) = ~20.378Hz, roughly every 3rd frame
+timer_int_handler__00BB_:
     push af
-    ld   a, [_RAM_D020_]
+    ld   a, [_RAM_D020_]  ; TODO: some kind of global counter shared with serial IO
     add  $07
     ld   [_RAM_D020_], a
     ld   a, [timer_flags__RAM_D000_]
@@ -186,7 +189,7 @@ _LABEL_BB_:
 ; - Stores serial data in:        serial_link_rx_data__RAM_D021_
 ; - Sets transfer status done in: serial_link_status__RAM_D022_
 ; - Turns off the serial IO interrupt
-serial_isr_handler__00CE_:
+serial_int_handler__00CE_:
     push af
     ldh  a, [rSB]
     ld   [serial_link_rx_data__RAM_D021_], a
@@ -435,9 +438,12 @@ _LABEL_27B_:
     call _LABEL_289_
     jr   _LABEL_27B_
 
-; Turn on interrupts and wait for a Timer tick - Maybe audio driver related
+; Turn on interrupts and wait for a Timer tick
+; - Maybe audio driver related
+; - Maybe Gamepad / Keyboard input related
+;
 ; - Turn on interrupts
-; TODO: maybe: audio_driver_wait_timer_tick__289_;
+; TODO: maybe: timer_wait_tick__289_;
 _LABEL_289_:
     ei
 loop_wait_timer__28A_:
@@ -453,13 +459,14 @@ loop_wait_timer__28A_:
 wait_timer_then_read_joypad_buttons__294_:
     ld   hl, timer_flags__RAM_D000_
     bit  TIMER_FLAG__BIT_TICKED, [hl]  ; 2, [hl]
-    jr   nz, start_read_29D_
+    jr   nz, start_read__29D_
     jr   wait_timer_then_read_joypad_buttons__294_
-start_read_29D_:
-    ; Clear flag and read joypad
-    res  TIMER_FLAG__BIT_TICKED, [hl]  ; 2, [hl]
-    jp   joypad_and_buttons_read__4F9_
-    ; Returns at end of joypad_and_buttons_read__4F9_
+
+    start_read__29D_:
+        ; Clear flag and read joypad
+        res  TIMER_FLAG__BIT_TICKED, [hl]  ; 2, [hl]
+        jp   joypad_and_buttons_read__4F9_
+        ; Returns at end of joypad_and_buttons_read__4F9_
 
 
 _LABEL_2A2_:
@@ -1120,10 +1127,10 @@ _vram_init__752_:
         call _oam_dma_routine_in_ROM__7E3_
 
         ; Set the BG & Sprite color palettes
-        ld   a, $E4
+        ld   a, COLS_0WHT_1LGRY_2DGRY_3BLK  ; $E4
         ldh  [rOBP0], a
         ldh  [rBGP], a
-        ld   a, $1B
+        ld   a, COLS_0BLK_1DGRY_2LGRY_3WHT ; $1B
         ldh  [rOBP1], a
 
         ; Init Window and BG Map Scroll X
@@ -1473,36 +1480,45 @@ _LABEL_979_:
 
 ; TODO: some kind of startup init
 _LABEL_97A_:
-    ld   a, $05
+    ; Timer and Enable VBlank interrupts
+    ld   a, (IEF_TIMER | IEF_VBLANK)  ; $05
     ldh  [rIF], a
     ldh  [rIE], a
+    ; Serial Init
     xor  a
     ldh  [rSB], a
     ldh  [rSC], a
+    ; Turn on Audio
     ldh  [rAUDENA], a
+    ; Turn on Screen
     ldh  [rLCDC], a
-    ld   a, $80
+    ld   a, LCDCF_ON  ; $80
     ldh  [rLCDC], a
-    ld   a, $E4
+    ; Set up BG Colors
+    ld   a, COLS_0WHT_1LGRY_2DGRY_3BLK  ; $E4
     ldh  [rBGP], a
     ldh  [rOBP0], a
-    ld   a, $1B
+    ld   a, COLS_0BLK_1DGRY_2LGRY_3WHT  ; $1B
     ldh  [rOBP1], a
+    ; Set up Audio Wave channel
     xor  a
     ldh  [rAUD3ENA], a
     ld   a, $FF
     ldh  [rAUD3LEN], a
     ld   a, $55
     ld   bc, $0800 | LOW(_AUD3WAVERAM_LAST) ; | _PORT_3F_
-_LABEL_9A3_:
-    ldh  [c], a
-    dec  c
-    dec  b
-    jr   nz, _LABEL_9A3_
-    ld   hl, $FF00 | rAUDENA
-    ld   a, $80
+    loop_fill_ch3_wave_ram_LABEL__9A3_:
+        ldh  [c], a
+        dec  c
+        dec  b
+        jr   nz, loop_fill_ch3_wave_ram_LABEL__9A3_
+    ld   hl, rAUDENA
+    ld   a, AUDENA_ON  ; $80
     ldd  [hl], a
-    ld   [hl], $77 ; NOTE: Expected address here is prob wrong on GB due to re-arranged registers
+    ; WARNING: Unless patched, GB now points to the wrong audio register due to address reshuffling
+    ; On MegaDuck: HL now points to rAUDVOL (0xFF44)
+    ; On GB      : HL *incorrectly* points to rAUDTERM (0xFF25)
+    ld   [hl], %01110111 ; $77  ; Set rAUDVOL to Max Left/Right volume, with VIN off for left and right
     nop
     nop
     nop
@@ -1514,10 +1530,16 @@ _LABEL_9A3_:
     ld   a, $28
     ldh  [rAUD1LEN], a
     ldh  [rAUD2LEN], a
-    ld   a, $37
+    ; Timer init
+    ; Start timer and use default 4KHz freq
+    ;
+    ; Overflows/Triggers interrupt every 201 ticks (0x100 - 0x37) = 201
+    ; 4096 Hz / (201) = ~20.378Hz, roughly every 3rd frame
+    ;
+    ld   a, TIMER_DIV_TO_20HZ ; $37
     ldh  [rTMA], a
     ldh  [rTIMA], a
-    ld   a, $04
+    ld   a, (TACF_START | TACF_4KHZ); $04
     ldh  [rTAC], a
     ret
 
@@ -1864,7 +1886,7 @@ serial_system_status_set_fail__BBA_:
 ; Waits for a serial transfer to complete with a timeout
 ;
 ; - Timeout is about ~ 25 msec or 1.5 frames (0.25 * 0x64)
-; - Serial ISR populates status var if anything was received (serial_isr_handler__00CE_)
+; - Serial ISR populates status var if anything was received (serial_int_handler__00CE_)
 ;
 serial_io_wait_for_transfer_w_timeout_25msec__BC5_:
     push bc
@@ -1913,6 +1935,7 @@ db $07, $D6, $07, $D9, $07, $DB, $07, $DD, $07, $DF, $07, $E1, $07, $E3, $07, $E
 db $07, $E6, $07, $E8, $07, $E9, $07, $EA, $07, $EB, $07, $EC, $07, $EE, $07, $EF
 db $07, $F0, $07, $F1, $07, $F2, $07, $F3, $07, $FF
 
+; - TODO: Maybe, among other things, reading for keyboard input
 _LABEL_C8D_:
     ldh  a, [rIE]
     ld   [_rIE_saved_serial__RAM_D078_], a
@@ -1943,6 +1966,8 @@ _LABEL_CB9_:
     call serial_io_send_byte__B64_
     jr   _LABEL_D06_
 
+
+; - TODO: Maybe reading for keyboard input
 _LABEL_CC8_:
     ld   a, [serial_link_rx_data__RAM_D021_]
     ld   [_RAM_D027_], a    ; _RAM_D027_ = $D027
@@ -3721,7 +3746,14 @@ _LABEL_49BE_:
 
 
 ; TODO: checks buttons...
-; TODO: maybe: input_map_buttons_to_keycodes
+; Maps D-Pad button presses to keycode input
+;
+; - Reads from: buttons_new_pressed__RAM_D006_
+; - Writes to : maybe_input_key_new_pressed__RAM_D025_
+;
+; - Performs opposite function of input_map_keycodes_to_gamepad_buttons__4D30_
+;
+; Destroys A
 input_map_gamepad_buttons_to_keycodes__49C2_:
     call _LABEL_289_
     call _LABEL_C8D_
@@ -3981,7 +4013,7 @@ _LABEL_4B0E_:
     jp   _LABEL_4C83_
 
 _LABEL_4B36_:
-    call _LABEL_4D30_
+    call input_map_keycodes_to_gamepad_buttons__4D30_
     ld   a, [buttons_new_pressed__RAM_D006_]
     and  $F4
     jr   nz, _LABEL_4B4F_
@@ -4247,48 +4279,61 @@ _LABEL_4D1E_:
     jr   nz, _LABEL_4D1E_
     ret
 
-; TODO: maybe reverse mapping of keyboard input codes to gamepad buttons pressed
-; - convert all these to their constants
-_LABEL_4D30_:
+; Maps keycode input to D-Pad button presses
+;
+; - Reads from: maybe_input_key_new_pressed__RAM_D025_
+; - Writes to : buttons_new_pressed__RAM_D006_
+;
+; - Performs opposite function of input_map_gamepad_buttons_to_keycodes__49C2_
+;
+; Destroys A, HL
+input_map_keycodes_to_gamepad_buttons__4D30_:
     ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     ld   hl, buttons_new_pressed__RAM_D006_
     cp   $3D
-    jr   nz, _LABEL_4D3C_
-    set  6, [hl]
-_LABEL_4D3C_:
-    cp   $40
-    jr   nz, _LABEL_4D42_
-    set  7, [hl]
-_LABEL_4D42_:
-    cp   $3E
-    jr   nz, _LABEL_4D48_
-    set  5, [hl]
-_LABEL_4D48_:
-    cp   $3F
-    jr   nz, _LABEL_4D4E_
-    set  4, [hl]
-_LABEL_4D4E_:
-    cp   $CD
-    jr   nz, _LABEL_4D56_
-    set  5, [hl]
-    set  6, [hl]
-_LABEL_4D56_:
-    cp   $CA
-    jr   nz, _LABEL_4D5E_
-    set  4, [hl]
-    set  6, [hl]
-_LABEL_4D5E_:
-    cp   $CC
-    jr   nz, _LABEL_4D66_
-    set  5, [hl]
-    set  7, [hl]
-_LABEL_4D66_:
-    cp   $CB
-    jr   nz, _LABEL_4D6E_
-    set  4, [hl]
-    set  7, [hl]
-_LABEL_4D6E_:
-    ret
+    jr   nz, check_down__4d3c_
+    set  PADB_UP, [hl]  ; 6, [hl]
+    check_down__4d3c_:
+        cp   SYS_KEY_DOWN  ; $40
+        jr   nz, check_left__4d42_
+        set  PADB_DOWN, [hl]  ; 7, [hl]
+
+    check_left__4d42_:
+        cp   SYS_KEY_LEFT  ; $3E
+        jr   nz, check_right__4d48_
+        set  PADB_LEFT, [hl]  ; 5, [hl]
+
+    check_right__4d48_:
+        cp   SYS_KEY_RIGHT  ; $3F
+        jr   nz, check_up_left__4d4e_
+        set  PADB_RIGHT, [hl]  ; 4, [hl]
+
+    check_up_left__4d4e_:
+        cp   SYS_KEY_UP_LEFT  ; $CD
+        jr   nz, check_up_right__4d56_
+        set  PADB_LEFT, [hl]  ; 5, [hl]
+        set  PADB_UP, [hl]  ; 6, [hl]
+
+    check_up_right__4d56_:
+        cp   SYS_KEY_UP_RIGHT  ; $CA
+        jr   nz, check_down_left__4d5e_
+        set  PADB_RIGHT, [hl]  ; 4, [hl]
+        set  PADB_UP, [hl]  ; 6, [hl]
+
+    check_down_left__4d5e_:
+        cp   SYS_KEY_DOWN_LEFT  ; $CC
+        jr   nz, check_down_right__4d66_
+        set  PADB_LEFT, [hl]  ; 5, [hl]
+        set  PADB_DOWN, [hl]  ; 7, [hl]
+
+    check_down_right__4d66_:
+        cp   SYS_KEY_DOWN_RIGHT  ; $CB
+        jr   nz, done__4D6E_
+        set  PADB_RIGHT, [hl]  ; 4, [hl]
+        set  PADB_DOWN, [hl]  ; 7, [hl]
+    done__4D6E_:
+        ret
+
 
 _LABEL_4D6F_:
     ld   a, [_RAM_DBFB_]    ; _RAM_DBFB_ = $DBFB
@@ -4607,7 +4652,7 @@ _LABEL_4FEE_:
     jp   z, _LABEL_522B_
     cp   $45
     jp   z, _LABEL_526F_
-    call _LABEL_4D30_
+    call input_map_keycodes_to_gamepad_buttons__4D30_
     ld   a, [buttons_new_pressed__RAM_D006_]
     and  $F7
     jr   nz, _LABEL_5022_
@@ -4622,12 +4667,13 @@ _LABEL_4FEE_:
 
 _LABEL_5022_:
     ld   a, [buttons_new_pressed__RAM_D006_]
-    bit  2, a
+    bit  PADB_SELECT, a  ; 2, a
     jp   nz, _LABEL_51B0_
-    bit  0, a
+    bit  PADB_A, a  ; 0, a
     jp   nz, _LABEL_522B_
-    bit  1, a
+    bit  PADB_B, a  ; 1, a
     jp   nz, _LABEL_526F_
+
     call _LABEL_4C87_
     ld   a, [_RAM_D05E_]    ; _RAM_D05E_ = $D05E
     cp   $01

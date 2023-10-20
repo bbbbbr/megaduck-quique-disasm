@@ -28,6 +28,11 @@ DEF LY_VBL_SECOND_LINE            EQU (LY_LAST_SCREEN_LINE + 2)
 DEF TILEMAP_0                     EQU $00 ; $9800
 ; DEF TILEMAP_1                     EQU $01 ; $9C00  ; Theoretical, doesn't ever seem to get used so far...?
 
+DEF TIMER_DIV_TO_20HZ             EQU ($100 - 201) 
+
+DEF COLS_0WHT_1LGRY_2DGRY_3BLK    EQU ((%11 << 6) | (%10 << 4) | (%01 << 2) | %00) ; $E4
+DEF COLS_0BLK_1DGRY_2LGRY_3WHT    EQU ((%00 << 6) | (%01 << 4) | (%10 << 2) | %11) ; $1B
+
 DEF STR_TERMINATOR                EQU $00
 DEF CHAR_BLANKSPACE               EQU $BE
 DEF PRINT_NORMAL                  EQU $01
