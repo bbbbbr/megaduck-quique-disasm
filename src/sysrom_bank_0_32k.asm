@@ -715,7 +715,8 @@ _LABEL_44A_:
     ldh  [rAUD1LEN], a
     ld   a, [_RAM_CC28_]    ; _RAM_CC28_ = $CC28
     ldh  [rAUD1LOW], a
-    ld   a, $FF
+    ; TODO: Is this where it interacts with the speech synthesizer chip?
+    ld   a, (AUDVOL_VIN_LEFT | AUDVOL_VIN_RIGHT | %01110111)  ; $FF  ; Set rAUDVOL to both VIN = ON, Max Left/Right volume
     ldh  [rAUDVOL], a
     ld   a, [_RAM_CC2F_]    ; _RAM_CC2F_ = $CC2F
     ld   a, [_RAM_CC27_]    ; _RAM_CC27_ = $CC27
@@ -754,7 +755,7 @@ _LABEL_49F_:
     jr   nz, _LABEL_4B5_
     xor  a
     ldh  [rAUDENA], a
-    ld   a, $80
+    ld   a, AUDENA_ON  ; $80
     ldh  [rAUDENA], a
 _LABEL_4B5_:
     ld   a, b
@@ -1488,7 +1489,6 @@ _LABEL_97A_:
     xor  a
     ldh  [rSB], a
     ldh  [rSC], a
-    ; Turn on Audio
     ldh  [rAUDENA], a
     ; Turn on Screen
     ldh  [rLCDC], a
@@ -1515,10 +1515,11 @@ _LABEL_97A_:
     ld   hl, rAUDENA
     ld   a, AUDENA_ON  ; $80
     ldd  [hl], a
-    ; WARNING: Unless patched, GB now points to the wrong audio register due to address reshuffling
+    ; TODO: Fix incorrect address on Game Boy (should be rAUDVOL, *not* rAUDTERM)
+    ; Unless patched, GB now points to the wrong audio register due to address reshuffling and the LD HL-
     ; On MegaDuck: HL now points to rAUDVOL (0xFF44)
     ; On GB      : HL *incorrectly* points to rAUDTERM (0xFF25)
-    ld   [hl], %01110111 ; $77  ; Set rAUDVOL to Max Left/Right volume, with VIN off for left and right
+    ld   [hl], %01110111  ; $77  ; Set rAUDVOL to Max Left/Right volume, with VIN off for left and right
     nop
     nop
     nop
@@ -8820,9 +8821,9 @@ _LABEL_785E_:
         dec  c
         dec  b
         jr   nz, _LABEL_785E_
-        ld   a, $80
+        ld   a, AUDENA_ON  ; $80
         ldh  [rAUDENA], a
-        ld   a, $77
+        ld   a, %01110111  ; $77  ; Set rAUDVOL to Max Left/Right volume, with VIN off for left and right
         ldh  [rAUDVOL], a
         xor  a
         ldh  [rAUD3ENA], a
@@ -8837,9 +8838,9 @@ _LABEL_785E_:
 _LABEL_787C_:
         xor  a
         ldh  [rAUDENA], a
-        ld   a, $80
+        ld   a, AUDENA_ON  ; $80
         ldh  [rAUDENA], a
-        ld   a, $77
+        ld   a, %01110111  ; $77  ; Set rAUDVOL to Max Left/Right volume, with VIN off for left and right
         ldh  [rAUDVOL], a
         ret
 
