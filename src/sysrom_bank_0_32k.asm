@@ -435,16 +435,20 @@ _LABEL_27B_:
     ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     cp   $FC
     ret  z
-    call _LABEL_289_
+    call timer_wait_tick_AND_TODO__289_
     jr   _LABEL_27B_
 
 ; Turn on interrupts and wait for a Timer tick
 ; - Maybe audio driver related
-; - Maybe Gamepad / Keyboard input related
+; - Maybe gamepad / Keyboard input related
 ;
 ; - Turn on interrupts
-; TODO: maybe: timer_wait_tick__289_;
-_LABEL_289_:
+;
+; Overflows/Triggers interrupt every 201 ticks (0x100 - 0x37) = 201
+; 4096 Hz / (201) = ~20.378Hz, roughly every 3rd frame
+;
+; TODO: maybe: timer_wait_tick_AND_TODO__289_;
+timer_wait_tick_AND_TODO__289_:
     ei
 loop_wait_timer__28A_:
     ld   hl, timer_flags__RAM_D000_
@@ -700,11 +704,13 @@ _LABEL_43C_:
     jr   nz, _LABEL_44A_
     bit  4, a
     jp   z, _LABEL_4D3_
+
 _LABEL_44A_:
     ld   a, [_RAM_CC23_]    ; _RAM_CC23_ = $CC23
     dec  a
     ld   [_RAM_CC23_], a    ; _RAM_CC23_ = $CC23
     jr   nz, _LABEL_4C0_
+
     call _LABEL_315_
     ld   a, [_RAM_CC02_]    ; _RAM_CC02_ = $CC02
     bit  0, a
@@ -933,7 +939,7 @@ _window_scroll_up__5C3_:
     ld   a, 160 ; Start Window top position at Y line 160 ; $A0
     ldh  [rWY], a
 
-    _window_scroll_up_loop__5C8_:
+    window_scroll_up_loop__5C8_:
         ld   hl, $2000  ; Delay 57,346 M-Cycles (a little less than one frame [70,224])
         _delay_loop__5CB_:
                 dec  hl
@@ -946,7 +952,7 @@ _window_scroll_up__5C3_:
             ldh  [rWY], a
             di
             cp   $00
-            jr   nz, _window_scroll_up_loop__5C8_
+            jr   nz, window_scroll_up_loop__5C8_
             ld   a, $0A
             jp   _LABEL_4A72_
 
@@ -1014,7 +1020,7 @@ wait_vbl_write_byte_tilemap0_preset_xy_and_data__612_:
         ret
 
 _LABEL_623_:
-    call _LABEL_86F_
+    call oam_find_slot_and_load_into__86F
     ret
 
 ; Masks out: LCDCF_WINON, LCDCF_BG8000
@@ -1105,7 +1111,7 @@ _vram_init__752_:
 
     ; Fill RAM from _RAM_SHADOW_OAM_BASE__C800_ -> _RAM_C8BF_ ($A0 / 160 bytes)
         ld   hl, _RAM_SHADOW_OAM_BASE__C800_
-        ld   b, $A0
+        ld   b, SHADOW_OAM_SZ ; $A0
     _LABEL_770_:
         xor  a  ; This doesn't need to be re-zeroed each loop iteration...
         ldi  [hl], a
@@ -1174,14 +1180,14 @@ _vram_init__752_:
         ld   de, _oam_dma_routine_in_ROM__7E3_ ; $07E3
         call _memcpy_32_bytes__7CA_
 
-        ; Clear 42 bytes of RAM starting at 0xC8A0 (Right after Shadow OAM)
-        ld   a, $00
-        ld   b, $2A
-        ld   hl, _RAM_C8A0_
-    _LABEL_7C5_:
-        ldi  [hl], a
-        dec  b
-        jr   nz, _LABEL_7C5_
+        ; Clear 42 bytes of RAM used for OAM slot management
+        ld   a, OAM_SLOT_EMPTY
+        ld   b, (OAM_USAGE_SZ + 2) ; $2A ; TODO: Why +2 here what is at _RAM_C8C8_ and C9? 
+        ld   hl, oam_slot_usage__RAM_C8A0_
+        loop_oam_clear__7C5_:
+            ldi  [hl], a
+            dec  b
+            jr   nz, loop_oam_clear__7C5_
         ret
 
 ; Always copies 32 bytes
@@ -1261,63 +1267,95 @@ _LABEL_86C_:
         ret
 
 
-_LABEL_86F_:
+; Locates a free OAM slot, copies into the shadow OAM
+;
+; - Copies from: _tilemap_pos_y__RAM_C8CA_
+; - ? Maybe Returns OAM slot number in: B
+; - ? Returns $00 in : A
+;
+; Destroys A, BC, DE, HL
+oam_find_slot_and_load_into__86F:
     ld   c, $00
-    ld   hl, _RAM_C8A0_ ; _RAM_C8A0_ = $C8A0
-_LABEL_874_:
-    inc  c
-    ldi  a, [hl]
-    cp   $00
-    jr   nz, _LABEL_874_
+    ld   hl, oam_slot_usage__RAM_C8A0_
+
+    ; Find first empty OAM slot
+    loop_find_empty_slot_874_:
+        inc  c
+        ldi  a, [hl]
+        cp   OAM_SLOT_EMPTY ; $00
+        jr   nz, loop_find_empty_slot_874_
+
+    ; Mark the newly found slot as used
     dec  hl
-    ld   a, $FF
+    ld   a, OAM_SLOT_USED  ; $FF
     ld   [hl], a
+
+    ; Index into the Shadow OAM by 4 x OAM Slot number
+    ; Re-uses H = $C8 for that
     ld   a, c
     dec  a
     sla  a
     sla  a
     ld   l, a
-    ld   de, _tilemap_pos_y__RAM_C8CA_ ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    ld   de, _tilemap_pos_y__RAM_C8CA_  ; TODO: Maybe label for this is wrong?
     ld   b, $04
-_LABEL_88A_:
-    ld   a, [de]
-    ldi  [hl], a
-    inc  de
-    dec  b
-    jr   nz, _LABEL_88A_
+    ; Copy 4 bytes from TODO into the Shadow OAM slot
+    ; Presumably sprite data
+    loop_shadow_oam_copy__88A_:
+        ld   a, [de]
+        ldi  [hl], a
+        inc  de
+        dec  b
+        jr   nz, loop_shadow_oam_copy__88A_
+
+    ; TODO: Is this some kind of oam slot copy increment for multiple sprites?
     ld   a, [_RAM_C8C8_]    ; _RAM_C8C8_ = $C8C8
     inc  a
     ld   [_RAM_C8C8_], a    ; _RAM_C8C8_ = $C8C8
+    ; Maybe return slot number in B?
     ld   b, c
     ld   a, $00
     ret
 
-_LABEL_89B_:
-    ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
+
+; Frees an OAM slot and clears related bytes in shadow OAM
+;
+; Destroys A, DE, HL
+oam_free_slot_and_clear__89B_:
+    ; Index into the Shadow OAM by 4 x maybe_vram_data_to_write__RAM_C8CC_
+    ld   a, [maybe_vram_data_to_write__RAM_C8CC_]  ; TODO: Maybe var needs more general name
     cp   $00
-    jr   z, _LABEL_8C3_
+    jr   z,     done_return__8C3_
     dec  a
     sla  a
     sla  a
     ld   l, a
-    ld   h, $C8
+    ld   h, HIGH(_RAM_SHADOW_OAM_BASE__C800_)  ; $C8
+
+    ; Clear out the Shadow OAM entry
     ld   a, $00
     ldi  [hl], a
     ldi  [hl], a
     ldi  [hl], a
     ldi  [hl], a
-    ld   de, _RAM_C8A0_ ; _RAM_C8A0_ = $C8A0
+
+    ; Now index into the slot manager and free the entry
+    ld   de, oam_slot_usage__RAM_C8A0_
     ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
     dec  a
     add  e
     ld   e, a
-    ld   a, $00
+    ld   a, OAM_SLOT_EMPTY  ; $00
     ld   [de], a
+
+    ; TODO: Is this some kind of oam slot copy increment for multiple sprites?
     ld   a, [_RAM_C8C8_]    ; _RAM_C8C8_ = $C8C8
     dec  a
     ld   [_RAM_C8C8_], a    ; _RAM_C8C8_ = $C8C8
-_LABEL_8C3_:
+
+    done_return__8C3_:
     ret
+
 
 _LABEL_8C4_:
     ld   b, $12
@@ -1462,18 +1500,21 @@ _LABEL_953_:
     ld   [_tilemap_pos_x__RAM_C8CB_], a
     ret
 
+; TODO: _window_scroll_up ... AND? ...  __967_
+; Waits for timer...
 _LABEL_967_:
-    ld   a, $A0
-_LABEL_969_:
-    ldh  [rWY], a
-    ei
-    call _LABEL_289_
-    di
-    ldh  a, [rWY]
-    and  a
-    jr   z, _LABEL_979_
-    sub  $08
-    jr   _LABEL_969_
+    ld   a, 160 ; Start Window top position at Y line 160 ; $A0
+
+    window_scroll_up_loop__969_:
+        ldh  [rWY], a
+        ei
+        call timer_wait_tick_AND_TODO__289_
+        di
+        ldh  a, [rWY]
+        and  a
+        jr   z, _LABEL_979_
+        sub  $08
+        jr   window_scroll_up_loop__969_
 
 _LABEL_979_:
     ret
@@ -1677,7 +1718,7 @@ _LABEL_A63_:
     ld   b, a
     add  $02
     ld   [serial_link_tx_data__RAM_D023_], a
-    ld   [_RAM_D026_], a    ; _RAM_D026_ = $D026
+    ld   [_RAM_D026_], a
     call delay_quarter_msec__BD6_
     call serial_io_send_byte__B64_
     call delay_quarter_msec__BD6_
@@ -1687,9 +1728,9 @@ _LABEL_A8B_:
     ldi  a, [hl]
     ld   [serial_link_tx_data__RAM_D023_], a
     ld   c, a
-    ld   a, [_RAM_D026_]    ; _RAM_D026_ = $D026
+    ld   a, [_RAM_D026_]
     add  c
-    ld   [_RAM_D026_], a    ; _RAM_D026_ = $D026
+    ld   [_RAM_D026_], a
     call serial_io_wait_receive_w_timeout_50msec__B8F_
     and  a
     jr   z, _LABEL_A5B_
@@ -1709,7 +1750,7 @@ _LABEL_A8B_:
     jp   z, _LABEL_AE4_
     cp   $03
     jp   nz, _LABEL_A5B_
-    ld   hl, _RAM_D026_ ; _RAM_D026_ = $D026
+    ld   hl, _RAM_D026_
     xor  a
     sub  [hl]
     ld   [serial_link_tx_data__RAM_D023_], a
@@ -1757,7 +1798,7 @@ _LABEL_B13_:
     jr   _LABEL_B58_
 
 _LABEL_B1C_:
-    ld   [_RAM_D026_], a    ; _RAM_D026_ = $D026
+    ld   [_RAM_D026_], a
     dec  a
     dec  a
     ld   [_RAM_D034_], a    ; _RAM_D034_ = $D034
@@ -1772,9 +1813,9 @@ _LABEL_B28_:
     ld   a, [serial_link_rx_data__RAM_D021_]
     ldi  [hl], a
     ld   c, a
-    ld   a, [_RAM_D026_]    ; _RAM_D026_ = $D026
+    ld   a, [_RAM_D026_]
     add  c
-    ld   [_RAM_D026_], a    ; _RAM_D026_ = $D026
+    ld   [_RAM_D026_], a
     dec  b
     jr   nz, _LABEL_B28_
     call serial_io_wait_receive__B8F_
@@ -1782,7 +1823,7 @@ _LABEL_B28_:
     jr   z, _LABEL_B13_
     call delay_quarter_msec__BD6_
     ld   a, [serial_link_rx_data__RAM_D021_]
-    ld   hl, _RAM_D026_ ; _RAM_D026_ = $D026
+    ld   hl, _RAM_D026_
     add  [hl]
     jr   nz, _LABEL_B13_
     ld   a, $F9
@@ -1799,6 +1840,7 @@ _LABEL_B58_:
 ; Sends the byte in serial_link_tx_data__RAM_D023_ out through serial (or special?) IO
 ;
 ; - Called from "run cart from slot"
+; - Possibly called from keyboard input polling
 serial_io_send_byte__B64_:
     push af
     ; TODO: What does writing 0 to FF60 do here? Does it select alternate output for the serial control?
@@ -1937,76 +1979,99 @@ db $07, $E6, $07, $E8, $07, $E9, $07, $EA, $07, $EB, $07, $EC, $07, $EE, $07, $E
 db $07, $F0, $07, $F1, $07, $F2, $07, $F3, $07, $FF
 
 ; - TODO: Maybe, among other things, reading for keyboard input
-_LABEL_C8D_:
+maybe_input_read_keys__C8D_:
+    ; Save current interrupt enables then turn all off
     ldh  a, [rIE]
     ld   [_rIE_saved_serial__RAM_D078_], a
     xor  a
     ldh  [rIE], a
-    ld   a, $00
+    ; TODO ... ? Make a request for ??
+    ld   a, $00  ; ?? Same or different tan SYS_CMD_INIT_SEQ_REQUEST
     ld   [serial_link_tx_data__RAM_D023_], a
     call serial_io_send_byte__B64_
     call serial_io_wait_receive__B8F_
+
+    ; Fail if serial RX timed out(z), if successful(nz) continue
     and  a
-    jr   z, _LABEL_CB9_
+    jr   z, maybe_input_req_key_failed_so_send04__CB9_
+    ; Fail if RX byte was zero
     ld   a, [serial_link_rx_data__RAM_D021_]
-    cp   $00
-    jr   z, _LABEL_CB9_
-    cp   $0E
+    cp   $00  ; TODO: Some kind of invalid, or no key ready yet SYS_REPLY or SYS_KEY
+    jr   z, maybe_input_req_key_failed_so_send04__CB9_
+    ; TODO ...
+    cp   $0E  ; TODO: does this mean another serial byte is incoming?
     jr   z, _LABEL_CB0_
-    jr   nc, _LABEL_CB9_
-_LABEL_CB0_:
-    ld   [_RAM_D026_], a    ; _RAM_D026_ = $D026
-    call serial_io_wait_receive__B8F_
-    and  a
-    jr   nz, _LABEL_CC8_
-_LABEL_CB9_:
-    ld   a, $FF
-    ld   [maybe_input_key_new_pressed__RAM_D025_], a
-    ld   a, $04
-    ld   [serial_link_tx_data__RAM_D023_], a
-    call serial_io_send_byte__B64_
-    jr   _LABEL_D06_
+    jr   nc, maybe_input_req_key_failed_so_send04__CB9_
+
+    ; TODO: Save last RX byte and wait for another
+    _LABEL_CB0_:
+        ld   [_RAM_D026_], a
+        call serial_io_wait_receive__B8F_
+        and  a
+        jr   nz, _LABEL_CC8_
+
+    maybe_input_req_key_failed_so_send04__CB9_:
+        ld   a, SYS_KEY_MAYBE_INVALID_OR_NODATA  ; $FF
+        ld   [maybe_input_key_new_pressed__RAM_D025_], a
+        ld   a, $04  ; TODO: Maybe a failed/reset/cancel input system command SYS_CMD
+        ld   [serial_link_tx_data__RAM_D023_], a
+        call serial_io_send_byte__B64_
+        jr   restore_int_enables_call_TODO_and_return__D06_
 
 
-; - TODO: Maybe reading for keyboard input
-_LABEL_CC8_:
-    ld   a, [serial_link_rx_data__RAM_D021_]
-    ld   [_RAM_D027_], a    ; _RAM_D027_ = $D027
-    ld   hl, _RAM_D026_ ; _RAM_D026_ = $D026
-    add  [hl]
-    ld   [hl], a
-    call serial_io_wait_receive__B8F_
-    and  a
-    jr   z, _LABEL_CB9_
-    ld   a, [serial_link_rx_data__RAM_D021_]
-    ld   [maybe_input_key_new_pressed__RAM_D025_], a
-    ld   hl, _RAM_D026_ ; _RAM_D026_ = $D026
-    add  [hl]
-    ld   [_RAM_D026_], a    ; _RAM_D026_ = $D026
-    call serial_io_wait_receive__B8F_
-    and  a
-    jr   z, _LABEL_CB9_
-    ld   a, [serial_link_rx_data__RAM_D021_]
-    ld   hl, _RAM_D026_ ; _RAM_D026_ = $D026
-    add  [hl]
-    jr   nz, _LABEL_CB9_
-    ld   a, $01
-    ld   [serial_link_tx_data__RAM_D023_], a
-    call serial_io_send_byte__B64_
-    call _LABEL_D0F_
-    ld   a, [maybe_input_key_new_pressed__RAM_D025_]
-    ld   [_RAM_D181_], a    ; _RAM_D181_ = $D181
-_LABEL_D06_:
-    ld   a, [_rIE_saved_serial__RAM_D078_]
-    ldh  [rIE], a
-    call _LABEL_DFC_
-    ret
+    ; TODO: Maybe extended reading of keyboard input
+    _LABEL_CC8_:
+        ; Save RX input byte #2
+        ; Also add and save it to _RAM_D026_
+        ; - (Code above loaded $0E into _RAM_D026_)
+        ld   a, [serial_link_rx_data__RAM_D021_]
+        ld   [maybe_input_second_rx_byte__RAM_D027_], a
+        ld   hl, _RAM_D026_
+        add  [hl]
+        ld   [hl], a
+        ; Wait for RX input byte #3
+        ; If successful, save it
+        ; Also add and save it to _RAM_D026_
+        call serial_io_wait_receive__B8F_
+        and  a
+        jr   z, maybe_input_req_key_failed_so_send04__CB9_
+        ld   a, [serial_link_rx_data__RAM_D021_]
+        ld   [maybe_input_key_new_pressed__RAM_D025_], a
+        ld   hl, _RAM_D026_
+        add  [hl]
+        ld   [_RAM_D026_], a
+        ; Wait for RX input byte #4
+        ; If successful, save it
+        call serial_io_wait_receive__B8F_
+        and  a
+        jr   z, maybe_input_req_key_failed_so_send04__CB9_
+        ld   a, [serial_link_rx_data__RAM_D021_]
+        ld   hl, _RAM_D026_
+        add  [hl]
+        jr   nz, maybe_input_req_key_failed_so_send04__CB9_
+
+        ; TODO: Send a command byte. Something like DONE or ACK for a SYS_CMD?
+        ld   a, $01
+        ld   [serial_link_tx_data__RAM_D023_], a
+        call serial_io_send_byte__B64_
+        call _LABEL_D0F_
+        ld   a, [maybe_input_key_new_pressed__RAM_D025_]
+        ld   [_RAM_D181_], a
+
+    restore_int_enables_call_TODO_and_return__D06_:
+        ld   a, [_rIE_saved_serial__RAM_D078_]
+        ldh  [rIE], a
+        call _LABEL_DFC_
+        ret
+
+
+; TODO: Maybe lots of special input handling and processing below
 
 _LABEL_D0F_:
-    ld   a, [_RAM_D027_]    ; _RAM_D027_ = $D027
+    ld   a, [maybe_input_second_rx_byte__RAM_D027_]
     bit  0, a
     jp   nz, _LABEL_DD5_
-    ld   a, [_RAM_D027_]    ; _RAM_D027_ = $D027
+    ld   a, [maybe_input_second_rx_byte__RAM_D027_]
     bit  3, a
     jr   z, _LABEL_D24_
     ld   a, $2F
@@ -2027,10 +2092,10 @@ _LABEL_D24_:
     ld   a, [hl]
     ld   [maybe_input_key_new_pressed__RAM_D025_], a
     ld   b, a
-    ld   a, [_RAM_D027_]    ; _RAM_D027_ = $D027
+    ld   a, [maybe_input_second_rx_byte__RAM_D027_]
     and  $0E
     jr   z, _LABEL_DC5_
-    ld   a, [_RAM_D027_]    ; _RAM_D027_ = $D027
+    ld   a, [maybe_input_second_rx_byte__RAM_D027_]
     and  $06
     jr   z, _LABEL_DC5_
     bit  2, a
@@ -2116,35 +2181,35 @@ _LABEL_DC5_:
     ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     cp   $F0
     ret  nc
-    ld   [_RAM_D181_], a    ; _RAM_D181_ = $D181
+    ld   [_RAM_D181_], a
     ret
 
 _LABEL_DCF_:
-    ld   a, $FF
+    ld   a, SYS_KEY_MAYBE_INVALID_OR_NODATA  ; $FF
     ld   [maybe_input_key_new_pressed__RAM_D025_], a
     ret
 
 _LABEL_DD5_:
-    ld   a, [_RAM_D181_]    ; _RAM_D181_ = $D181
-    cp   $CA
-    jp   z, _LABEL_DF8_
-    cp   $CB
-    jp   z, _LABEL_DF8_
-    cp   $CC
-    jp   z, _LABEL_DF8_
-    cp   $CD
-    jp   z, _LABEL_DF8_
+    ld   a, [_RAM_D181_]
+    cp   SYS_KEY_UP_RIGHT  ; $CA
+    jp   z, maybe_save_to_input__DF8_
+    cp   SYS_KEY_DOWN_RIGHT  ; $CB
+    jp   z, maybe_save_to_input__DF8_
+    cp   SYS_KEY_DOWN_LEFT  ; $CC
+    jp   z, maybe_save_to_input__DF8_
+    cp   SYS_KEY_UP_LEFT  ; $CD
+    jp   z, maybe_save_to_input__DF8_
     cp   $41
-    jr   c, _LABEL_DF8_
+    jr   c, maybe_save_to_input__DF8_
     cp   $18
-    jr   nc, _LABEL_DF6_
-    jr   _LABEL_DF8_
+    jr   nc, maybe_no_match_found__DF6_
+    jr   maybe_save_to_input__DF8_
 
-_LABEL_DF6_:
-    ld   a, $FF
-_LABEL_DF8_:
-    ld   [maybe_input_key_new_pressed__RAM_D025_], a
-    ret
+    maybe_no_match_found__DF6_:
+        ld   a, SYS_KEY_MAYBE_INVALID_OR_NODATA  ; $FF
+    maybe_save_to_input__DF8_:
+        ld   [maybe_input_key_new_pressed__RAM_D025_], a
+        ret
 
 _LABEL_DFC_:
     ld   a, [maybe_input_key_new_pressed__RAM_D025_]
@@ -2157,7 +2222,7 @@ _LABEL_DFC_:
 _LABEL_E0A_:
     cp   $2B
     jr   nz, _LABEL_E1C_
-    ld   a, [_RAM_D027_]    ; _RAM_D027_ = $D027
+    ld   a, [maybe_input_second_rx_byte__RAM_D027_]
     bit  2, a
     jr   z, _LABEL_E37_
     ld   a, $D2
@@ -2168,7 +2233,7 @@ _LABEL_E1C_:
     ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     cp   $DC
     jr   nz, _LABEL_E37_
-    ld   a, [_RAM_D027_]    ; _RAM_D027_ = $D027
+    ld   a, [maybe_input_second_rx_byte__RAM_D027_]
     ld   c, a
     and  $02
     sla  a
@@ -2212,13 +2277,13 @@ _LABEL_E4C_:
     ld   a, $AA
     ld   [hl], a
 _LABEL_E6A_:
-    ld   a, $FF
+    ld   a, SYS_KEY_MAYBE_INVALID_OR_NODATA  ; $FF
     ld   [maybe_input_key_new_pressed__RAM_D025_], a
     ret
 
 _LABEL_E70_:
     ld   a, [maybe_input_key_new_pressed__RAM_D025_]
-    cp   $FF
+    cp   SYS_KEY_MAYBE_INVALID_OR_NODATA  ; $FF
     ret  z
     ld   hl, _RAM_D222_ ; _RAM_D222_ = $D222
     ld   b, [hl]
@@ -2248,6 +2313,10 @@ _LABEL_E97_:
     ld   [_RAM_D226_], a    ; _RAM_D226_ = $D226
     ret
 
+; Maybe end of some input keyboard handling
+
+
+; TODO: Maybe this is all data below
 _LABEL_E9C_:
     inc  hl
 _LABEL_E9D_:
@@ -3756,11 +3825,12 @@ _LABEL_49BE_:
 ;
 ; Destroys A
 input_map_gamepad_buttons_to_keycodes__49C2_:
-    call _LABEL_289_
-    call _LABEL_C8D_
+    call timer_wait_tick_AND_TODO__289_  ; TODO: still not sure all of what this is doing
+    call maybe_input_read_keys__C8D_
     ld   a, [buttons_new_pressed__RAM_D006_]
     cp   $00
     ret  z
+
     bit  PADB_START, a  ; 3, a
     jr   nz, _handle_btn_start__4A00_
     bit  PADB_SELECT, a  ; 2, a
@@ -3908,7 +3978,7 @@ render_string_at_de_to_tilemap0_xy_in_hl__4A46_:
 ; TODO:
 _LABEL_4A72_:
     push af
-    call _LABEL_289_
+    call timer_wait_tick_AND_TODO__289_
     pop  af
     dec  a
     jr   nz, _LABEL_4A72_
@@ -3994,18 +4064,23 @@ _LABEL_4AE6_:
     ld   [_RAM_D05E_], a    ; _RAM_D05E_ = $D05E
     ld   [_RAM_D05C_], a    ; _RAM_D05C_ = $D05C
     ld   [_RAM_D05B_], a    ; _RAM_D05B_ = $D05B
-    call _LABEL_4B84_
+    call maybe_input_wait_for_keys__4B84
+; TODO: maybe this is the main menu loop
 _LABEL_4B0E_:
-    call _LABEL_289_
-    call _LABEL_C8D_
+    call timer_wait_tick_AND_TODO__289_
+    call maybe_input_read_keys__C8D_
     ld   hl, _RAM_D06D_ ; _RAM_D06D_ = $D06D
     ld   a, [maybe_input_key_new_pressed__RAM_D025_]
-    cp   $2E
+
+    cp   SYS_KEY_SELECT  ; $2E
     jp   z, _LABEL_4C83_
-    cp   $2A
+
+    cp   SYS_KEY_START  ; $2A
     jp   z, _LABEL_4C76_
+
     cp   $2F
     jp   z, _LABEL_4C70_
+
     sub  $30
     jr   c, _LABEL_4B36_
     cp   [hl]
@@ -4016,7 +4091,8 @@ _LABEL_4B0E_:
 _LABEL_4B36_:
     call input_map_keycodes_to_gamepad_buttons__4D30_
     ld   a, [buttons_new_pressed__RAM_D006_]
-    and  $F4
+    ; Mask out to U/D/L/R/SEL only
+    and  (PADF_DOWN | PADF_UP | PADF_LEFT | PADF_RIGHT | PADF_SELECT) ; $F4
     jr   nz, _LABEL_4B4F_
     xor  a
     ld   [_RAM_D05D_], a    ; _RAM_D05D_ = $D05D
@@ -4043,18 +4119,21 @@ _LABEL_4B4F_:
     jp   z, _LABEL_4C1A_
     jp   _LABEL_4B0E_
 
+
 _LABEL_4B78_:
-    call _LABEL_289_
-    call _LABEL_289_
-    call _LABEL_289_
+    call timer_wait_tick_AND_TODO__289_
+    call timer_wait_tick_AND_TODO__289_
+    call timer_wait_tick_AND_TODO__289_
     jp   _LABEL_4B0E_
 
-_LABEL_4B84_:
-    call _LABEL_289_
-    call _LABEL_C8D_
+
+; TODO: Maybe waits for an input key press
+maybe_input_wait_for_keys__4B84:
+    call timer_wait_tick_AND_TODO__289_
+    call maybe_input_read_keys__C8D_
     ld   a, [maybe_input_key_new_pressed__RAM_D025_]
-    cp   $FF
-    jr   nz, _LABEL_4B84_
+    cp   SYS_KEY_MAYBE_INVALID_OR_NODATA  ; $FF
+    jr   nz, maybe_input_wait_for_keys__4B84
     ret
 
 _LABEL_4B92_:
@@ -4234,7 +4313,7 @@ _LABEL_4CD1_:
 _LABEL_4CDF_:
     push bc
     push hl
-    call _LABEL_86F_
+    call oam_find_slot_and_load_into__86F
     pop  hl
     ld   a, b
     ldi  [hl], a
@@ -4245,7 +4324,7 @@ _LABEL_4CDF_:
     inc  a
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     push hl
-    call _LABEL_86F_
+    call oam_find_slot_and_load_into__86F
     pop  hl
     ld   a, b
     ldi  [hl], a
@@ -4263,6 +4342,7 @@ _LABEL_4CDF_:
     jr   nz, _LABEL_4CDF_
     ret
 
+; TODO: is this lookup for writing strings
 _LABEL_4D19_:
     ld   c, $04
     ld   hl, _RAM_D05F_ ; _RAM_D05F_ = $D05F
@@ -4273,7 +4353,7 @@ _LABEL_4D1E_:
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     push hl
     push bc
-    call _LABEL_89B_
+    call oam_free_slot_and_clear__89B_
     pop  bc
     pop  hl
     dec  c
@@ -4601,8 +4681,8 @@ _LABEL_4F72_:
     ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
     call _display_bg_sprites_on__627_
 _LABEL_4F95_:
-    call _LABEL_289_
-    call _LABEL_C8D_
+    call timer_wait_tick_AND_TODO__289_
+    call maybe_input_read_keys__C8D_
     ld   a, [_RAM_D074_ + 1]    ; _RAM_D074_ + 1 = $D075
     ld   hl, _RAM_D028_ ; _RAM_D028_ = $D028
     cp   [hl]
@@ -4629,7 +4709,7 @@ _LABEL_4FAE_:
     ld   a, [_RAM_D028_ + 2]    ; _RAM_D028_ + 2 = $D02A
     push af
     call _LABEL_52BF_
-    call _LABEL_4B84_
+    call maybe_input_wait_for_keys__4B84
     pop  af
     ld   [_RAM_D028_ + 2], a    ; _RAM_D028_ + 2 = $D02A
     pop  af
@@ -4702,7 +4782,7 @@ _LABEL_5059_:
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
-    call _LABEL_89B_
+    call oam_free_slot_and_clear__89B_
     ld   a, [_tilemap_pos_x__RAM_C8CB_]
     cp   $A0
     jr   z, _LABEL_5087_
@@ -4722,7 +4802,7 @@ _LABEL_5087_:
 _LABEL_5096_:
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-    call _LABEL_89B_
+    call oam_free_slot_and_clear__89B_
     xor  a
     ld   [_RAM_D06E_], a
     ld   a, [_RAM_D06E_ + 1]    ; _RAM_D06E_ + 1 = $D06F
@@ -4750,7 +4830,7 @@ _LABEL_50C3_:
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
-    call _LABEL_89B_
+    call oam_free_slot_and_clear__89B_
     ld   a, [_tilemap_pos_x__RAM_C8CB_]
     cp   $10
     jr   z, _LABEL_50F0_
@@ -4770,7 +4850,7 @@ _LABEL_50F0_:
 _LABEL_5100_:
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-    call _LABEL_89B_
+    call oam_free_slot_and_clear__89B_
     ld   a, [_RAM_D06D_]    ; _RAM_D06D_ = $D06D
     dec  a
     ld   [_RAM_D06E_], a
@@ -4786,7 +4866,7 @@ _LABEL_511F_:
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
-    call _LABEL_89B_
+    call oam_free_slot_and_clear__89B_
     ld   a, [_RAM_D06E_]
     add  $07
     ld   hl, _RAM_D06D_ ; _RAM_D06D_ = $D06D
@@ -4820,7 +4900,7 @@ _LABEL_5167_:
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
-    call _LABEL_89B_
+    call oam_free_slot_and_clear__89B_
     ld   a, [_RAM_D06E_]
     sub  $07
     jr   c, _LABEL_518C_
@@ -4936,7 +5016,7 @@ _LABEL_5240_:
     ld   [_RAM_D028_ + 1], a    ; _RAM_D028_ + 1 = $D029
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-    call _LABEL_89B_
+    call oam_free_slot_and_clear__89B_
     jp   _LABEL_4DCD_
 
 _LABEL_525D_:
@@ -4944,7 +5024,7 @@ _LABEL_525D_:
     ld   [_RAM_D028_ + 1], a    ; _RAM_D028_ + 1 = $D029
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-    call _LABEL_89B_
+    call oam_free_slot_and_clear__89B_
     jp   _LABEL_4DCD_
 
 _LABEL_526F_:
@@ -4968,7 +5048,7 @@ _LABEL_5286_:
     ld   [_RAM_D028_ + 1], a    ; _RAM_D028_ + 1 = $D029
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-    call _LABEL_89B_
+    call oam_free_slot_and_clear__89B_
     jp   _LABEL_4DCD_
 
 _LABEL_52A3_:
@@ -4976,13 +5056,13 @@ _LABEL_52A3_:
     ld   [_RAM_D028_ + 1], a    ; _RAM_D028_ + 1 = $D029
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-    call _LABEL_89B_
+    call oam_free_slot_and_clear__89B_
     jp   _LABEL_4DCD_
 
 _LABEL_52B5_:
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-    call _LABEL_89B_
+    call oam_free_slot_and_clear__89B_
     ret
 
 _LABEL_52BF_:
@@ -5327,7 +5407,7 @@ _LABEL_54F9_:
     ld   [_RAM_D036_], a    ; _RAM_D036_ = $D036
 _LABEL_5505_:
     call _LABEL_AEF_
-    call _LABEL_289_
+    call timer_wait_tick_AND_TODO__289_
     ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     cp   $F9
     jr   nz, _LABEL_5505_
@@ -5381,8 +5461,8 @@ _LABEL_5579_:
     jr   _LABEL_5549_
 
 _LABEL_557B_:
-    call _LABEL_289_
-    call _LABEL_C8D_
+    call timer_wait_tick_AND_TODO__289_
+    call maybe_input_read_keys__C8D_
     ld   a, [buttons_new_pressed__RAM_D006_]
     ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
     call _LABEL_56CB_
@@ -5631,11 +5711,11 @@ _LABEL_5740_:
     ld   [_RAM_D059_], a
     xor  a
     ld   [_RAM_D052_], a
-    call _LABEL_289_
-    call _LABEL_289_
-    call _LABEL_289_
-    call _LABEL_289_
-    call _LABEL_289_
+    call timer_wait_tick_AND_TODO__289_
+    call timer_wait_tick_AND_TODO__289_
+    call timer_wait_tick_AND_TODO__289_
+    call timer_wait_tick_AND_TODO__289_
+    call timer_wait_tick_AND_TODO__289_
     ret
 
 _LABEL_5763_:
@@ -5659,7 +5739,7 @@ _LABEL_577B_:
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     push bc
     push hl
-    call _LABEL_89B_
+    call oam_free_slot_and_clear__89B_
     pop  hl
     pop  bc
     dec  b
@@ -5840,7 +5920,7 @@ _LABEL_58D3_:
 _LABEL_58DC_:
     ld   a, [_RAM_D069_]
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-    call _LABEL_89B_
+    call oam_free_slot_and_clear__89B_
     xor  a
     ld   [_RAM_D069_], a
     ret
@@ -5883,7 +5963,7 @@ _LABEL_5919_:
 _LABEL_5931_:
     ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
     ld   a, $FF
-    ld   [_RAM_D181_], a    ; _RAM_D181_ = $D181
+    ld   [_RAM_D181_], a
     jp   _LABEL_59F1_
 
 _LABEL_593C_:
@@ -5972,13 +6052,13 @@ _LABEL_59D5_:
     ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     cp   $FC
     jr   z, _LABEL_59E4_
-    call _LABEL_289_
+    call timer_wait_tick_AND_TODO__289_
     jr   _LABEL_59D5_
 
 _LABEL_59E4_:
     ld   a, $01
     ld   [_RAM_D06B_], a
-    call _LABEL_4B84_
+    call maybe_input_wait_for_keys__4B84
     ret
 
 _LABEL_59ED_:
@@ -6202,7 +6282,7 @@ _LABEL_5B51_:
     add  hl, de
     dec  c
     jr   nz, _LABEL_5B4C_
-    call _LABEL_4B84_
+    call maybe_input_wait_for_keys__4B84
     ret
 
 _LABEL_5B5F_:
@@ -6269,7 +6349,7 @@ _LABEL_5BCD_:
     ldi  [hl], a
     push bc
     push hl
-    call _LABEL_89B_
+    call oam_free_slot_and_clear__89B_
     pop  hl
     pop  bc
     dec  b
@@ -6603,7 +6683,7 @@ _LABEL_5E9A_:
     cp   $2A
     jr   nz, _LABEL_5EAE_
     call _LABEL_6265_
-    call _LABEL_4B84_
+    call maybe_input_wait_for_keys__4B84
     ret
 
 _LABEL_5EAE_:
@@ -6716,7 +6796,7 @@ _LABEL_5F7A_:
     jp   z, _LABEL_6022_
     cp   $CB
     jr   nz, _LABEL_5F93_
-    call _LABEL_4B84_
+    call maybe_input_wait_for_keys__4B84
     ld   a, [_RAM_D03B_]    ; _RAM_D03B_ = $D03B
     cp   $10
     jp   z, _LABEL_5E9A_
@@ -6874,7 +6954,7 @@ _LABEL_60CE_:
     cp   $B0
     jp   z, _LABEL_5E9A_
     call _LABEL_611B_
-    call _LABEL_4B84_
+    call maybe_input_wait_for_keys__4B84
     jp   _LABEL_5E9A_
 
 _LABEL_60E1_:
@@ -7091,7 +7171,7 @@ _LABEL_6265_:
     ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
     ld   a, [_RAM_D04B_]
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-    call _LABEL_89B_
+    call oam_free_slot_and_clear__89B_
     xor  a
     ld   [_RAM_D04B_], a
     ret
@@ -7127,7 +7207,7 @@ _LABEL_62AA_:
     dec  b
     jr   nz, _LABEL_62AA_
 _LABEL_62B9_:
-    call _LABEL_4B84_
+    call maybe_input_wait_for_keys__4B84
     ret
 
 _LABEL_62BD_:
@@ -7231,8 +7311,8 @@ _LABEL_63A7_:
     ld   [_RAM_D05E_], a    ; _RAM_D05E_ = $D05E
     ld   [_RAM_D05C_], a    ; _RAM_D05C_ = $D05C
     ld   [_RAM_D05B_], a    ; _RAM_D05B_ = $D05B
-    call _LABEL_289_
-    call _LABEL_C8D_
+    call timer_wait_tick_AND_TODO__289_
+    call maybe_input_read_keys__C8D_
     ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     cp   $2A
     jp   z, _LABEL_6673_
@@ -7330,7 +7410,7 @@ _LABEL_667F_:
     ld   [_RAM_D073_], a
     ld   a, [_tilemap_pos_y__RAM_C8CA_]
     ld   [_RAM_D074_], a
-    call _LABEL_89B_
+    call oam_free_slot_and_clear__89B_
     ld   hl, $0018
     res  7, h
     ld   a, $02
@@ -7395,14 +7475,14 @@ _LABEL_695C_:
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     push bc
     push hl
-    call _LABEL_89B_
+    call oam_free_slot_and_clear__89B_
     pop  hl
     pop  bc
     dec  b
     jr   nz, _LABEL_695C_
     ld   a, [_RAM_D04B_]
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-    call _LABEL_89B_
+    call oam_free_slot_and_clear__89B_
     xor  a
     ld   [_RAM_D196_], a
     ld   a, [_tilemap_pos_x__RAM_C8CB_]
@@ -7927,8 +8007,8 @@ _LABEL_7185_:
         ld   a, $FF
         ld   [_RAM_D079_], a
 _LABEL_71BB_:
-        call _LABEL_289_
-        call _LABEL_C8D_
+        call timer_wait_tick_AND_TODO__289_
+        call maybe_input_read_keys__C8D_
         ld   a, [maybe_input_key_new_pressed__RAM_D025_]
         cp   $2A
         jr   z, _LABEL_7207_
@@ -8037,8 +8117,8 @@ _LABEL_7280_:
         ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
 _LABEL_72A0_:
         call _LABEL_72F0_
-        call _LABEL_289_
-        call _LABEL_C8D_
+        call timer_wait_tick_AND_TODO__289_
+        call maybe_input_read_keys__C8D_
         ld   a, [maybe_input_key_new_pressed__RAM_D025_]
         cp   $2A
         jr   nz, _LABEL_72B5_
@@ -8118,7 +8198,7 @@ _LABEL_7326_:
         push hl
         call _LABEL_7704_
         call _LABEL_76D4_
-        call _LABEL_4B84_
+        call maybe_input_wait_for_keys__4B84
         xor  a
         ld   [_RAM_D04B_], a
 _LABEL_7334_:
@@ -8154,11 +8234,11 @@ _LABEL_7354_:
         and  a
         jr   nz, _LABEL_7375_
 _LABEL_7366_:
-        call _LABEL_C8D_
-        ld   a, [_RAM_D027_]    ; _RAM_D027_ = $D027
+        call maybe_input_read_keys__C8D_
+        ld   a, [maybe_input_second_rx_byte__RAM_D027_]
         bit  0, a
         jr   z, _LABEL_7375_
-        call _LABEL_289_
+        call timer_wait_tick_AND_TODO__289_
         jr   _LABEL_7366_
 
 _LABEL_7375_:
@@ -8176,8 +8256,8 @@ _LABEL_7377_:
         ld   [_RAM_D400_], a
         call _LABEL_77D3_
 _LABEL_738C_:
-        call _LABEL_289_
-        call _LABEL_C8D_
+        call timer_wait_tick_AND_TODO__289_
+        call maybe_input_read_keys__C8D_
         ld   a, [maybe_input_key_new_pressed__RAM_D025_]
         cp   $2A
         jp   z, _LABEL_7417_
@@ -8220,7 +8300,7 @@ _LABEL_73DF_:
         ld   a, [_RAM_D07C_]
         and  a
         jr   nz, _LABEL_73E8_
-        call _LABEL_289_
+        call timer_wait_tick_AND_TODO__289_
 _LABEL_73E8_:
         ld   a, $01
         ld   [_RAM_D400_], a
@@ -8242,7 +8322,7 @@ _LABEL_7407_:
 _LABEL_740D_:
         call _LABEL_77B0_
         call _LABEL_784F_
-        call _LABEL_4B84_
+        call maybe_input_wait_for_keys__4B84
         ret
 
 _LABEL_7417_:
@@ -8280,8 +8360,8 @@ _LABEL_7465_:
         ld   e, $00
 _LABEL_7467_:
         push de
-        call _LABEL_289_
-        call _LABEL_C8D_
+        call timer_wait_tick_AND_TODO__289_
+        call maybe_input_read_keys__C8D_
         pop  de
         inc  e
 _LABEL_7470_:
@@ -8302,7 +8382,7 @@ _LABEL_747B_:
         jr   nz, _LABEL_74A6_
         call _LABEL_7704_
         call _LABEL_76F8_
-        call _LABEL_4B84_
+        call maybe_input_wait_for_keys__4B84
         ld   a, $03
         ld   [_RAM_D07F_], a
         ld   a, $03
@@ -8394,12 +8474,12 @@ _LABEL_7532_:
         ld   a, $3C
         ld   [_RAM_D079_], a
         call _LABEL_77B0_
-        call _LABEL_4B84_
+        call maybe_input_wait_for_keys__4B84
         ld   b, $32
 _LABEL_7556_:
         push bc
-        call _LABEL_289_
-        call _LABEL_C8D_
+        call timer_wait_tick_AND_TODO__289_
+        call maybe_input_read_keys__C8D_
         pop  bc
         ld   a, [maybe_input_key_new_pressed__RAM_D025_]
         cp   $FF
@@ -8444,7 +8524,7 @@ _LABEL_75A3_:
         call _LABEL_76C8_
         xor  a
         ld   [_RAM_D07F_], a
-        call _LABEL_4B84_
+        call maybe_input_wait_for_keys__4B84
         jp   _LABEL_7465_
 
 _LABEL_75BD_:
@@ -8452,7 +8532,7 @@ _LABEL_75BD_:
         call _LABEL_7704_
         call _LABEL_76B0_
         call _LABEL_77B0_
-        call _LABEL_4B84_
+        call maybe_input_wait_for_keys__4B84
         jp   _LABEL_7465_
 
 _LABEL_75CF_:
@@ -8484,7 +8564,7 @@ _LABEL_75F0_:
         ld   [_RAM_D07B_], a
         ld   hl, _RAM_D080_
         call _LABEL_7326_
-        call _LABEL_4B84_
+        call maybe_input_wait_for_keys__4B84
         jp   _LABEL_7465_
 
 _LABEL_760A_:
@@ -8494,7 +8574,7 @@ _LABEL_760A_:
         ld   e, $00
         xor  a
         ld   [_RAM_D07F_], a
-        call _LABEL_4B84_
+        call maybe_input_wait_for_keys__4B84
         jp   _LABEL_7473_
 
 _LABEL_761F_:
@@ -8699,7 +8779,7 @@ _LABEL_777C_:
         and  $CF
         or   $C1
         ldh  [rLCDC], a
-        call _LABEL_4B84_
+        call maybe_input_wait_for_keys__4B84
         call _LABEL_7721_
         call wait_until_vbl__92C_
         call _LABEL_94C_
@@ -8713,13 +8793,13 @@ _LABEL_77A1_:
         cp   $A0
         jr   nz, _LABEL_77A1_
         call _display_bg_sprites_on__627_
-        call _LABEL_4B84_
+        call maybe_input_wait_for_keys__4B84
         ret
 
 _LABEL_77B0_:
         ld   a, [_RAM_D04B_]
         ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-        call _LABEL_89B_
+        call oam_free_slot_and_clear__89B_
         xor  a
         ld   [_RAM_D04B_], a
         ld   b, $04
@@ -8731,7 +8811,7 @@ _LABEL_77C2_:
         ldi  [hl], a
         push hl
         push bc
-        call _LABEL_89B_
+        call oam_free_slot_and_clear__89B_
         pop  bc
         pop  hl
         dec  b
@@ -8832,7 +8912,7 @@ _LABEL_785E_:
         ldh  [rAUD2LEN], a
         xor  a
         ld   [_RAM_CC00_], a    ; _RAM_CC00_ = $CC00
-        call _LABEL_289_
+        call timer_wait_tick_AND_TODO__289_
         ret
 
 _LABEL_787C_:

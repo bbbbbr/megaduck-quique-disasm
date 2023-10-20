@@ -40,7 +40,7 @@ DEF PRINT_ERASE                   EQU $00
 
 DEF SERIAL_STATUS_RESET           EQU $00
 DEF SERIAL_STATUS_DONE            EQU $01
-
+DEF SERIAL_STATUS_FAIL            EQU (SERIAL_STATUS_RESET)
 
 DEF SYS_CMD_RUN_CART_IN_SLOT      EQU $08
 DEF SYS_CMD_INIT_SEQ_NO_MATCH     EQU $04  ; TODO: What does this do and why?
@@ -65,19 +65,27 @@ DEF SYS_KEY_B                     EQU $45
 DEF SYS_KEY_START                 EQU $2A
 DEF SYS_KEY_SELECT                EQU $2E  ; SELECT seems to be mapped to Enter (instead of START, confusingly)
 
+DEF SYS_KEY_MAYBE_INVALID_OR_NODATA    EQU $FF  ; TODO
+
 DEF SYS_REPLY_BOOT_OK             EQU $01  ; Reply on startup that allows rest of code to proceed
 DEF SYS_REPLY__BIT_BOOT_FAIL      EQU 0
 
 DEF TIMER_FLAG__BIT_TICKED        EQU 2    ; Set by timer interrupt, cleared by...
 
+DEF OAM_SLOT_EMPTY                EQU $00
+DEF OAM_SLOT_USED                 EQU $FF
+
+DEF SHADOW_OAM_SZ                 EQU 160
+DEF OAM_USAGE_SZ                  EQU 40
+
 ; Turn on to enable skipping some Megaduck QuiQue hardware specific code
 ; def GB_DEBUG = 1
 
 SECTION "wram_c800__shadow_oam_", WRAM0[$C800]
-_RAM_SHADOW_OAM_BASE__C800_: DS 160
+_RAM_SHADOW_OAM_BASE__C800_: ds SHADOW_OAM_SZ ; 160
 
 SECTION "wram_c8a0", WRAM0[$c8a0]
-_RAM_C8A0_: db
+oam_slot_usage__RAM_C8A0_: ds OAM_USAGE_SZ ; db  
 
 SECTION "wram_c8c8", WRAM0[$c8c8]
 _RAM_C8C8_: db
@@ -143,7 +151,7 @@ serial_link_tx_data__RAM_D023_: db
 serial_system_status__RAM_D024_: db
 maybe_input_key_new_pressed__RAM_D025_: db  ; TODO: Looking like input keycode (gamepad/"mouse" input gets mapped to this too)
 _RAM_D026_: db
-_RAM_D027_: db
+maybe_input_second_rx_byte__RAM_D027_: db
 _RAM_D028_: ds $5
 _RAM_D02D_: ds $7
 _RAM_D034_: db
