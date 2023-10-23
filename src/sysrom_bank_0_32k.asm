@@ -121,7 +121,7 @@ _VBL_HANDLER__6D_:
     ld   h, a
     ld   a, [_RAM_D194_]
     ld   l, a
-    ld   a, [_RAM_D195_]  ; TODO: _RAM_D195_ seems like a selector for what to execute in VBL. Not sure where it gets set
+    ld   a, [vbl_action_select__RAM_D195_]  ; Not sure where it gets set
     and  a
     jr   z, _VBL_HANDLER_TAIL__AF_
     cp   $01
@@ -159,7 +159,7 @@ _VBL_HANDLER__6D_:
 
     _VBL_HANDLER_TAIL__AF_:
         xor  a
-        ld   [_RAM_D195_], a
+        ld   [vbl_action_select__RAM_D195_], a
         call _oam_dma_routine_in_HRAM__FF80_ ; $FF80
         pop  hl
         pop  de
@@ -210,19 +210,21 @@ db $00
 _GB_ENTRY_POINT_100_:
     di
     xor  a
-    ld   [_RAM_D195_], a
+    ld   [vbl_action_select__RAM_D195_], a
+
     call serial_system_init_check__9CF_
     wait_serial_status_ok__108_:
         ld   a, [serial_system_status__RAM_D024_]
         bit  SYS_REPLY__BIT_BOOT_FAIL, a  ; 0, a
-        jr   nz, wait_serial_status_ok__108_ ; @ - 5
-_LABEL_10F_:
-    ld   a, $09
+        jr   nz, wait_serial_status_ok__108_
+
+    ld   a, SYS_CMD_INIT_UNKNOWN_0x09  ; $09  // TODO
     ld   [serial_link_tx_data__RAM_D023_], a
     call serial_io_send_byte__B64_
     call serial_io_read_byte_no_timeout__B7D_
     ld   a, [serial_link_rx_data__RAM_D021_]
-    ld   [_RAM_D2E4_], a
+    ld   [serial_cmd_0x09_reply_data__RAM_D2E4_], a
+
     ld   hl, _RAM_DBFC_ ; _RAM_DBFC_ = $DBFC
     ldi  a, [hl]
     cp   $AA
@@ -965,7 +967,7 @@ maybe_try_run_cart_from_slot__5E1_:
     ld   a, SYS_CMD_RUN_CART_IN_SLOT ; $08
     ld   [serial_link_tx_data__RAM_D023_], a
     call serial_io_send_byte__B64_
-    call serial_io_wait_receive__B8F_  ; Result is in A. 0x01 if byte was received
+    call serial_io_wait_receive_with_timeout__B8F_  ; Result is in A. 0x01 if byte was received
     and  a
     ; Wait for a serial IO response byte
     jr   z, maybe_try_run_cart_from_slot__5E1_
@@ -1182,7 +1184,7 @@ _vram_init__752_:
 
         ; Clear 42 bytes of RAM used for OAM slot management
         ld   a, OAM_SLOT_EMPTY
-        ld   b, (OAM_USAGE_SZ + 2) ; $2A ; TODO: Why +2 here what is at _RAM_C8C8_ and C9? 
+        ld   b, (OAM_USAGE_SZ + 2) ; $2A ; TODO: Why +2 here what is at _RAM_C8C8_ and C9?
         ld   hl, oam_slot_usage__RAM_C8A0_
         loop_oam_clear__7C5_:
             ldi  [hl], a
@@ -1591,7 +1593,7 @@ _LABEL_97A_:
 ;
 ; - Does this have anything to do with the "first time boot up" voice greeting?
 ;
-; - Turns on Serial interrupt
+; - Turns on Serial interrupt (overwrites any other rIE settings)
 serial_system_init_check__9CF_:
     ld   a, IEF_SERIAL ; $08
     ldh  [rIE], a
@@ -1634,11 +1636,11 @@ serial_system_init_check__9CF_:
     ld   a, [serial_system_status__RAM_D024_]
     bit  SYS_REPLY__BIT_BOOT_FAIL, a  ; 0, a
     jr   nz, set_send_if_sequence_no_match__A0E_  ; If there were any failures in the sequence, send
-    ld   a, SYS_CMD_INIT_SEQ_MATCH  ; $01
+    ld   a, SYS_CMD_DONE_OR_OK  ; $01
     jr   send_response_to_sequence__A10_
 
     set_send_if_sequence_no_match__A0E_:
-        ld   a, SYS_CMD_INIT_SEQ_NO_MATCH  ; $04  ; TODO: THis gets sent if the startup sequence didn't match... but what is it?
+        ld   a, SYS_CMD_ABORT_OR_FAIL  ; $04  ; TODO: THis gets sent if the startup sequence didn't match... but what is it?
 
     send_response_to_sequence__A10_:
         ld   [serial_link_tx_data__RAM_D023_], a
@@ -1806,7 +1808,7 @@ _LABEL_B1C_:
     ld   hl, _RAM_D028_ ; _RAM_D028_ = $D028
 _LABEL_B28_:
     push hl
-    call serial_io_wait_receive__B8F_
+    call serial_io_wait_receive_with_timeout__B8F_
     and  a
     pop  hl
     jr   z, _LABEL_B13_
@@ -1818,7 +1820,7 @@ _LABEL_B28_:
     ld   [_RAM_D026_], a
     dec  b
     jr   nz, _LABEL_B28_
-    call serial_io_wait_receive__B8F_
+    call serial_io_wait_receive_with_timeout__B8F_
     and  a
     jr   z, _LABEL_B13_
     call delay_quarter_msec__BD6_
@@ -1850,6 +1852,7 @@ serial_io_send_byte__B64_:
     ; Set ready to receive an inbound transfer
     xor  a
     ldh  [_PORT_60_], a
+    ; Why does this start the transfer before the data is loaded into rSB?
     ld   a, (SERIAL_XFER_ENABLE | SERIAL_CLOCK_INT) ; $81
     ldh  [rSC], a
 
@@ -1884,7 +1887,7 @@ serial_io_read_byte_no_timeout__B7D_:
 ; Waits for a byte from Serial IO with a timeout (25 msec)
 ;
 ; - Returns serial transfer success(0x01)/failure(0x00) in: A
-serial_io_wait_receive__B8F_:
+serial_io_wait_receive_with_timeout__B8F_:
     ld   a, SERIAL_STATUS_RESET ; $00
     ld   [serial_link_status__RAM_D022_], a
     call serial_io_enable_receive_byte__A17_
@@ -1986,34 +1989,34 @@ maybe_input_read_keys__C8D_:
     xor  a
     ldh  [rIE], a
     ; TODO ... ? Make a request for ??
-    ld   a, $00  ; ?? Same or different tan SYS_CMD_INIT_SEQ_REQUEST
+    ld   a, SYS_CMD_READ_KEYS_MAYBE ; $00  ; ? Same or different as SYS_CMD_INIT_SEQ_REQUEST ?
     ld   [serial_link_tx_data__RAM_D023_], a
     call serial_io_send_byte__B64_
-    call serial_io_wait_receive__B8F_
+    call serial_io_wait_receive_with_timeout__B8F_
 
     ; Fail if serial RX timed out(z), if successful(nz) continue
     and  a
     jr   z, maybe_input_req_key_failed_so_send04__CB9_
     ; Fail if RX byte was zero
     ld   a, [serial_link_rx_data__RAM_D021_]
-    cp   $00  ; TODO: Some kind of invalid, or no key ready yet SYS_REPLY or SYS_KEY
+    cp   SYS_REPLY_READ_FAIL_MAYBE ; $00
     jr   z, maybe_input_req_key_failed_so_send04__CB9_
     ; TODO ...
-    cp   $0E  ; TODO: does this mean another serial byte is incoming?
+    cp   $0E  ; TODO: does this mean another serial byte is incoming? Or is it a modifier keycode?
     jr   z, _LABEL_CB0_
     jr   nc, maybe_input_req_key_failed_so_send04__CB9_
 
     ; TODO: Save last RX byte and wait for another
     _LABEL_CB0_:
         ld   [_RAM_D026_], a
-        call serial_io_wait_receive__B8F_
+        call serial_io_wait_receive_with_timeout__B8F_
         and  a
         jr   nz, _LABEL_CC8_
 
     maybe_input_req_key_failed_so_send04__CB9_:
         ld   a, SYS_KEY_MAYBE_INVALID_OR_NODATA  ; $FF
         ld   [maybe_input_key_new_pressed__RAM_D025_], a
-        ld   a, $04  ; TODO: Maybe a failed/reset/cancel input system command SYS_CMD
+        ld   a, SYS_CMD_ABORT_OR_FAIL  ; $04 ; TODO: Maybe a failed/reset/cancel input system command SYS_CMD
         ld   [serial_link_tx_data__RAM_D023_], a
         call serial_io_send_byte__B64_
         jr   restore_int_enables_call_TODO_and_return__D06_
@@ -2032,7 +2035,7 @@ maybe_input_read_keys__C8D_:
         ; Wait for RX input byte #3
         ; If successful, save it
         ; Also add and save it to _RAM_D026_
-        call serial_io_wait_receive__B8F_
+        call serial_io_wait_receive_with_timeout__B8F_
         and  a
         jr   z, maybe_input_req_key_failed_so_send04__CB9_
         ld   a, [serial_link_rx_data__RAM_D021_]
@@ -2042,7 +2045,7 @@ maybe_input_read_keys__C8D_:
         ld   [_RAM_D026_], a
         ; Wait for RX input byte #4
         ; If successful, save it
-        call serial_io_wait_receive__B8F_
+        call serial_io_wait_receive_with_timeout__B8F_
         and  a
         jr   z, maybe_input_req_key_failed_so_send04__CB9_
         ld   a, [serial_link_rx_data__RAM_D021_]
@@ -2051,7 +2054,7 @@ maybe_input_read_keys__C8D_:
         jr   nz, maybe_input_req_key_failed_so_send04__CB9_
 
         ; TODO: Send a command byte. Something like DONE or ACK for a SYS_CMD?
-        ld   a, $01
+        ld   a, SYS_CMD_DONE_OR_OK ; $01
         ld   [serial_link_tx_data__RAM_D023_], a
         call serial_io_send_byte__B64_
         call _LABEL_D0F_
@@ -2088,7 +2091,7 @@ _LABEL_D24_:
     jp   nc, _LABEL_DC5_
     res  7, a
     ld   hl, $0EBF
-    call _LABEL_486E_
+    call add_a_to_hl__486E_
     ld   a, [hl]
     ld   [maybe_input_key_new_pressed__RAM_D025_], a
     ld   b, a
@@ -3570,7 +3573,7 @@ _loop_multiply__4863_:
 _multiply_done_486D_:
     ret
 
-_LABEL_486E_:
+add_a_to_hl__486E_:
     add  l
     ld   l, a
     ld   a, h
@@ -3612,46 +3615,66 @@ _LABEL_4898_:
 ; Data from 48A7 to 48B6 (16 bytes)
 db $3E, $90, $CD, $E0, $48, $41, $3E, $10, $CD, $E0, $48, $CD, $2C, $09, $06, $09
 
-_LABEL_48B7_:
+; Copies B x 16 byte tile pattern data from DE to HL only during vblanks
+;
+; - Number of X to copy: B
+; - Source: DE
+; - Destination: HL
+copy_b_x_tile_patterns_from_de_to_hl__48B7_:
     ld   a, b
     and  $03
     cp   $00
-    jr   nz, _LABEL_48C1_
+    jr   nz, skip_wait_vbl__48C1_
     call wait_until_vbl__92C_
-_LABEL_48C1_:
-    ld   c, $10
-_LABEL_48C3_:
-    ld   a, [de]
-    ldi  [hl], a
-    inc  de
-    dec  c
-    jr   nz, _LABEL_48C3_
-    dec  b
-    jr   nz, _LABEL_48B7_
-    ret
 
+    skip_wait_vbl__48C1_:
+        ld   c, $10
+    loop_tile_pattern_copy_16_bytes__48C3_:
+        ld   a, [de]
+        ldi  [hl], a
+        inc  de
+        dec  c
+        jr   nz, loop_tile_pattern_copy_16_bytes__48C3_
+        dec  b
+        jr   nz, copy_b_x_tile_patterns_from_de_to_hl__48B7_
+        ret
+
+
+; - Tiles to copy: A (16 bytes)
+; - Source address: DE + (B x 16)
+; - Dest   address: HL + (C x 16)
+; copy_a_x_tile_patterns_from_de_add_bx16_to_hl_add_cx16__48CD_
 _LABEL_48CD_:
+    ; Calculate (original) DE + (B x 16) -> HL
+    ; Move (original HL) -> DE
     push af
     ld   a, $10
-    call _LABEL_48E0_
+    call add_a_x_b_to_de_result_in_hl_and_hl_moved_to_de__48E0_
+
+    ; Calculate (original) HL + (C x 16) -> HL
+    ; Move DE + (B x 16) -> DE
     ld   b, c
     ld   a, $10
-    call _LABEL_48E0_
+    call add_a_x_b_to_de_result_in_hl_and_hl_moved_to_de__48E0_
+
     call wait_until_vbl__92C_
     pop  af
     ld   b, a
-    jr   _LABEL_48B7_
+    jr   copy_b_x_tile_patterns_from_de_to_hl__48B7_
 
-_LABEL_48E0_:
-    push hl
-    ld   h, d
-    ld   l, e
-    push bc
-    call multiply_a_x_b__result_in_de__4853_
-    pop  bc
-    add  hl, de
-    pop  de
-    ret
+    ; - Unchanged HL: -> returned in DE
+    ; - DE + (A x B): -> returned in HL
+    ; Preserves: BC
+    add_a_x_b_to_de_result_in_hl_and_hl_moved_to_de__48E0_:
+        push hl
+        ld   h, d
+        ld   l, e
+        push bc
+        call multiply_a_x_b__result_in_de__4853_
+        pop  bc
+        add  hl, de
+        pop  de
+        ret
 
 ; BC = Tilemap XY
 _LABEL_48EB_:
@@ -3697,7 +3720,7 @@ _LABEL_4925_:
     ldi  [hl], a
     ld   a, $20
     sub  d
-    call _LABEL_486E_
+    call add_a_to_hl__486E_
     ret
 
 ; Calculate the vram address of tilemap X,Y
@@ -4562,7 +4585,7 @@ _LABEL_4E69_:
     ld   a, c
     swap a
     or   l
-    ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+    ld   [_RAM_D03A_], a
     xor  a
     ld   [_RAM_D06E_], a
     ld   a, $07
@@ -4649,7 +4672,7 @@ _LABEL_4F4D_:
 _LABEL_4F51_:
     ld   [_RAM_D053_], a    ; _RAM_D053_ = $D053
     ld   b, a
-    ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
+    ld   a, [_RAM_D03A_]
     cp   b
     jr   c, _LABEL_4F72_
     ld   a, [_RAM_D054_]    ; _RAM_D054_ = $D054
@@ -4678,7 +4701,7 @@ _LABEL_4F72_:
     sla  a
     ld   [_RAM_D072_], a
     ld   a, $01
-    ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+    ld   [_RAM_D03A_], a
     call _display_bg_sprites_on__627_
 _LABEL_4F95_:
     call timer_wait_tick_AND_TODO__289_
@@ -5145,7 +5168,7 @@ _LABEL_5345_:
 
 _LABEL_5350_:
     ld   a, c
-    call _LABEL_486E_
+    call add_a_to_hl__486E_
     dec  b
     jr   nz, _LABEL_5340_
 _LABEL_5357_:
@@ -5451,7 +5474,7 @@ _LABEL_5549_:
     cp   $F9
     jr   nz, _LABEL_5579_
     call _LABEL_5D5F_
-    ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
+    ld   a, [_RAM_D03A_]
     and  a
     jr   z, _LABEL_5579_
     call _LABEL_5D50_
@@ -5524,8 +5547,8 @@ _LABEL_55CB_:
 _LABEL_55F1_:
     add  $10
     add  b
-    ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
-    ld   de, _RAM_D03A_ ; _RAM_D03A_ = $D03A
+    ld   [_RAM_D03A_], a
+    ld   de, _RAM_D03A_
     ld   hl, _RAM_D403_
     call _LABEL_56BC_
 _LABEL_5600_:
@@ -5788,6 +5811,9 @@ _LABEL_57C9_:
     jr   nz, _LABEL_57C9_
     ret
 
+
+; TODO: Maybe something about setting the time
+; Could be the clock/calendar application
 _LABEL_57D5_:
     xor  a
     ld   [_RAM_D06C_], a    ; _RAM_D06C_ = $D06C
@@ -5802,16 +5828,17 @@ _LABEL_57D5_:
     ld   hl, $8800
     ld   a, $80
     call _LABEL_48CD_
+    
     ld   hl, _TILEMAP0; $9800
-_LABEL_57F9_:
-    xor  a
-    ldi  [hl], a
-    ld   a, h
-    cp   $9C
-    jr   nz, _LABEL_57F9_
+    loop_clear_tilemap_9800__57F9_:
+        xor  a
+        ldi  [hl], a
+        ld   a, h
+        cp   HIGH(_TILEMAP1) ; $9C
+        jr   nz, loop_clear_tilemap_9800__57F9_
     xor  a
     ld   [_RAM_D069_], a
-    ld   de, _DATA_5DD2_
+    ld   de, rom_str__PUESTA_EN_HORA__5DD2_
     ld   c, $A0
     ld   b, $02
     ld   hl, $0203
@@ -5886,7 +5913,7 @@ _LABEL_5841_:
     call _LABEL_4944_
     call _display_bg_sprites_on__627_
     xor  a
-    ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+    ld   [_RAM_D03A_], a
     ld   a, $04
     ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
     call _LABEL_58EA_
@@ -5926,10 +5953,10 @@ _LABEL_58DC_:
     ret
 
 _LABEL_58EA_:
-    ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
+    ld   a, [_RAM_D03A_]
     sla  a
     ld   hl, _DATA_590F_
-    call _LABEL_486E_
+    call add_a_to_hl__486E_
     ldi  a, [hl]
     ld   [_tilemap_pos_x__RAM_C8CB_], a
     ldi  a, [hl]
@@ -5955,13 +5982,13 @@ _LABEL_5919_:
     jr   nz, _LABEL_593C_
     xor  a
     ld   [_RAM_D06C_], a    ; _RAM_D06C_ = $D06C
-    ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
+    ld   a, [_RAM_D03A_]
     inc  a
     cp   $05
     jr   nz, _LABEL_5931_
     xor  a
 _LABEL_5931_:
-    ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+    ld   [_RAM_D03A_], a
     ld   a, $FF
     ld   [_RAM_D181_], a
     jp   _LABEL_59F1_
@@ -5971,7 +5998,7 @@ _LABEL_593C_:
     jr   nz, _LABEL_5950_
     xor  a
     ld   [_RAM_D06C_], a    ; _RAM_D06C_ = $D06C
-    ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
+    ld   a, [_RAM_D03A_]
     dec  a
     cp   $FF
     jr   nz, _LABEL_5931_
@@ -5986,12 +6013,12 @@ _LABEL_5950_:
     ld   b, $C0
     sub  b
     ld   c, a
-    ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
+    ld   a, [_RAM_D03A_]
     ld   hl, _DATA_5DA1_
-    call _LABEL_486E_
+    call add_a_to_hl__486E_
     ld   a, [hl]
     ld   hl, _RAM_D051_
-    call _LABEL_486E_
+    call add_a_to_hl__486E_
     ld   a, [_RAM_D06C_]    ; _RAM_D06C_ = $D06C
     cp   $00
     jr   nz, _LABEL_5975_
@@ -6074,16 +6101,16 @@ _LABEL_59F2_:
     call _LABEL_56BC_
     xor  a
     ldi  [hl], a
-    ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
+    ld   a, [_RAM_D03A_]
     ld   b, $04
     call multiply_a_x_b__result_in_de__4853_
     ld   a, $64
     add  e
     ld   c, a
-    ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
+    ld   a, [_RAM_D03A_]
     sla  a
     ld   hl, _DATA_5A21_
-    call _LABEL_486E_
+    call add_a_to_hl__486E_
     ldi  a, [hl]
     ld   b, a
     ldi  a, [hl]
@@ -6117,7 +6144,7 @@ _LABEL_5A3B_:
     push hl
     ld   hl, $5DB2
     dec  a
-    call _LABEL_486E_
+    call add_a_to_hl__486E_
     ld   c, [hl]
     inc  c
     pop  hl
@@ -6152,7 +6179,7 @@ _LABEL_5A3B_:
     dec  hl
 _LABEL_5A7F_:
     ld   a, $04
-    call _LABEL_486E_
+    call add_a_to_hl__486E_
     call _LABEL_5B03_
     cp   $0C
     jr   nc, _LABEL_5A9A_
@@ -6183,7 +6210,7 @@ _LABEL_5AAE_:
     sub  $5C
 _LABEL_5AB0_:
     ld   hl, $5DBE
-    call _LABEL_486E_
+    call add_a_to_hl__486E_
     ld   b, [hl]
     push bc
     ld   d, $00
@@ -6211,7 +6238,7 @@ _LABEL_5ACB_:
     jr   z, _LABEL_5AE4_
 _LABEL_5ADC_:
     ld   a, [de]
-    call _LABEL_486E_
+    call add_a_to_hl__486E_
     inc  de
     dec  c
     jr   nz, _LABEL_5ADC_
@@ -6222,7 +6249,7 @@ _LABEL_5AE4_:
     ld   hl, _RAM_D053_
     call _LABEL_5B03_
     pop  hl
-    call _LABEL_486E_
+    call add_a_to_hl__486E_
     ld   e, l
     ld   d, h
     ld   h, $07
@@ -6248,25 +6275,31 @@ _LABEL_5B03_:
     ret
 
 _LABEL_5B12_:
-    ld   de, _DATA_5DE1_
-    ld   hl, _LABEL_10F_
+    ; Render text message to screen about continuing or
+    ; aborting by pressing escape/salida key
+    ;
+    ld   de, rom_str__PARA_CONTINUAR_O___5DE1_
+    ld   hl, $010F        ; X,Y = 1,15
     ld   c, PRINT_NORMAL  ; $01
     call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
-    ld   de, _DATA_5DF4_
-    ld   hl, _LABEL_10F_ + 1
+
+    ld   de, rom_str__INVALIDAR_PRESIONAR__5DF4_
+    ld   hl, $0110        ; X,Y = 1,16
     ld   c, PRINT_NORMAL  ; $01
     call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
-    ld   de, _DATA_5E08_
-    ld   hl, $0111
+
+    ld   de, rom_str____ESCAPE_SALIDA__5E08_
+    ld   hl, $0111        ; X,Y = 1,17
     ld   c, PRINT_NORMAL  ; $01
     call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
+
 _LABEL_5B33_:
     call input_map_gamepad_buttons_to_keycodes__49C2_
     ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     cp   $2A
     jr   nz, _LABEL_5B33_
     xor  a
-    ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+    ld   [_RAM_D03A_], a
     ld   [_RAM_D06C_], a    ; _RAM_D06C_ = $D06C
     ld   c, $03
     ld   hl, $99C0
@@ -6301,14 +6334,14 @@ _LABEL_5B73_:
     ld   b, $05
     call multiply_a_x_b__result_in_de__4853_
     ld   a, e
-    ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+    ld   [_RAM_D03A_], a
     inc  hl
     call _LABEL_5BB9_
     ld   d, $00
     ld   e, a
     ld   h, $0C
     call _LABEL_4832_
-    ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
+    ld   a, [_RAM_D03A_]
     add  c
     ld   [_RAM_D049_], a
     xor  a
@@ -6364,7 +6397,7 @@ _LABEL_5BCD_:
     jr   c, _LABEL_5C0D_
     ld   [hl], $08
     sub  $2D
-    ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+    ld   [_RAM_D03A_], a
     sla  a
     sla  a
     ld   [_RAM_D037_], a
@@ -6382,7 +6415,7 @@ _LABEL_5C0D_:
     ld   b, a
     ld   a, $2D
     sub  b
-    ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+    ld   [_RAM_D03A_], a
     sla  a
     sla  a
     ld   [_RAM_D037_], a
@@ -6399,7 +6432,7 @@ _LABEL_5C2B_:
     ld   b, a
     ld   a, $0F
     sub  b
-    ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+    ld   [_RAM_D03A_], a
     sla  a
     sla  a
     ld   [_RAM_D037_], a
@@ -6414,7 +6447,7 @@ _LABEL_5C2B_:
 _LABEL_5C49_:
     ld   [hl], $02
     sub  $0F
-    ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+    ld   [_RAM_D03A_], a
     sla  a
     sla  a
     ld   [_RAM_D037_], a
@@ -6480,8 +6513,8 @@ _LABEL_5CAC_:
     and  a
     jr   z, _LABEL_5D2F_
     ld   hl, _DATA_5D7F_
-    ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
-    call _LABEL_486E_
+    ld   a, [_RAM_D03A_]
+    call add_a_to_hl__486E_
     ld   b, [hl]
     ld   a, [_RAM_D04A_]
     and  $0C
@@ -6496,7 +6529,7 @@ _LABEL_5CD9_:
 _LABEL_5CDD_:
     ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, $10
-    call _LABEL_486E_
+    call add_a_to_hl__486E_
     ld   b, [hl]
     ld   a, [_RAM_D04A_]
     and  $09
@@ -6546,7 +6579,7 @@ _LABEL_5D30_:
     ld   a, [_RAM_D048_]
     sla  a
     sla  a
-    call _LABEL_486E_
+    call add_a_to_hl__486E_
     ret
 
 _LABEL_5D3E_:
@@ -6572,7 +6605,7 @@ _LABEL_5D50_:
 _LABEL_5D5F_:
     call _LABEL_5D3E_
     xor  a
-    ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+    ld   [_RAM_D03A_], a
     ld   b, $08
     ld   hl, _RAM_D028_ ; _RAM_D028_ = $D028
     ld   de, _RAM_D051_
@@ -6583,7 +6616,7 @@ _LABEL_5D6E_:
     ld   a, [hl]
     ld   [de], a
     ld   a, $01
-    ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+    ld   [_RAM_D03A_], a
 _LABEL_5D79_:
     inc  de
     inc  hl
@@ -6613,21 +6646,25 @@ db $1F, $1D, $1F, $1E, $1F, $1E, $1F, $1F, $1E, $1F, $1E, $1F, $03, $05, $06, $0
 db $01, $03, $04, $05, $06, $01, $02, $03, $04, $06, $07, $01, $02, $04, $05, $06
 
 ; Data from 5DD2 to 5DE0 (15 bytes)
-_DATA_5DD2_:
+; Text string: "PUESTA EN HORA" (setting the time)
+rom_str__PUESTA_EN_HORA__5DD2_:
 db $90, $95, $85, $93, $94, $81, $BE, $85, $8E, $BE, $88, $8F, $92, $81, $00
 
 ; Data from 5DE1 to 5DF3 (19 bytes)
-_DATA_5DE1_:
+; Text string: "  PARA CONTINUAR O" (To continue or...)
+rom_str__PARA_CONTINUAR_O___5DE1_:
 db $BE, $BE, $90, $81, $92, $81, $BE, $83, $8F, $8E, $94, $89, $8E, $95, $81, $92
 db $BE, $8F, $00
 
 ; Data from 5DF4 to 5E07 (20 bytes)
-_DATA_5DF4_:
+; Text string: "INVALIDAR PRESIONAR" (... abort, press...)
+rom_str__INVALIDAR_PRESIONAR__5DF4_:
 db $89, $8E, $96, $81, $8C, $89, $84, $81, $92, $BE, $90, $92, $85, $93, $89, $8F
 db $8E, $81, $92, $00
 
 ; Data from 5E08 to 5E18 (17 bytes)
-_DATA_5E08_:
+; Text string "   ESCAPE SALIDA" (escape/salida key)
+rom_str____ESCAPE_SALIDA__5E08_:
 db $BE, $BE, $BE, $85, $93, $83, $81, $90, $85, $BE, $93, $81, $8C, $89, $84, $81
 db $00
 
@@ -6665,7 +6702,7 @@ _LABEL_5E61_:
     xor  a
     ld   [_RAM_D20D_], a
     ld   [_RAM_D04B_], a
-    ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+    ld   [_RAM_D03A_], a
     ld   a, $18
     ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
     ld   a, $BE
@@ -6773,7 +6810,7 @@ _LABEL_5F54_:
     srl  a
     sub  $03
     ld   hl, $D6D0
-    call _LABEL_486E_
+    call add_a_to_hl__486E_
 _LABEL_5F65_:
     ld   a, l
     cp   $DF
@@ -7022,7 +7059,7 @@ _LABEL_615A_:
     add  hl, de
     call _switch_bank_read_byte_at_hl_RAM__C980_
     ld   a, [_rombank_readbyte_result__D6E7_]
-    ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+    ld   [_RAM_D03A_], a
     ld   b, a
     inc  hl
     call _switch_bank_read_byte_at_hl_RAM__C980_
@@ -7036,7 +7073,7 @@ _LABEL_615A_:
     pop  de
     ld   hl, $D800
     call _switch_bank_memcopy_hl_to_de_len_bc_RAM__C960_
-    ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
+    ld   a, [_RAM_D03A_]
     ld   b, a
     ld   a, $14
     sub  b
@@ -7062,7 +7099,7 @@ _LABEL_615A_:
     call _LABEL_94C_
     ld   de, _RAM_D800_
 _LABEL_61B4_:
-    ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
+    ld   a, [_RAM_D03A_]
     ld   c, a
 _LABEL_61B8_:
     ld   a, [de]
@@ -7070,11 +7107,11 @@ _LABEL_61B8_:
     ldi  [hl], a
     dec  c
     jr   nz, _LABEL_61B8_
-    ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
+    ld   a, [_RAM_D03A_]
     ld   b, a
     ld   a, $20
     sub  b
-    call _LABEL_486E_
+    call add_a_to_hl__486E_
     ld   a, [_RAM_D1A7_]    ; _RAM_D1A7_ = $D1A7
     dec  a
     ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
@@ -7096,7 +7133,7 @@ _LABEL_61D8_:
     ld   hl, $D6D0
     dec  a
     dec  a
-    call _LABEL_486E_
+    call add_a_to_hl__486E_
     ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     ld   [_RAM_D400_], a
     ld   [hl], a
@@ -7126,21 +7163,21 @@ _LABEL_6213_:
     ret
 
 _LABEL_621C_:
-    ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
+    ld   a, [_RAM_D03A_]
     cp   $05
     call c, _LABEL_6265_
     jp   _LABEL_6240_
 
 _LABEL_6227_:
-    ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
+    ld   a, [_RAM_D03A_]
     cp   $05
     jp   c, _LABEL_6265_
     ret
 
 _LABEL_6230_:
-    ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
+    ld   a, [_RAM_D03A_]
     inc  a
-    ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+    ld   [_RAM_D03A_], a
     cp   $05
     jr   z, _LABEL_6265_
     cp   $0A
@@ -7152,7 +7189,7 @@ _LABEL_6240_:
     and  a
     ret  nz
     xor  a
-    ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+    ld   [_RAM_D03A_], a
     ld   a, $88
     ld   [_tilemap_pos_y__RAM_C8CA_], a
     ld   a, [_RAM_D03B_]    ; _RAM_D03B_ = $D03B
@@ -7168,7 +7205,7 @@ _LABEL_6240_:
 
 _LABEL_6265_:
     ld   a, $05
-    ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+    ld   [_RAM_D03A_], a
     ld   a, [_RAM_D04B_]
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call oam_free_slot_and_clear__89B_
@@ -7296,7 +7333,7 @@ _LABEL_6369_:
     ldh  [rLCDC], a
     xor  a
     ld   [_RAM_D192_], a
-    ld   [_RAM_D195_ + 1], a    ; _RAM_D195_ + 1 = $D196
+    ld   [_RAM_D196_], a
     ld   a, $01
     ld   [_RAM_D19C_], a    ; _RAM_D19C_ = $D19C
     ld   [_RAM_D19D_], a    ; _RAM_D19D_ = $D19D
@@ -7400,7 +7437,7 @@ _LABEL_667A_:
     ld   a, $02
     ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
 _LABEL_667F_:
-    ld   a, [_RAM_D195_ + 1]    ; _RAM_D195_ + 1 = $D196
+    ld   a, [_RAM_D196_]
     and  a
     jp   nz, _LABEL_694E_
     ld   a, [_RAM_D04B_]
@@ -7530,7 +7567,7 @@ _LABEL_6A45_:
     ld   a, [_tilemap_pos_y__RAM_C8CA_]
     and  $07
     sla  a
-    call _LABEL_486E_
+    call add_a_to_hl__486E_
     call _LABEL_6AAD_
     pop  hl
     ld   a, [_RAM_D1A7_]    ; _RAM_D1A7_ = $D1A7
@@ -7543,7 +7580,7 @@ _LABEL_6A45_:
     and  $07
     jr   nz, _LABEL_6A45_
     push bc
-    call _LABEL_6FA0_
+    call maybe_calc_pixelxy_tile_pattern_addr_something__6FA0_
     pop  bc
     jr   _LABEL_6A45_
 
@@ -7552,7 +7589,7 @@ _LABEL_6A6E_:
     ld   a, [_tilemap_pos_y__RAM_C8CA_]
     and  $07
     sla  a
-    call _LABEL_486E_
+    call add_a_to_hl__486E_
     call _LABEL_6AAD_
     pop  hl
     ld   a, [_RAM_D1A7_]    ; _RAM_D1A7_ = $D1A7
@@ -7568,7 +7605,7 @@ _LABEL_6A6E_:
     jr   _LABEL_6A6E_
 
 _LABEL_6A94_:
-    call _LABEL_6FA0_
+    call maybe_calc_pixelxy_tile_pattern_addr_something__6FA0_
     ld   b, $80
     jr   _LABEL_6A6E_
 
@@ -7708,7 +7745,7 @@ _LABEL_6D0F_:
     jr   nz, _LABEL_6D0F_
 _LABEL_6D19_:
     ld   a, c
-    ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+    ld   [_RAM_D03A_], a
     ret
 
 ; Data from 6D1E to 6DAA (141 bytes)
@@ -7780,7 +7817,7 @@ _LABEL_6DE3_:
     jr   nz, _LABEL_6DE3_
 _LABEL_6DED_:
     ld   a, c
-    ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+    ld   [_RAM_D03A_], a
     ret
 
 ; Data from 6DF2 to 6E3A (73 bytes)
@@ -7812,12 +7849,14 @@ db $D1, $FA, $A1, $D1, $EA, $B1, $D1, $18, $0C, $FA, $9F, $D1, $21, $A1, $D1, $8
 db $CB, $1F, $EA, $A9, $D1, $FA, $9F, $D1, $EA, $AB, $D1, $FA, $A1, $D1, $EA, $AC
 db $D1, $C9
 
+; TODO: Called from VBL, calculates an Tile Pattern VRAM address and loops doing something
 _LABEL_6F40_:
     ld   a, [_RAM_D1A2_]    ; _RAM_D1A2_ = $D1A2
     ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, [_RAM_D1A3_]    ; _RAM_D1A3_ = $D1A3
     ld   [_tilemap_pos_y__RAM_C8CA_], a
-    call _LABEL_6FA0_
+    call maybe_calc_pixelxy_tile_pattern_addr_something__6FA0_
+
     ld   a, [_RAM_D1A3_]    ; _RAM_D1A3_ = $D1A3
     ld   b, a
     ld   a, [_RAM_D1A5_]    ; _RAM_D1A5_ = $D1A5
@@ -7827,7 +7866,7 @@ _LABEL_6F40_:
     ld   a, [_RAM_D1A3_]    ; _RAM_D1A3_ = $D1A3
     and  $07
     sla  a
-    call _LABEL_486E_
+    call add_a_to_hl__486E_
     ld   a, [_RAM_D1A2_]    ; _RAM_D1A2_ = $D1A2
     and  $07
     ld   c, a
@@ -7868,54 +7907,73 @@ _LABEL_6F87_:
 ; Data from 6F97 to 6F9F (9 bytes)
 db $FA, $4B, $D0, $EA, $CC, $C8, $CD, $53, $09
 
-_LABEL_6FA0_:
+; TODO - might be for a special direct pixel drawing mode 
+;
+;
+; - Indexing something into Tile Pattern VRAM
+;
+; - Returns resulting address in HL
+; maybe_calc_pixelxy_tile_pattern_addr_something__6FA0_
+maybe_calc_pixelxy_tile_pattern_addr_something__6FA0_:
+    ; Maybe X position of ...
+    ; (N / 8) - 4
     ld   a, [_tilemap_pos_x__RAM_C8CB_]
     srl  a
     srl  a
     srl  a
     sub  $04
-    ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+    ld   [_RAM_D03A_], a  ; Maybe just a temp/scratch var
+    ; Maybe Y position of ...
+    ; ((N / 8) - 3)
     ld   a, [_tilemap_pos_y__RAM_C8CA_]
     srl  a
     srl  a
     srl  a
     sub  $03
+    ; ... x 14
     ld   b, $0E
     call multiply_a_x_b__result_in_de__4853_
+    ; ... +  _RAM_D03A_ (X position?)
     ld   a, e
-    ld   hl, _RAM_D03A_ ; _RAM_D03A_ = $D03A
+    ld   hl, _RAM_D03A_
     add  [hl]
+    ; Check bit .7 (128) of lower nibble, then save flag result
     bit  7, a
     push af
+    ; ... Clear bit .7 of lower nibble
     res  7, a
+    ; ... x 16 (maybe calculating tile offset in tile pattern vram)
     ld   b, $10
     call multiply_a_x_b__result_in_de__4853_
     pop  af
-    jr   nz, _LABEL_6FD5_
-    ld   hl, $9000
-_LABEL_6FD3_:
-    jr   _LABEL_6FEB_
+    ; If ((a & 0x80) == 0) (For saved bit 7 flag result)
+    ; Then wrap around and use the middle tile pattern data at 0x8800
+    jr   nz, use_tiledata_8800__6FD5_
+    ld   hl, _TILEDATA9000  ; $9000
+    jr   using_tiledata_9000__6FEB_
 
-_LABEL_6FD5_:
-    ld   hl, $8800
-    add  hl, de
-    ld   a, h
-    cp   $8C
-    ret  c
-    jr   z, _LABEL_6FE3_
-    ld   hl, $8FF0
-    ret
+    use_tiledata_8800__6FD5_:
+        ld   hl, _TILEDATA8800  ; $8800
+        add  hl, de
+        ld   a, h
+        ; Done if hl addr < 0x8Cxx
+        cp   $8C
+        ret  c
+        jr   z, is_tiledata_8Cxx__6FE3_
+        ; If hl addr is > 0x8CFF return fixed addr (last tile in 8800-8FFF)
+        ld   hl, $8FF0
+        ret
 
-_LABEL_6FE3_:
-    ld   a, l
-    cp   $40
-    ret  c
-    ld   hl, $8FF0
-    ret
+    is_tiledata_8Cxx__6FE3_:
+        ld   a, l
+        cp   $40
+        ret  c
+        ld   hl, $8FF0
+        ret
 
-_LABEL_6FEB_:
-    add  hl, de
-    ret
+    using_tiledata_9000__6FEB_:
+        add  hl, de
+        ret
 
     ; Data from 6FED to 7119 (301 bytes)
 db $FA, $4B, $D0, $EA, $CC, $C8, $CD, $53, $09, $FA, $CB, $C8, $EA, $73, $D0, $FA
@@ -8030,9 +8088,9 @@ _LABEL_71D1_:
 _LABEL_71E2_:
         ld   [hl], a
         sla  a
-        ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+        ld   [_RAM_D03A_], a
         ld   hl, $7980
-        call _LABEL_486E_
+        call add_a_to_hl__486E_
         call _LABEL_2A2_
         call _LABEL_77D3_
         jr   _LABEL_71BB_
@@ -8113,7 +8171,7 @@ _LABEL_7280_:
         ld   c, PRINT_NORMAL  ; $01
         call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
         xor  a
-        ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+        ld   [_RAM_D03A_], a
         ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
 _LABEL_72A0_:
         call _LABEL_72F0_
@@ -8123,13 +8181,13 @@ _LABEL_72A0_:
         cp   $2A
         jr   nz, _LABEL_72B5_
         xor  a
-        ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+        ld   [_RAM_D03A_], a
         ret
 
 _LABEL_72B5_:
         cp   $2E
         jr   nz, _LABEL_72C0_
-        ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
+        ld   a, [_RAM_D03A_]
         and  a
         jr   z, _LABEL_72A0_
         ret
@@ -8140,11 +8198,11 @@ _LABEL_72C0_:
         ld   a, $0E
         ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
         call _LABEL_72F0_
-        ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
+        ld   a, [_RAM_D03A_]
         push af
         call _LABEL_522_
         pop  af
-        ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+        ld   [_RAM_D03A_], a
         jr   _LABEL_72A0_
 
 _LABEL_72D9_:
@@ -8157,7 +8215,7 @@ _LABEL_72D9_:
         ld   a, b
         ld   [$994B], a
         sub  $C0
-        ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+        ld   [_RAM_D03A_], a
         jr   _LABEL_72A0_
 
 _LABEL_72F0_:
@@ -8181,7 +8239,7 @@ _LABEL_7304_:
 
 _LABEL_7310_:
         ld   hl, _DATA_F45_
-        ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
+        ld   a, [_RAM_D03A_]
         dec  a
         jr   z, _LABEL_7322_
         ld   b, a
@@ -8248,7 +8306,7 @@ _LABEL_7377_:
         ld   a, b
         ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
         sla  a
-        ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+        ld   [_RAM_D03A_], a
         ldi  a, [hl]
         push hl
         ld   [_RAM_D07A_], a
@@ -8291,7 +8349,7 @@ _LABEL_73C5_:
         ld   a, $18
 _LABEL_73D1_:
         sla  a
-        call _LABEL_486E_
+        call add_a_to_hl__486E_
         ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
         and  a
         jr   nz, _LABEL_73DF_
@@ -8437,7 +8495,7 @@ _LABEL_74EF_:
         sla  a
         ld   [_RAM_D03A_], a
         ld   hl, $7980
-        call _LABEL_486E_
+        call add_a_to_hl__486E_
         call _LABEL_2A2_
         call _LABEL_77D3_
         ld   a, $01
@@ -8451,7 +8509,7 @@ _LABEL_750C_:
         ld   [_RAM_D07D_], a
         dec  a
         sla  a
-        call _LABEL_486E_
+        call add_a_to_hl__486E_
         ld   a, [_RAM_D07E_]
         add  $18
         ldi  [hl], a
@@ -8541,7 +8599,7 @@ _LABEL_75CF_:
         bit  7, a
         jr   nz, _LABEL_75E0_
         sla  a
-        call _LABEL_486E_
+        call add_a_to_hl__486E_
         jr   _LABEL_75E3_
 
 _LABEL_75E0_:
@@ -8651,7 +8709,7 @@ _LABEL_76A2_:
         ld   b, $14
         call _LABEL_481F_
         ld   a, $0C
-        call _LABEL_486E_
+        call add_a_to_hl__486E_
         dec  c
         jr   nz, _LABEL_76A2_
         ret
@@ -8821,7 +8879,7 @@ _LABEL_77C2_:
 _LABEL_77D3_:
         call _LABEL_77B0_
         ld   hl, _DATA_79B2_
-        ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
+        ld   a, [_RAM_D03A_]
         cp   $78
         jr   nz, _LABEL_77E4_
         call _LABEL_787C_

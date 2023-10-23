@@ -42,13 +42,18 @@ DEF SERIAL_STATUS_RESET           EQU $00
 DEF SERIAL_STATUS_DONE            EQU $01
 DEF SERIAL_STATUS_FAIL            EQU (SERIAL_STATUS_RESET)
 
-DEF SYS_CMD_RUN_CART_IN_SLOT      EQU $08
-DEF SYS_CMD_INIT_SEQ_NO_MATCH     EQU $04  ; TODO: What does this do and why?
-DEF SYS_CMD_INIT_SEQ_MATCH        EQU $01  ; TODO: What does this do and why?
 DEF SYS_CMD_INIT_SEQ_REQUEST      EQU $00  ; Value sent to request the 255..0 countdown sequence (be sent into the serial port)
+DEF SYS_CMD_READ_KEYS_MAYBE       EQU $00
+DEF SYS_CMD_DONE_OR_OK            EQU $01  ; TODO: What does this do and why?
+DEF SYS_CMD_ABORT_OR_FAIL         EQU $04  ; TODO: What does this do and why?
+DEF SYS_CMD_RUN_CART_IN_SLOT      EQU $08
+DEF SYS_CMD_INIT_UNKNOWN_0x09     EQU $09
 
+DEF SYS_REPLY_BOOT_OK             EQU $01  ; Reply on startup that allows rest of code to proceed
+DEF SYS_REPLY_READ_FAIL_MAYBE     EQU $00
+DEF SYS_REPLY_READ_CONTINUE_MAYBE EQU $00
+DEF SYS_REPLY__BIT_BOOT_FAIL      EQU 0
 DEF SYS_REPLY_NO_CART_IN_SLOT     EQU $06
-
 
 DEF SYS_KEY_UP                    EQU $3D
 DEF SYS_KEY_LEFT                  EQU $3E
@@ -67,8 +72,6 @@ DEF SYS_KEY_SELECT                EQU $2E  ; SELECT seems to be mapped to Enter 
 
 DEF SYS_KEY_MAYBE_INVALID_OR_NODATA    EQU $FF  ; TODO
 
-DEF SYS_REPLY_BOOT_OK             EQU $01  ; Reply on startup that allows rest of code to proceed
-DEF SYS_REPLY__BIT_BOOT_FAIL      EQU 0
 
 DEF TIMER_FLAG__BIT_TICKED        EQU 2    ; Set by timer interrupt, cleared by...
 
@@ -228,7 +231,7 @@ _RAM_D192_: db
 SECTION "wram_d193", WRAMX[$d193], BANK[$1]
 _RAM_D193_: db
 _RAM_D194_: db
-_RAM_D195_: db
+vbl_action_select__RAM_D195_: db
 _RAM_D196_: db
 _RAM_D197_: ds $5
 
@@ -260,7 +263,7 @@ SECTION "wram_d226", WRAMX[$d226], BANK[$1]
 _RAM_D226_: db
 
 SECTION "wram_d2e4", WRAMX[$d2e4], BANK[$1]
-_RAM_D2E4_: db
+serial_cmd_0x09_reply_data__RAM_D2E4_: db  ; Set during init, not sure it gets read anywhere
 
 SECTION "wram_d400", WRAMX[$D400]
 _RAM_D400_: db
