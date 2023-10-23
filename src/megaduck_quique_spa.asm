@@ -42,12 +42,18 @@ DEF SERIAL_STATUS_RESET           EQU $00
 DEF SERIAL_STATUS_DONE            EQU $01
 DEF SERIAL_STATUS_FAIL            EQU (SERIAL_STATUS_RESET)
 
+DEF INIT_KEY_1                    EQU $AA
+DEF INIT_KEY_2                    EQU $E4
+DEF INIT_KEY_3                    EQU $55
+DEF INIT_KEYS_DIDNT_MATCH_IN_RAM  EQU $AA
+
 DEF SYS_CMD_INIT_SEQ_REQUEST      EQU $00  ; Value sent to request the 255..0 countdown sequence (be sent into the serial port)
 DEF SYS_CMD_READ_KEYS_MAYBE       EQU $00
 DEF SYS_CMD_DONE_OR_OK            EQU $01  ; TODO: What does this do and why?
 DEF SYS_CMD_ABORT_OR_FAIL         EQU $04  ; TODO: What does this do and why?
 DEF SYS_CMD_RUN_CART_IN_SLOT      EQU $08
 DEF SYS_CMD_INIT_UNKNOWN_0x09     EQU $09
+DEF SYS_CMD_INIT_UNKNOWN_0x0B     EQU $0B
 
 DEF SYS_REPLY_BOOT_OK             EQU $01  ; Reply on startup that allows rest of code to proceed
 DEF SYS_REPLY_READ_FAIL_MAYBE     EQU $00
@@ -148,17 +154,19 @@ ds $18
 
 SECTION "wram_d020", WRAMX[$d020], BANK[$1]
 _RAM_D020_: db
-serial_link_rx_data__RAM_D021_: db
-serial_link_status__RAM_D022_: db
-serial_link_tx_data__RAM_D023_: db
+serial_rx_data__RAM_D021_: db
+serial_status__RAM_D022_: db
+serial_tx_data__RAM_D023_: db
 serial_system_status__RAM_D024_: db
 maybe_input_key_new_pressed__RAM_D025_: db  ; TODO: Looking like input keycode (gamepad/"mouse" input gets mapped to this too)
 _RAM_D026_: db
 maybe_input_second_rx_byte__RAM_D027_: db
-_RAM_D028_: ds $5
+_RAM_D028_: db
+_RAM_D029_: db
+_RAM_D02A_: ds $3
 _RAM_D02D_: ds $7
-_RAM_D034_: db
-_RAM_D035_: db
+serial_maybe_control_var__RAM_D034_: db
+serial_cmd_to_send__RAM_D035_: db
 _RAM_D036_: db
 _RAM_D037_: ds $3
 
@@ -321,9 +329,11 @@ _RAM_DAD0_: db
 
 SECTION "wram_dbfb", WRAMX[$DBFB]
 _RAM_DBFB_: db
-_RAM_DBFC_: db
-_RAM_DBFD_: db
-_RAM_DBFE_: db
+init_key_slot_1__RAM_DBFC_: db
+init_key_slot_2__RAM_DBFD_: db
+init_key_slot_3__RAM_DBFE_: db
+
+_RAM_DBFF_: db
 
 SECTION "wram_dcf0", WRAMX[$dcf0], BANK[$1]
 _RAM_DCF0_: db

@@ -186,114 +186,117 @@ timer_int_handler__00BB_:
 
 ; Serial IO ISR
 ;
-; - Stores serial data in:        serial_link_rx_data__RAM_D021_
-; - Sets transfer status done in: serial_link_status__RAM_D022_
+; - Stores serial data in:        serial_rx_data__RAM_D021_
+; - Sets transfer status done in: serial_status__RAM_D022_
 ; - Turns off the serial IO interrupt
 serial_int_handler__00CE_:
     push af
     ldh  a, [rSB]
-    ld   [serial_link_rx_data__RAM_D021_], a
+    ld   [serial_rx_data__RAM_D021_], a
     ld   a, SERIAL_STATUS_DONE ; $01
-    ld   [serial_link_status__RAM_D022_], a
+    ld   [serial_status__RAM_D022_], a
     call serial_int_disable__A2B_
     pop  af
     ret
 
 
 ; Data from DE to FE (33 bytes)
-ds 33, $00
+_DATA_00DE_:
+ds 34, $00
 
-; Data from FF to FF (1 bytes)
-_DATA_FF_:
-db $00
 
 _GB_ENTRY_POINT_100_:
     di
     xor  a
     ld   [vbl_action_select__RAM_D195_], a
 
+    ; Initialize Serially attached peripheral
     call serial_system_init_check__9CF_
     wait_serial_status_ok__108_:
         ld   a, [serial_system_status__RAM_D024_]
         bit  SYS_REPLY__BIT_BOOT_FAIL, a  ; 0, a
         jr   nz, wait_serial_status_ok__108_
 
+    ; TODO: Save response from some command
+    ; (so far not seen being used in 32K Bank 0)
     ld   a, SYS_CMD_INIT_UNKNOWN_0x09  ; $09  // TODO
-    ld   [serial_link_tx_data__RAM_D023_], a
+    ld   [serial_tx_data__RAM_D023_], a
     call serial_io_send_byte__B64_
     call serial_io_read_byte_no_timeout__B7D_
-    ld   a, [serial_link_rx_data__RAM_D021_]
+    ld   a, [serial_rx_data__RAM_D021_]
     ld   [serial_cmd_0x09_reply_data__RAM_D2E4_], a
 
-    ld   hl, _RAM_DBFC_ ; _RAM_DBFC_ = $DBFC
+    ; Check some kind of verification sequence in RAM
+    ld   hl, init_key_slot_1__RAM_DBFC_
     ldi  a, [hl]
-    cp   $AA
-    jr   nz, @ + 14
+    cp   INIT_KEY_1  ; $AA
+    jr   nz, init_keys_check_failed__0134_
     ldi  a, [hl]
-    cp   $E4
-    jr   nz, @ + 9
+    cp   INIT_KEY_2  ; $E4
+    jr   nz, init_keys_check_failed__0134_
     ldi  a, [hl]
-    cp   $55
-    jr   nz, @ + 4
-    jr   _LABEL_14E_
-    xor  a
-    ld   [_RAM_DBFB_], a    ; _RAM_DBFB_ = $DBFB
+    cp   INIT_KEY_3  ; $55
+    jr   nz, init_keys_check_failed__0134_
+    jr   init_keys_check_passed__014E_
 
-_LABEL_138_:
-    ld   a, $AA
-    ld   [_RAM_DBFC_], a
-    ld   a, $E4
-    ld   [_RAM_DBFD_], a
-    ld   a, $55
-    ld   [_RAM_DBFE_], a
-    ld   a, $AA
-    ld   [_RAM_D400_], a
-    jr   _LABEL_152_
+    init_keys_check_failed__0134_:
+        xor  a
+        ld   [_RAM_DBFB_], a    ; _RAM_DBFB_ = $DBFB
+        ld   a, INIT_KEY_1  ; $AA
+        ld   [init_key_slot_1__RAM_DBFC_], a
+        ld   a, INIT_KEY_2  ; $E4
+        ld   [init_key_slot_2__RAM_DBFD_], a
+        ld   a, INIT_KEY_3  ; $55
+        ld   [init_key_slot_3__RAM_DBFE_], a
+        ld   a, INIT_KEYS_DIDNT_MATCH_IN_RAM  ; $AA  ; TODO: needs more specific name
+        ld   [_RAM_D400_], a
+        jr   init_keys_check_done__152_
 
-_LABEL_14E_:
-    xor  a
-    ld   [_RAM_D400_], a    ; _RAM_D400_ = $D400
+    init_keys_check_passed__014E_:
+        xor  a
+        ld   [_RAM_D400_], a
 
-_LABEL_152_:
-    di
-    ld   sp, $C400
-    ; TODO: For now skip over this hardware init on GB
-    ; Might be related to the synthesized speech on first power + maybe keyboard, etc
-    if ((!def(TARGET_MEGADUCK)) && def(GB_DEBUG))
-        nop
-        nop
-        nop
-    else
-        call _LABEL_97A_
-    endc
-    call _vram_init__752_
+    init_keys_check_done__152_:
+        di
+        ld   sp, $C400
+        ; TODO: Eventually for GB may want to skip over a bunch of hardware init
+        ; Might be related to the synthesized speech on first power + maybe keyboard, etc
+        ; if ((!def(TARGET_MEGADUCK)) && def(GB_DEBUG))
+        ;    nop
+        ;    nop
+        ;    nop
+        ;else
+            call _LABEL_97A_
+        ;endc
+        call _vram_init__752_
 
-_LABEL_15C_:
-    ld   a, [_RAM_D400_]
-    cp   $AA
-    call z, _LABEL_25E_
-    call wait_until_vbl__92C_
-    call _LABEL_94C_
+    _LABEL_15C_:
+        ; Check result of previous init sequence test
+        ld   a, [_RAM_D400_]
+        cp   INIT_KEYS_DIDNT_MATCH_IN_RAM  ; $AA
+        call z, _LABEL_25E_
+        call wait_until_vbl__92C_
+        call _LABEL_94C_
 
-    ld   hl, $9000
-    ld   de, _DATA_11F2_
-    ld   bc, $0800
-    call _memcopy_in_RAM__C900_
+        ld   hl, $9000
+        ld   de, _DATA_11F2_
+        ld   bc, $0800
+        call _memcopy_in_RAM__C900_
 
-    call wait_until_vbl__92C_
-    call _LABEL_94C_
+        call wait_until_vbl__92C_
+        call _LABEL_94C_
 
-    ld   hl, $8800
-    ld   de, $2F2A
-    ld   bc, $0800
-    call _memcopy_in_RAM__C900_
+        ld   hl, $8800
+        ld   de, $2F2A
+        ld   bc, $0800
+        call _memcopy_in_RAM__C900_
 
-    xor  a
-    ld   [_RAM_D06C_], a    ; _RAM_D06C_ = $D06C
-    ld   a, $0C
-    ld   [_RAM_D06D_], a    ; _RAM_D06D_ = $D06D
-    call _LABEL_4A7B_
-    call _LABEL_56E_
+        xor  a
+        ld   [_RAM_D06C_], a    ; _RAM_D06C_ = $D06C
+        ld   a, $0C
+        ld   [_RAM_D06D_], a    ; _RAM_D06D_ = $D06D
+        call _LABEL_4A7B_
+        call _LABEL_56E_
 
 
 ; TODO: Starting here seems to be some kind of big if/else function call selector for whatever is in D06E
@@ -414,7 +417,7 @@ _LABEL_253_:
     jp   _LABEL_15C_
 
 _LABEL_25E_:
-    ld   hl, _RAM_D028_ ; _RAM_D028_ = $D028
+    ld   hl, _RAM_D028_
     ld   a, $94
     ldi  [hl], a
     ld   a, $01
@@ -428,17 +431,19 @@ _LABEL_25E_:
     ldi  [hl], a
     ldi  [hl], a
     ldi  [hl], a
-    ld   a, $0B
-    ld   [_RAM_D035_], a    ; _RAM_D035_ = $D035
+    ; TODO: This is very similar to code at _LABEL_59D5_
+    ld   a, SYS_CMD_INIT_UNKNOWN_0x0B ; $0B
+    ld   [serial_cmd_to_send__RAM_D035_], a
     ld   a, $08
-    ld   [_RAM_D034_], a    ; _RAM_D034_ = $D034
-_LABEL_27B_:
-    call _LABEL_A34_
-    ld   a, [maybe_input_key_new_pressed__RAM_D025_]
-    cp   $FC
-    ret  z
-    call timer_wait_tick_AND_TODO__289_
-    jr   _LABEL_27B_
+    ld   [serial_maybe_control_var__RAM_D034_], a
+    loop_wait_maybe_some_key__27B_:
+        call _LABEL_A34_
+        ld   a, [maybe_input_key_new_pressed__RAM_D025_]
+        cp   $FC
+        ret  z
+        call timer_wait_tick_AND_TODO__289_
+        jr   loop_wait_maybe_some_key__27B_
+
 
 ; Turn on interrupts and wait for a Timer tick
 ; - Maybe audio driver related
@@ -965,14 +970,14 @@ _window_scroll_up__5C3_:
 maybe_try_run_cart_from_slot__5E1_:
     ; TODO: Request booting from the cart slot?
     ld   a, SYS_CMD_RUN_CART_IN_SLOT ; $08
-    ld   [serial_link_tx_data__RAM_D023_], a
+    ld   [serial_tx_data__RAM_D023_], a
     call serial_io_send_byte__B64_
     call serial_io_wait_receive_with_timeout__B8F_  ; Result is in A. 0x01 if byte was received
     and  a
     ; Wait for a serial IO response byte
     jr   z, maybe_try_run_cart_from_slot__5E1_
 
-    ld   a, [serial_link_rx_data__RAM_D021_]
+    ld   a, [serial_rx_data__RAM_D021_]
     cp   SYS_REPLY_NO_CART_IN_SLOT ; $06  ; Indicates there was no cart in the slot to run
     jr   z, display_message__no_cart_in_slot_to_run__5F9
     ; TODO: If starting the cart slot succeeded then execute NOPs until the cart starts
@@ -1603,7 +1608,7 @@ serial_system_init_check__9CF_:
     ; Sending some kind of init(? TODO) count up sequence through the serial IO (0,1,2,3...255)
     ; Then wait for a response with no timeout
     loop_send_sequence__9D8_:
-        ld   [serial_link_tx_data__RAM_D023_], a
+        ld   [serial_tx_data__RAM_D023_], a
         call serial_io_send_byte__B64_
         inc  a
         jr   nz, loop_send_sequence__9D8_
@@ -1617,7 +1622,7 @@ serial_system_init_check__9CF_:
     ; Send a "0" byte (SYS_CMD_INIT_SEQ_REQUEST)
     ; That maybe requests a 255..0 countdown sequence (be sent into the serial IO)
     xor  a
-    ld   [serial_link_tx_data__RAM_D023_], a
+    ld   [serial_tx_data__RAM_D023_], a
     call serial_io_send_byte__B64_
 
     ; ? Expects a reply sequence through the serial IO of (255,254...0) ?
@@ -1643,7 +1648,7 @@ serial_system_init_check__9CF_:
         ld   a, SYS_CMD_ABORT_OR_FAIL  ; $04  ; TODO: THis gets sent if the startup sequence didn't match... but what is it?
 
     send_response_to_sequence__A10_:
-        ld   [serial_link_tx_data__RAM_D023_], a
+        ld   [serial_tx_data__RAM_D023_], a
         call serial_io_send_byte__B64_
         ret
 
@@ -1684,98 +1689,107 @@ serial_int_disable__A2B_:
     ret
 
 
-; Turns on Serial IO interrupt
+; TODO: Requests something over serial and handles responses
+; - Turns on Serial IO interrupt
 _LABEL_A34_:
     ldh  a, [rIE]
     ld   [_rIE_saved_serial__RAM_D078_], a
     ld   a, IEF_SERIAL ; $08
     ldh  [rIE], a
 
-    ld   a, [_RAM_D034_]    ; _RAM_D034_ = $D034
+    ld   a, [serial_maybe_control_var__RAM_D034_]  ; Some kind of control or counter
     cp   $0D
     jr   c, _LABEL_A46_
-    jr   _LABEL_A5B_
+    jr   maybe_fail_and_return_value_FD___A5B_
 
-_LABEL_A46_:
-    ld   a, [_RAM_D035_]    ; _RAM_D035_ = $D035
-    ld   [serial_link_tx_data__RAM_D023_], a
-    call serial_io_send_byte__B64_
-    call delay_quarter_msec__BD6_
-    call delay_quarter_msec__BD6_
-    call serial_io_wait_receive_w_timeout_50msec__B8F_
-    and  a
-    jr   nz, _LABEL_A63_
-_LABEL_A5B_:
-    ld   a, $FD
-    ld   [maybe_input_key_new_pressed__RAM_D025_], a
-    jp   _LABEL_AE9_
+    _LABEL_A46_:
+        ld   a, [serial_cmd_to_send__RAM_D035_]
+        ld   [serial_tx_data__RAM_D023_], a
+        call serial_io_send_byte__B64_
+        call delay_quarter_msec__BD6_
+        call delay_quarter_msec__BD6_
+        call serial_io_wait_receive_w_timeout_50msec__B8F_
+        and  a
+        jr   nz, _LABEL_A63_
 
-_LABEL_A63_:
-    ld   a, [serial_link_rx_data__RAM_D021_]
-    cp   $06
-    jp   z, _LABEL_AE4_
-    cp   $03
-    jp   nz, _LABEL_A5B_
-    ld   a, [_RAM_D034_]    ; _RAM_D034_ = $D034
-    ld   b, a
-    add  $02
-    ld   [serial_link_tx_data__RAM_D023_], a
-    ld   [_RAM_D026_], a
-    call delay_quarter_msec__BD6_
-    call serial_io_send_byte__B64_
-    call delay_quarter_msec__BD6_
-    call delay_quarter_msec__BD6_
-    ld   hl, _RAM_D028_ ; _RAM_D028_ = $D028
-_LABEL_A8B_:
-    ldi  a, [hl]
-    ld   [serial_link_tx_data__RAM_D023_], a
-    ld   c, a
-    ld   a, [_RAM_D026_]
-    add  c
-    ld   [_RAM_D026_], a
-    call serial_io_wait_receive_w_timeout_50msec__B8F_
-    and  a
-    jr   z, _LABEL_A5B_
-    ld   a, [serial_link_rx_data__RAM_D021_]
-    cp   $06
-    jp   z, _LABEL_AE4_
-    cp   $03
-    jp   nz, _LABEL_A5B_
-    call serial_io_send_byte__B64_
-    dec  b
-    jr   nz, _LABEL_A8B_
-    call serial_io_wait_receive_w_timeout_50msec__B8F_
-    and  a
-    jr   z, _LABEL_A5B_
-    ld   a, [serial_link_rx_data__RAM_D021_]
-    cp   $06
-    jp   z, _LABEL_AE4_
-    cp   $03
-    jp   nz, _LABEL_A5B_
-    ld   hl, _RAM_D026_
-    xor  a
-    sub  [hl]
-    ld   [serial_link_tx_data__RAM_D023_], a
-    call serial_io_send_byte__B64_
-    call serial_io_wait_receive_w_timeout_50msec__B8F_
-    and  a
-    jp   z, _LABEL_A5B_
-    ld   a, [serial_link_rx_data__RAM_D021_]
-    cp   $01
-    jp   nz, _LABEL_A5B_
-    call serial_io_wait_receive_w_timeout_50msec__B8F_
-    ld   a, $FC
-    jr   _LABEL_AE6_
+    ; TODO: seems like some kind of failure handler
+    maybe_fail_and_return_value_FD___A5B_:
+        ld   a, $FD
+        ld   [maybe_input_key_new_pressed__RAM_D025_], a
+        jp   done__AE9_
 
-_LABEL_AE4_:
-    ld   a, $FB
-_LABEL_AE6_:
-    ld   [maybe_input_key_new_pressed__RAM_D025_], a
-_LABEL_AE9_:
-    ; Restore previous interrupt enable state
-    ld   a, [_rIE_saved_serial__RAM_D078_]
-    ldh  [rIE], a
-    ret
+    _LABEL_A63_:
+        ld   a, [serial_rx_data__RAM_D021_]
+        cp   $06
+        jp   z, _LABEL_AE4_
+        cp   $03
+        jp   nz, maybe_fail_and_return_value_FD___A5B_
+        ld   a, [serial_maybe_control_var__RAM_D034_]
+        ld   b, a
+        add  $02
+        ld   [serial_tx_data__RAM_D023_], a
+        ld   [_RAM_D026_], a
+        call delay_quarter_msec__BD6_
+        call serial_io_send_byte__B64_
+        call delay_quarter_msec__BD6_
+        call delay_quarter_msec__BD6_
+
+        ld   hl, _RAM_D028_
+        loop_continue_sending__A8B_:
+            ldi  a, [hl]
+            ld   [serial_tx_data__RAM_D023_], a
+            ld   c, a
+            ld   a, [_RAM_D026_]
+            add  c
+            ld   [_RAM_D026_], a
+            call serial_io_wait_receive_w_timeout_50msec__B8F_
+            ;
+            and  a
+            jr   z, maybe_fail_and_return_value_FD___A5B_
+            ;
+            ld   a, [serial_rx_data__RAM_D021_]
+            cp   $06
+            jp   z, _LABEL_AE4_
+            ;
+            cp   $03
+            jp   nz, maybe_fail_and_return_value_FD___A5B_
+            call serial_io_send_byte__B64_
+            dec  b
+            jr   nz, loop_continue_sending__A8B_
+
+        call serial_io_wait_receive_w_timeout_50msec__B8F_
+        and  a
+        jr   z, maybe_fail_and_return_value_FD___A5B_
+        ld   a, [serial_rx_data__RAM_D021_]
+        cp   $06
+        jp   z, _LABEL_AE4_
+        cp   $03
+        jp   nz, maybe_fail_and_return_value_FD___A5B_
+        ld   hl, _RAM_D026_
+        xor  a
+        sub  [hl]
+        ld   [serial_tx_data__RAM_D023_], a
+        call serial_io_send_byte__B64_
+        call serial_io_wait_receive_w_timeout_50msec__B8F_
+        and  a
+        jp   z, maybe_fail_and_return_value_FD___A5B_
+        ld   a, [serial_rx_data__RAM_D021_]
+        cp   $01
+        jp   nz, maybe_fail_and_return_value_FD___A5B_
+        call serial_io_wait_receive_w_timeout_50msec__B8F_
+        ld   a, $FC
+        jr   _LABEL_AE6_
+
+    _LABEL_AE4_:
+        ld   a, $FB
+    _LABEL_AE6_:
+        ld   [maybe_input_key_new_pressed__RAM_D025_], a
+    done__AE9_:
+        ; Restore previous interrupt enable state
+        ld   a, [_rIE_saved_serial__RAM_D078_]
+        ldh  [rIE], a
+        ret
+
 
 _LABEL_AEF_:
     ldh  a, [rIE]
@@ -1785,12 +1799,12 @@ _LABEL_AEF_:
     ld   d, $00
     call delay_quarter_msec__BD6_
     ld   a, [_RAM_D036_]    ; _RAM_D036_ = $D036
-    ld   [serial_link_tx_data__RAM_D023_], a
+    ld   [serial_tx_data__RAM_D023_], a
     call serial_io_send_byte__B64_
     call serial_io_wait_receive_w_timeout_50msec__B8F_
     and  a
     jr   z, _LABEL_B13_
-    ld   a, [serial_link_rx_data__RAM_D021_]
+    ld   a, [serial_rx_data__RAM_D021_]
     cp   $0E
     jr   c, _LABEL_B1C_
 _LABEL_B13_:
@@ -1803,16 +1817,16 @@ _LABEL_B1C_:
     ld   [_RAM_D026_], a
     dec  a
     dec  a
-    ld   [_RAM_D034_], a    ; _RAM_D034_ = $D034
+    ld   [serial_maybe_control_var__RAM_D034_], a
     ld   b, a
-    ld   hl, _RAM_D028_ ; _RAM_D028_ = $D028
+    ld   hl, _RAM_D028_
 _LABEL_B28_:
     push hl
     call serial_io_wait_receive_with_timeout__B8F_
     and  a
     pop  hl
     jr   z, _LABEL_B13_
-    ld   a, [serial_link_rx_data__RAM_D021_]
+    ld   a, [serial_rx_data__RAM_D021_]
     ldi  [hl], a
     ld   c, a
     ld   a, [_RAM_D026_]
@@ -1824,7 +1838,7 @@ _LABEL_B28_:
     and  a
     jr   z, _LABEL_B13_
     call delay_quarter_msec__BD6_
-    ld   a, [serial_link_rx_data__RAM_D021_]
+    ld   a, [serial_rx_data__RAM_D021_]
     ld   hl, _RAM_D026_
     add  [hl]
     jr   nz, _LABEL_B13_
@@ -1832,14 +1846,14 @@ _LABEL_B28_:
     ld   [maybe_input_key_new_pressed__RAM_D025_], a
     ld   a, $01
 _LABEL_B58_:
-    ld   [serial_link_tx_data__RAM_D023_], a
+    ld   [serial_tx_data__RAM_D023_], a
     call serial_io_send_byte__B64_
     ld   a, [_rIE_saved_serial__RAM_D078_]
     ldh  [rIE], a
     ret
 
 
-; Sends the byte in serial_link_tx_data__RAM_D023_ out through serial (or special?) IO
+; Sends the byte in serial_tx_data__RAM_D023_ out through serial (or special?) IO
 ;
 ; - Called from "run cart from slot"
 ; - Possibly called from keyboard input polling
@@ -1856,7 +1870,7 @@ serial_io_send_byte__B64_:
     ld   a, (SERIAL_XFER_ENABLE | SERIAL_CLOCK_INT) ; $81
     ldh  [rSC], a
 
-    ld   a, [serial_link_tx_data__RAM_D023_]
+    ld   a, [serial_tx_data__RAM_D023_]
     ldh  [rSB], a
     call delay_quarter_msec__BD6_
 
@@ -1873,14 +1887,14 @@ serial_io_send_byte__B64_:
 ; - Returns received serial byte in: A
 serial_io_read_byte_no_timeout__B7D_:
     ld   a, SERIAL_STATUS_RESET ; $00
-    ld   [serial_link_status__RAM_D022_], a
+    ld   [serial_status__RAM_D022_], a
     call serial_io_enable_receive_byte__A17_
 
     loop_wait_reply__B85_:
-        ld   a, [serial_link_status__RAM_D022_]
+        ld   a, [serial_status__RAM_D022_]
         and  a
         jr   z, loop_wait_reply__B85_
-        ld   a, [serial_link_rx_data__RAM_D021_]
+        ld   a, [serial_rx_data__RAM_D021_]
         ret
 
 
@@ -1889,10 +1903,10 @@ serial_io_read_byte_no_timeout__B7D_:
 ; - Returns serial transfer success(0x01)/failure(0x00) in: A
 serial_io_wait_receive_with_timeout__B8F_:
     ld   a, SERIAL_STATUS_RESET ; $00
-    ld   [serial_link_status__RAM_D022_], a
+    ld   [serial_status__RAM_D022_], a
     call serial_io_enable_receive_byte__A17_
     call serial_io_wait_for_transfer_w_timeout_25msec__BC5_
-    ld   a, [serial_link_status__RAM_D022_]
+    ld   a, [serial_status__RAM_D022_]
     ret
 
 
@@ -1902,19 +1916,19 @@ serial_io_wait_receive_with_timeout__B8F_:
 serial_io_wait_receive_w_timeout_50msec__B8F_:
     push bc
     ld   a, SERIAL_STATUS_RESET ; $00
-    ld   [serial_link_status__RAM_D022_], a
+    ld   [serial_status__RAM_D022_], a
     call serial_io_enable_receive_byte__A17_
 
     ld   b, $02
     loop_wait_reply__BA9_:
         call serial_io_wait_for_transfer_w_timeout_25msec__BC5_
-        ld   a, [serial_link_status__RAM_D022_]
+        ld   a, [serial_status__RAM_D022_]
         and  a
         jr   nz, serial_done__BB8_
         dec  b
         jr   nz, loop_wait_reply__BA9_
 
-        ld   a, [serial_link_status__RAM_D022_]
+        ld   a, [serial_status__RAM_D022_]
     serial_done__BB8_:
         pop  bc
         ret
@@ -1939,7 +1953,7 @@ serial_io_wait_for_transfer_w_timeout_25msec__BC5_:
     ld   b, $64
     loop_wait_reply__BC8_:
         call delay_quarter_msec__BD6_
-        ld   a, [serial_link_status__RAM_D022_]
+        ld   a, [serial_status__RAM_D022_]
         and  a
         jr   nz, serial_done__BD4_
         dec  b
@@ -1959,7 +1973,7 @@ delay_quarter_msec__BD6_:
     ld   a, $46
     _loop_delay_BD9_:
         push af
-        ld   a, [serial_link_tx_data__RAM_D023_] ; Why? A useless read? Or is something else going on
+        ld   a, [serial_tx_data__RAM_D023_] ; Why? A useless read? Or is something else going on
         pop  af
         dec  a
         jr   nz, _loop_delay_BD9_
@@ -1990,7 +2004,7 @@ maybe_input_read_keys__C8D_:
     ldh  [rIE], a
     ; TODO ... ? Make a request for ??
     ld   a, SYS_CMD_READ_KEYS_MAYBE ; $00  ; ? Same or different as SYS_CMD_INIT_SEQ_REQUEST ?
-    ld   [serial_link_tx_data__RAM_D023_], a
+    ld   [serial_tx_data__RAM_D023_], a
     call serial_io_send_byte__B64_
     call serial_io_wait_receive_with_timeout__B8F_
 
@@ -1998,7 +2012,7 @@ maybe_input_read_keys__C8D_:
     and  a
     jr   z, maybe_input_req_key_failed_so_send04__CB9_
     ; Fail if RX byte was zero
-    ld   a, [serial_link_rx_data__RAM_D021_]
+    ld   a, [serial_rx_data__RAM_D021_]
     cp   SYS_REPLY_READ_FAIL_MAYBE ; $00
     jr   z, maybe_input_req_key_failed_so_send04__CB9_
     ; TODO ...
@@ -2017,7 +2031,7 @@ maybe_input_read_keys__C8D_:
         ld   a, SYS_KEY_MAYBE_INVALID_OR_NODATA  ; $FF
         ld   [maybe_input_key_new_pressed__RAM_D025_], a
         ld   a, SYS_CMD_ABORT_OR_FAIL  ; $04 ; TODO: Maybe a failed/reset/cancel input system command SYS_CMD
-        ld   [serial_link_tx_data__RAM_D023_], a
+        ld   [serial_tx_data__RAM_D023_], a
         call serial_io_send_byte__B64_
         jr   restore_int_enables_call_TODO_and_return__D06_
 
@@ -2027,7 +2041,7 @@ maybe_input_read_keys__C8D_:
         ; Save RX input byte #2
         ; Also add and save it to _RAM_D026_
         ; - (Code above loaded $0E into _RAM_D026_)
-        ld   a, [serial_link_rx_data__RAM_D021_]
+        ld   a, [serial_rx_data__RAM_D021_]
         ld   [maybe_input_second_rx_byte__RAM_D027_], a
         ld   hl, _RAM_D026_
         add  [hl]
@@ -2038,7 +2052,7 @@ maybe_input_read_keys__C8D_:
         call serial_io_wait_receive_with_timeout__B8F_
         and  a
         jr   z, maybe_input_req_key_failed_so_send04__CB9_
-        ld   a, [serial_link_rx_data__RAM_D021_]
+        ld   a, [serial_rx_data__RAM_D021_]
         ld   [maybe_input_key_new_pressed__RAM_D025_], a
         ld   hl, _RAM_D026_
         add  [hl]
@@ -2048,14 +2062,14 @@ maybe_input_read_keys__C8D_:
         call serial_io_wait_receive_with_timeout__B8F_
         and  a
         jr   z, maybe_input_req_key_failed_so_send04__CB9_
-        ld   a, [serial_link_rx_data__RAM_D021_]
+        ld   a, [serial_rx_data__RAM_D021_]
         ld   hl, _RAM_D026_
         add  [hl]
         jr   nz, maybe_input_req_key_failed_so_send04__CB9_
 
         ; TODO: Send a command byte. Something like DONE or ACK for a SYS_CMD?
         ld   a, SYS_CMD_DONE_OR_OK ; $01
-        ld   [serial_link_tx_data__RAM_D023_], a
+        ld   [serial_tx_data__RAM_D023_], a
         call serial_io_send_byte__B64_
         call _LABEL_D0F_
         ld   a, [maybe_input_key_new_pressed__RAM_D025_]
@@ -3643,8 +3657,7 @@ copy_b_x_tile_patterns_from_de_to_hl__48B7_:
 ; - Tiles to copy: A (16 bytes)
 ; - Source address: DE + (B x 16)
 ; - Dest   address: HL + (C x 16)
-; copy_a_x_tile_patterns_from_de_add_bx16_to_hl_add_cx16__48CD_
-_LABEL_48CD_:
+copy_a_x_tile_patterns_from_de_add_bx16_to_hl_add_cx16__48CD_:
     ; Calculate (original) DE + (B x 16) -> HL
     ; Move (original HL) -> DE
     push af
@@ -3745,6 +3758,7 @@ calc_vram_addr_of_tile_xy_base_in_hl__4932_:
     add  hl, de
     ret
 
+; TODO: Probably render some text at DE to X,y (H,L) to ...
 _LABEL_4944_:
     ld   a, h
     ld   [_tilemap_pos_x__RAM_C8CB_], a
@@ -3780,7 +3794,7 @@ _LABEL_4973_:
     ld   de, $372A
     ld   a, $01
 _LABEL_4978_:
-    call _LABEL_48CD_
+    call copy_a_x_tile_patterns_from_de_add_bx16_to_hl_add_cx16__48CD_
     pop  de
     pop  bc
     inc  c
@@ -4446,7 +4460,7 @@ _LABEL_4D6F_:
     set  2, a
     ld   [_RAM_DBFB_], a    ; _RAM_DBFB_ = $DBFB
     xor  a
-    ld   [_RAM_DBFE_ + 1], a    ; _RAM_DBFE_ + 1 = $DBFF
+    ld   [_RAM_DBFF_], a    ; _RAM_DBFF_ = $DBFF
 _LABEL_4D7F_:
     xor  a
     ld   [_RAM_D05D_], a    ; _RAM_D05D_ = $D05D
@@ -4473,7 +4487,7 @@ _LABEL_4D94_:
     ld   de, $27FA
     ld   bc, _wait_loop__703_ - 3   ; _wait_loop__703_ - 3 = $0800
     call _memcopy_in_RAM__C900_ ; Possibly invalid
-    ld   hl, _RAM_D028_ ; _RAM_D028_ = $D028
+    ld   hl, _RAM_D028_
     ld   de, _RAM_D074_ + 1 ; _RAM_D074_ + 1 = $D075
     ld   b, $03
     call _LABEL_482B_
@@ -4497,7 +4511,7 @@ _LABEL_4DE9_:
     ld   b, $10
     dec  c
     jr   nz, _LABEL_4DE9_
-    ld   a, [_RAM_D028_ + 1]    ; _RAM_D028_ + 1 = $D029
+    ld   a, [_RAM_D029_]    ; _RAM_D029_ = $D029
     bit  4, a
     jr   z, _LABEL_4DFF_
     sub  $06
@@ -4526,7 +4540,7 @@ _LABEL_4E10_:
     dec  b
     jr   nz, _LABEL_4E10_
     ld   hl, $9830
-    ld   a, [_RAM_D028_]    ; _RAM_D028_ = $D028
+    ld   a, [_RAM_D028_]
     and  $F0
     cp   $90
     jr   nz, _LABEL_4E3E_
@@ -4550,7 +4564,7 @@ _LABEL_4E48_:
     ld   a, $02
     ld   [_tilemap_pos_y__RAM_C8CA_], a
     ld   c, $01
-    ld   hl, _RAM_D028_ ; _RAM_D028_ = $D028
+    ld   hl, _RAM_D028_
     call _LABEL_5401_
     ld   hl, $9880
     ld   b, $07
@@ -4566,9 +4580,9 @@ _LABEL_4E69_:
     inc  hl
     dec  b
     jr   nz, _LABEL_4E69_
-    ld   a, [_RAM_D028_]    ; _RAM_D028_ = $D028
+    ld   a, [_RAM_D028_]
     ld   [_RAM_D051_], a    ; _RAM_D051_ = $D051
-    ld   a, [_RAM_D028_ + 1]    ; _RAM_D028_ + 1 = $D029
+    ld   a, [_RAM_D029_]    ; _RAM_D029_ = $D029
     ld   [_RAM_D052_], a    ; _RAM_D052_ = $D052
     ld   a, $01
     ld   [_RAM_D053_], a    ; _RAM_D053_ = $D053
@@ -4707,7 +4721,7 @@ _LABEL_4F95_:
     call timer_wait_tick_AND_TODO__289_
     call maybe_input_read_keys__C8D_
     ld   a, [_RAM_D074_ + 1]    ; _RAM_D074_ + 1 = $D075
-    ld   hl, _RAM_D028_ ; _RAM_D028_ = $D028
+    ld   hl, _RAM_D028_
     cp   [hl]
     jr   nz, _LABEL_4FAE_
     ld   a, [_RAM_D074_ + 2]    ; _RAM_D074_ + 2 = $D076
@@ -4725,9 +4739,9 @@ _LABEL_4FAE_:
     push af
     ld   a, [_RAM_D074_ + 3]    ; _RAM_D074_ + 3 = $D077
     push af
-    ld   a, [_RAM_D028_]    ; _RAM_D028_ = $D028
+    ld   a, [_RAM_D028_]
     push af
-    ld   a, [_RAM_D028_ + 1]    ; _RAM_D028_ + 1 = $D029
+    ld   a, [_RAM_D029_]    ; _RAM_D029_ = $D029
     push af
     ld   a, [_RAM_D028_ + 2]    ; _RAM_D028_ + 2 = $D02A
     push af
@@ -4736,9 +4750,9 @@ _LABEL_4FAE_:
     pop  af
     ld   [_RAM_D028_ + 2], a    ; _RAM_D028_ + 2 = $D02A
     pop  af
-    ld   [_RAM_D028_ + 1], a    ; _RAM_D028_ + 1 = $D029
+    ld   [_RAM_D029_], a    ; _RAM_D029_ = $D029
     pop  af
-    ld   [_RAM_D028_], a    ; _RAM_D028_ = $D028
+    ld   [_RAM_D028_], a
     pop  af
     ld   [_RAM_D074_ + 3], a    ; _RAM_D074_ + 3 = $D077
     pop  af
@@ -4988,9 +5002,9 @@ _LABEL_51E4_:
     ld   a, e
     cp   $FD
     jr   nz, _LABEL_51E4_
-    ld   a, [_RAM_DBFE_ + 1]    ; _RAM_DBFE_ + 1 = $DBFF
+    ld   a, [_RAM_DBFF_]    ; _RAM_DBFF_ = $DBFF
     dec  a
-    ld   [_RAM_DBFE_ + 1], a    ; _RAM_DBFE_ + 1 = $DBFF
+    ld   [_RAM_DBFF_], a    ; _RAM_DBFF_ = $DBFF
     call _LABEL_535C_
     ld   hl, _RAM_D053_ ; _RAM_D053_ = $D053
     ld   c, $02
@@ -5000,11 +5014,11 @@ _LABEL_51E4_:
     jp   _LABEL_4F95_
 
 _LABEL_5206_:
-    ld   a, [_RAM_DBFE_ + 1]    ; _RAM_DBFE_ + 1 = $DBFF
+    ld   a, [_RAM_DBFF_]    ; _RAM_DBFF_ = $DBFF
     cp   $1E
     jp   nc, _LABEL_4F95_
     inc  a
-    ld   [_RAM_DBFE_ + 1], a    ; _RAM_DBFE_ + 1 = $DBFF
+    ld   [_RAM_DBFF_], a    ; _RAM_DBFF_ = $DBFF
     ld   de, _RAM_D051_ ; _RAM_D051_ = $D051
     ld   b, $03
 _LABEL_5217_:
@@ -5020,11 +5034,11 @@ _LABEL_5217_:
     jp   _LABEL_4F95_
 
 _LABEL_522B_:
-    ld   hl, _RAM_D028_ + 1 ; _RAM_D028_ + 1 = $D029
+    ld   hl, _RAM_D029_ ; _RAM_D029_ = $D029
     call _LABEL_5B03_
     dec  a
     jr   nz, _LABEL_525D_
-    ld   hl, _RAM_D028_ ; _RAM_D028_ = $D028
+    ld   hl, _RAM_D028_
     call _LABEL_5B03_
     cp   $0C
     jr   nc, _LABEL_5240_
@@ -5034,9 +5048,9 @@ _LABEL_5240_:
     cp   $5C
     jp   c, _LABEL_4F95_
     call _LABEL_5379_
-    ld   [_RAM_D028_], a    ; _RAM_D028_ = $D028
+    ld   [_RAM_D028_], a
     ld   a, $12
-    ld   [_RAM_D028_ + 1], a    ; _RAM_D028_ + 1 = $D029
+    ld   [_RAM_D029_], a    ; _RAM_D029_ = $D029
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call oam_free_slot_and_clear__89B_
@@ -5044,19 +5058,19 @@ _LABEL_5240_:
 
 _LABEL_525D_:
     call _LABEL_5379_
-    ld   [_RAM_D028_ + 1], a    ; _RAM_D028_ + 1 = $D029
+    ld   [_RAM_D029_], a    ; _RAM_D029_ = $D029
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call oam_free_slot_and_clear__89B_
     jp   _LABEL_4DCD_
 
 _LABEL_526F_:
-    ld   hl, _RAM_D028_ + 1 ; _RAM_D028_ + 1 = $D029
+    ld   hl, _RAM_D029_ ; _RAM_D029_ = $D029
     call _LABEL_5B03_
     inc  a
     cp   $0D
     jr   c, _LABEL_52A3_
-    ld   hl, _RAM_D028_ ; _RAM_D028_ = $D028
+    ld   hl, _RAM_D028_
     call _LABEL_5B03_
     cp   $0C
     jr   nc, _LABEL_5286_
@@ -5066,9 +5080,9 @@ _LABEL_5286_:
     cp   $70
     jp   z, _LABEL_4F95_
     call _LABEL_5379_
-    ld   [_RAM_D028_], a    ; _RAM_D028_ = $D028
+    ld   [_RAM_D028_], a
     ld   a, $01
-    ld   [_RAM_D028_ + 1], a    ; _RAM_D028_ + 1 = $D029
+    ld   [_RAM_D029_], a    ; _RAM_D029_ = $D029
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call oam_free_slot_and_clear__89B_
@@ -5076,7 +5090,7 @@ _LABEL_5286_:
 
 _LABEL_52A3_:
     call _LABEL_5379_
-    ld   [_RAM_D028_ + 1], a    ; _RAM_D028_ + 1 = $D029
+    ld   [_RAM_D029_], a    ; _RAM_D029_ = $D029
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call oam_free_slot_and_clear__89B_
@@ -5090,7 +5104,7 @@ _LABEL_52B5_:
 
 _LABEL_52BF_:
     ld   a, [_RAM_D074_ + 1]    ; _RAM_D074_ + 1 = $D075
-    ld   hl, _RAM_D028_ ; _RAM_D028_ = $D028
+    ld   hl, _RAM_D028_
     cp   [hl]
     jr   nz, _LABEL_52D7_
     ld   a, [_RAM_D074_ + 2]    ; _RAM_D074_ + 2 = $D076
@@ -5107,9 +5121,9 @@ _LABEL_52D7_:
     pop  af
     ld   [_RAM_D028_ + 3], a    ; _RAM_D028_ + 3 = $D02B
     ld   a, [_RAM_D074_ + 1]    ; _RAM_D074_ + 1 = $D075
-    ld   [_RAM_D028_], a    ; _RAM_D028_ = $D028
+    ld   [_RAM_D028_], a
     ld   a, [_RAM_D074_ + 2]    ; _RAM_D074_ + 2 = $D076
-    ld   [_RAM_D028_ + 1], a    ; _RAM_D028_ + 1 = $D029
+    ld   [_RAM_D029_], a    ; _RAM_D029_ = $D029
     ld   a, [_RAM_D074_ + 3]    ; _RAM_D074_ + 3 = $D077
     ld   [_RAM_D028_ + 2], a    ; _RAM_D028_ + 2 = $D02A
     ret
@@ -5149,7 +5163,7 @@ _LABEL_532F_:
     ld   a, [_RAM_D054_]    ; _RAM_D054_ = $D054
     cp   $06
     jr   z, _LABEL_5359_
-    ld   a, [_RAM_DBFE_ + 1]    ; _RAM_DBFE_ + 1 = $DBFF
+    ld   a, [_RAM_DBFF_]    ; _RAM_DBFF_ = $DBFF
     and  a
     jr   z, _LABEL_5357_
     ld   b, a
@@ -5406,12 +5420,12 @@ _LABEL_54BC_:
     ld   bc, $0000
     ld   hl, $9000
     ld   a, $80
-    call _LABEL_48CD_
+    call copy_a_x_tile_patterns_from_de_add_bx16_to_hl_add_cx16__48CD_
     ld   de, $1BFA
     ld   bc, $0000
     ld   hl, $8000
     ld   a, $80
-    call _LABEL_48CD_
+    call copy_a_x_tile_patterns_from_de_add_bx16_to_hl_add_cx16__48CD_
     call wait_until_vbl__92C_
     call _LABEL_94C_
     ld   a, $00
@@ -5468,7 +5482,7 @@ _LABEL_5549_:
     xor  a
     ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
     ld   a, $0C
-    ld   [_RAM_D035_ + 1], a    ; _RAM_D035_ + 1 = $D036
+    ld   [_RAM_D036_], a    ; _RAM_D036_ = $D036
     call _LABEL_AEF_
     ld   a, [maybe_input_key_new_pressed__RAM_D025_]
     cp   $F9
@@ -5827,8 +5841,8 @@ _LABEL_57D5_:
     ld   bc, $0000
     ld   hl, $8800
     ld   a, $80
-    call _LABEL_48CD_
-    
+    call copy_a_x_tile_patterns_from_de_add_bx16_to_hl_add_cx16__48CD_
+
     ld   hl, _TILEMAP0; $9800
     loop_clear_tilemap_9800__57F9_:
         xor  a
@@ -5836,6 +5850,7 @@ _LABEL_57D5_:
         ld   a, h
         cp   HIGH(_TILEMAP1) ; $9C
         jr   nz, loop_clear_tilemap_9800__57F9_
+
     xor  a
     ld   [_RAM_D069_], a
     ld   de, rom_str__PUESTA_EN_HORA__5DD2_
@@ -6070,10 +6085,10 @@ _LABEL_59B7_:
     di
     ld   b, $08
     ld   hl, _RAM_D051_
-    ld   de, _RAM_D028_ ; _RAM_D028_ = $D028
+    ld   de, _RAM_D028_
     call _LABEL_482B_
     ld   a, $0B
-    ld   [_RAM_D035_], a    ; _RAM_D035_ = $D035
+    ld   [serial_cmd_to_send__RAM_D035_], a
 _LABEL_59D5_:
     call _LABEL_A34_
     ld   a, [maybe_input_key_new_pressed__RAM_D025_]
@@ -6597,7 +6612,7 @@ _LABEL_5D3E_:
 _LABEL_5D50_:
     call _LABEL_5D3E_
     ld   b, $08
-    ld   hl, _RAM_D028_ ; _RAM_D028_ = $D028
+    ld   hl, _RAM_D028_
     ld   de, _RAM_D051_
     call _LABEL_482B_
     ret
@@ -6607,7 +6622,7 @@ _LABEL_5D5F_:
     xor  a
     ld   [_RAM_D03A_], a
     ld   b, $08
-    ld   hl, _RAM_D028_ ; _RAM_D028_ = $D028
+    ld   hl, _RAM_D028_
     ld   de, _RAM_D051_
 _LABEL_5D6E_:
     ld   a, [de]
@@ -6696,7 +6711,7 @@ _LABEL_5E61_:
     ld   hl, $8800
     ld   c, $7B
     ld   a, $01
-    call _LABEL_48CD_
+    call copy_a_x_tile_patterns_from_de_add_bx16_to_hl_add_cx16__48CD_
     call _LABEL_60F3_
     call _display_bg_sprites_on__627_
     xor  a
@@ -7322,7 +7337,7 @@ _LABEL_6369_:
     ld   bc, $0000
     ld   hl, $8C40
     ld   a, $1E
-    call _LABEL_48CD_
+    call copy_a_x_tile_patterns_from_de_add_bx16_to_hl_add_cx16__48CD_
     call wait_until_vbl__92C_
     call _LABEL_94C_
     ld   a, $FF
@@ -7907,7 +7922,7 @@ _LABEL_6F87_:
 ; Data from 6F97 to 6F9F (9 bytes)
 db $FA, $4B, $D0, $EA, $CC, $C8, $CD, $53, $09
 
-; TODO - might be for a special direct pixel drawing mode 
+; TODO - might be for a special direct pixel drawing mode
 ;
 ;
 ; - Indexing something into Tile Pattern VRAM
