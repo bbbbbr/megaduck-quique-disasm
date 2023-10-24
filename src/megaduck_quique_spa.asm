@@ -86,6 +86,10 @@ DEF OAM_SLOT_USED                 EQU $FF
 
 DEF SHADOW_OAM_SZ                 EQU 160
 DEF OAM_USAGE_SZ                  EQU 40
+DEF TILE_SZ_BYTES                 EQU 16
+
+DEF MENU_ICONS_128_TILES          EQU 128
+DEF MENU_FONT_128_TILES           EQU 128
 
 ; Turn on to enable skipping some Megaduck QuiQue hardware specific code
 ; def GB_DEBUG = 1
