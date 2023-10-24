@@ -2513,8 +2513,9 @@ db $1F, $04, $FF,
 
 ; 128 Tiles of Main Menu Icons and Cursor, etc
 ; Loaded to _TILEDATA9000 during startup
+; This tile data is in sets of 24x24 pixel icons (9 sequential 8x8 tiles)
 gfx_tile_data__main_menu_icons__11F2_:
-INCBIN "res/tile_data_0x11f2_2048_bytes_main_menu_icons.bin"
+INCBIN "res/tile_data_0x11f2_2048_bytes_main_menu_icons.2bpp"
 
 
 _DATA_19F2_:
@@ -2906,7 +2907,7 @@ db $F8, $F8, $F8, $F8, $00, $00, $00, $00
 ; 128 Tiles of Main Menu Font
 ; Loaded to _TILEDATA8800 during startup
 gfx_tile_data__main_menu_font_2F2A_:
-INCBIN "res/tile_data_0x2f2a_2048_bytes_main_menu_font.bin"
+INCBIN "res/tile_data_0x2f2a_2048_bytes_main_menu_font.2bpp"
 
 ; $00, $00, $00, $00, $08, $08, $1C, $1C
 ; db $3E, $3E, $3E, $3E, $00, $00, $00, $00, $00, $00, $3C, $3C, $4E, $4E, $4E, $4E
