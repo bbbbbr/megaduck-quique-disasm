@@ -35,6 +35,9 @@ DEF COLS_0BLK_1DGRY_2LGRY_3WHT    EQU ((%00 << 6) | (%01 << 4) | (%10 << 2) | %1
 
 DEF STR_TERMINATOR                EQU $00
 DEF CHAR_BLANKSPACE               EQU $BE
+DEF CHAR_TEXTBOX_START            EQU $F2
+DEF CHAR_COLON                    EQU $FE
+
 DEF PRINT_NORMAL                  EQU $01
 DEF PRINT_ERASE                   EQU $00
 
@@ -94,6 +97,9 @@ DEF TILE_SZ_BYTES                 EQU 16
 
 DEF MENU_ICONS_128_TILES          EQU 128
 DEF MENU_FONT_128_TILES           EQU 128
+
+DEF TEXTBOX_OFFSET_TO_MIDDLE_TILES EQU $3 ; Top, middle and bottom of textbox are each comprised of 3 tiles (left/middle/right)
+DEF TEXTBOX_OFFSET_TO_BOTTOM_TILES EQU $6 ; Top, middle and bottom of textbox are each comprised of 3 tiles (left/middle/right)
 
 ; Turn on to enable skipping some Megaduck QuiQue hardware specific code
 ; def GB_DEBUG = 1

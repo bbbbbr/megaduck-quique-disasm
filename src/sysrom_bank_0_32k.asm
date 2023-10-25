@@ -3250,9 +3250,20 @@ copy_a_x_tile_patterns_from_de_add_bx16_to_hl_add_cx16__48CD_:
         pop  de
         ret
 
-; BC = Tilemap XY
-_LABEL_48EB_:
-    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
+
+; Maybe draws a Text Dialog Box of variable width and height on Tilemap0
+;
+; Uses System font tiles
+;
+; - B: Tilemap X
+; - C: Tilemap Y
+; - D:  Width in tiles?
+; - E: Numer of rows  in tiles
+; - A: Tile Pattern id to start with (0xF2 in some cases, font tile 114 [0xF2 - 0x80])
+display_textbox_draw_xy_in_bc_wh_in_de_st_id_in_a__48EB_:
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a  ; TODO: C8CC sems like a vram temp/scratch var
+
+    ; Calc X,Y in tiles offset into tilemap0
     ld   a, c
     ld   [_tilemap_pos_y__RAM_C8CA_], a
     ld   a, b
@@ -3260,42 +3271,65 @@ _LABEL_48EB_:
     ld   hl, _TILEMAP0; $9800
     push de
     call calc_vram_addr_of_tile_xy_base_in_hl__4932_
+
     pop  de
-    ld   b, e
+    ld   b, e  ; B is counter for number of rows in tiles
     dec  b
+
+    ; Draw Top of Box
     ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
-    call _LABEL_491B_
+    call display_textbox_draw_row__491B_
     dec  b
-_LABEL_4907_:
+
+    ; Draw middle section of box (variable height)
+    ; A+3 is the offset to next part of textbox tiles
+    loop_textbox_middle_rows__4907_:
+        ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
+        add  TEXTBOX_OFFSET_TO_MIDDLE_TILES  ; $03
+        call display_textbox_draw_row__491B_
+        dec  b
+        jr   nz, loop_textbox_middle_rows__4907_
+
+    ; Draw bottom of textbox
     ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
-    add  $03
-    call _LABEL_491B_
-    dec  b
-    jr   nz, _LABEL_4907_
-    ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
-    add  $06
-    call _LABEL_491B_
+    add  TEXTBOX_OFFSET_TO_BOTTOM_TILES  ; $06
+    call display_textbox_draw_row__491B_
     ret
 
-_LABEL_491B_:
-    ld   c, a
-    call wait_until_vbl__92C_
-    ld   a, c
-    ld   c, d
-    dec  c
-    ldi  [hl], a
-    inc  a
-    dec  c
-_LABEL_4925_:
-    ldi  [hl], a
-    dec  c
-    jr   nz, _LABEL_4925_
-    inc  a
-    ldi  [hl], a
-    ld   a, $20
-    sub  d
-    call add_a_to_hl__486E_
-    ret
+    ; Helper function to draw text box rows
+    ;
+    ; D: Width in tiles to write
+    ; A: Tile ID N to start row with. Rows are like: (N | N+1... | N+2)
+    display_textbox_draw_row__491B_:
+        ld   c, a
+        call wait_until_vbl__92C_
+        ld   a, c
+        ; Load width in tiles
+        ld   c, d
+
+        ; Write left edge tile first
+        ; Then increment a to middle tile
+        dec  c
+        ldi  [hl], a
+        inc  a
+        dec  c
+
+        ; Write middle tiles
+        ; Then increment a to middle tile
+        loop_middle_tiles__4925_:
+            ldi  [hl], a
+            dec  c
+            jr   nz, loop_middle_tiles__4925_
+        inc  a
+
+        ; Write right edge tile
+        ; Calculate and apply same starting x position on next tile row down
+        ldi  [hl], a
+        ld   a, _TILEMAP_WIDTH  ; $20
+        sub  d
+        call add_a_to_hl__486E_
+        ret
+
 
 ; Calculate the vram address of tilemap X,Y
 ; - Base address: HL
@@ -3308,7 +3342,7 @@ calc_vram_addr_of_tile_xy_base_in_hl__4932_:
     ; Multiply Tile Y x Tilemap Width
     ld   a, [_tilemap_pos_y__RAM_C8CA_]  ; ? Tile Y
     dec  a
-    ld   b, _TILEMMAP_WIDTH
+    ld   b, _TILEMAP_WIDTH
     call multiply_a_x_b__result_in_de__4853_
     ; Add base Tilemap address in HL
     add  hl, de
@@ -6985,6 +7019,8 @@ db $D1, $A7, $20, $FA, $FA, $06, $D0, $E6, $CF, $EA, $06, $D0, $E6, $F0, $CA, $B
 db $63, $3E, $01, $EA, $95, $D1, $FA, $4B, $D0, $EA, $CC, $C8, $CD, $53, $09, $FB
 db $FA, $95, $D1, $A7, $20, $FA, $C3, $B4, $63
 
+
+; TODO: (called from end of drawing app help menu)
 _LABEL_6510_:
     ld   a, $D9
     ld   hl, _RAM_D06C_ ; _RAM_D06C_ = $D06C
@@ -6998,6 +7034,7 @@ _LABEL_6510_:
     ld   a, b
     ld   [_RAM_D04B_], a
     ret
+
 
 ; Data from 6529 to 6672 (330 bytes)
 db $AF, $EA, $5E, $D0, $FA, $4B, $D0, $EA, $CC, $C8, $CD, $53, $09, $06, $90, $CD
@@ -7569,26 +7606,147 @@ maybe_calc_pixelxy_tile_pattern_addr_something__6FA0_:
         add  hl, de
         ret
 
-    ; Data from 6FED to 7119 (301 bytes)
-db $FA, $4B, $D0, $EA, $CC, $C8, $CD, $53, $09, $FA, $CB, $C8, $EA, $73, $D0, $FA
-db $CA, $C8, $EA, $74, $D0, $CD, $9B, $08, $CD, $75, $48, $CD, $2C, $09, $CD, $4C
-db $09, $21, $00, $88, $11, $00, $80, $2A, $12, $13, $7A, $FE, $88, $C2, $14, $70
-db $CD, $2C, $09, $CD, $4C, $09, $21, $00, $88, $11, $2A, $2F, $01, $00, $08, $CD
-db $00, $C9, $01, $04, $01, $11, $0E, $12, $3E, $F2, $21, $00, $98, $CD, $EB, $48
-db $11, $9F, $70, $21, $04, $08, $0E, $01, $CD, $46, $4A, $11, $A5, $70, $21, $06
-db $02, $06, $0A, $0E, $01, $C5, $E5, $CD, $46, $4A, $E1, $C1, $2C, $05, $20, $F5
-db $CD, $27, $06, $CD, $84, $4B, $CD, $21, $77, $CD, $84, $4B, $CD, $2C, $09, $CD
-db $4C, $09, $21, $00, $80, $11, $00, $88, $2A, $12, $13, $7C, $FE, $88, $C2, $75
-db $70, $21, $00, $98, $3E, $C8, $22, $7C, $FE, $9C, $20, $F8, $F0, $10, $F6, $A1
-db $E0, $10, $FA, $73, $D0, $EA, $CB, $C8, $FA, $74, $D0, $EA, $CA, $C8, $CD, $10
-db $65, $C9, $81, $99, $95, $84, $81, $00, $86, $C1, $FE, $BE, $87, $92, $8F, $93
-db $8F, $92, $00, $BE, $BE, $BE, $BE, $94, $92, $81, $9A, $8F, $00, $86, $C2, $FE
-db $BE, $94, $8F, $8E, $8F, $BE, $84, $85, $BE, $87, $92, $89, $93, $00, $86, $C3
-db $FE, $BE, $93, $81, $8C, $96, $81, $92, $00, $BE, $BE, $BE, $BE, $81, $92, $83
-db $88, $89, $96, $8F, $00, $86, $C4, $FE, $BE, $8C, $8C, $85, $8E, $8F, $00, $86
-db $C5, $FE, $BE, $82, $8F, $92, $92, $81, $92, $00, $86, $C6, $FE, $BE, $90, $8C
-db $95, $8D, $81, $BE, $84, $85, $00, $BE, $BE, $BE, $BE, $84, $89, $82, $95, $8A
-    db $8F, $00, $86, $C7, $FE, $BE, $86, $8C, $85, $83, $88, $81, $00
+
+; Drawing App Help Menu
+;
+; It doesn't called from anywhere in 32K Bank 1
+; so it's probably launched via a banked call from another bank
+;
+; Display Drawing App Help Menu Text
+; drawing_app_help_menu_show__6FED_:
+drawing_app_help_menu_show__6FED_:
+        ld   a, [_RAM_D04B_]
+        ld   [maybe_vram_data_to_write__RAM_C8CC_], a
+        call _LABEL_953_
+        ld   a, [_tilemap_pos_x__RAM_C8CB_]
+        ld   [_RAM_D073_], a
+        ld   a, [_tilemap_pos_y__RAM_C8CA_]
+        ld   [_RAM_D074_], a
+        call oam_free_slot_and_clear__89B_
+
+        call display_clear_screen_with_space_char__4875_
+
+        ; Copy (Save) Tile Pattern data from 0x8800 -> 0x8000
+        call wait_until_vbl__92C_
+        call display_screen_off__94C_
+        ld   hl, _TILEDATA8800  ; $8800
+        ld   de, _TILEDATA8000  ; $8000
+        loop_copy_tile_data__7014_:
+            ldi  a, [hl]
+            ld   [de], a
+            inc  de
+            ld   a, d
+            cp   HIGH(_TILEDATA8800)  ; $88
+            jp   nz, loop_copy_tile_data__7014_
+
+        ; Now load 8x8 font Tile Patterns into 0x8800
+        call wait_until_vbl__92C_
+        call display_screen_off__94C_
+        ld   hl, _TILEDATA8800                         ; Dest
+        ld   de, gfx_tile_data__main_menu_font__2F2A_  ; Source
+        ld   bc, (MENU_FONT_128_TILES * TILE_SZ_BYTES) ; Copy size: 128 tiles (2048 bytes)
+        call _memcopy_in_RAM__C900_ ; Code is loaded from _memcopy__7D3_
+
+        ; Make a textbox
+        ld   bc, $0104             ; Start at 1,4 (x,y) in tiles
+        ld   de, $120E             ; Width, Height in tiles
+        ld   a, CHAR_TEXTBOX_START ; $F2
+        ld   hl, _TILEMAP0         ; $9800
+        call display_textbox_draw_xy_in_bc_wh_in_de_st_id_in_a__48EB_
+
+        ; Draw Top of Help Menu text (AYUDA) on top of text box
+        ld   de, _string_message__drawing_app_help_header__709F_ ; $709F
+        ld   hl, $0804    ; Start at 8,4 (x,y) in tiles
+        ld   c, PRINT_NORMAL  ; $01
+        call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
+
+        ; Draw 10 lines of help text
+        ld   de, _string_message__drawing_app_help_text__70A5_ ; $70A5
+        ld   hl, $0206   ; Start at 2,6 (x,y) in tiles
+        ld   b, 10       ; $0A ; Loop for 10 lines
+        ld   c, PRINT_NORMAL  ; $01
+        loop_render_text__7052_:
+            push bc
+            push hl
+            call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
+            pop  hl
+            pop  bc
+            inc  l
+            dec  b
+            jr   nz, loop_render_text__7052_
+
+        call _display_bg_sprites_on__627_
+
+        ; TODO : Seems to be the wait loop for User input before leaving help menu
+        call maybe_input_wait_for_keys__4B84
+        call _LABEL_7721_
+        call maybe_input_wait_for_keys__4B84
+
+        ; Copy (Restore) Tile Pattern data from 0x8000 -> 0x8800
+        ; that was saved above
+        call wait_until_vbl__92C_
+        call display_screen_off__94C_
+        ld   hl, _TILEDATA8000
+        ld   de, _TILEDATA8800
+        loop_copy_tile_data__7075_:
+            ldi  a, [hl]
+            ld   [de], a
+            inc  de
+            ld   a, h
+            cp   HIGH(_TILEDATA8800)  ; $88
+            jp   nz, loop_copy_tile_data__7075_
+
+        ; Fill Tilemap0 with 0xC8 (TODO: What is this char? "8" ?? (0xC8 - 128 = 72)
+        ld   hl, _TILEMAP0
+        _LABEL_7081_:
+            ld   a, $C8
+            ldi  [hl], a
+            ld   a, h
+            cp   $9C
+            jr   nz, _LABEL_7081_
+
+        ; Turn screen + window + sprites on
+        ldh  a, [rLCDC]
+        or   (LCDCF_ON | LCDCF_WINON | LCDCF_OBJON)  ; $A1
+        ldh  [rLCDC], a
+
+        ld   a, [_RAM_D073_]    ; _RAM_D073_ = $D073
+        ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+        ld   a, [_RAM_D074_]    ; _RAM_D074_ = $D074
+        ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+        call _LABEL_6510_
+        ret
+
+
+        ; Strings for Drawing App Help Menu
+        ; Used by drawing_app_help_menu_show__6FED_
+        _string_message__drawing_app_help_header__709F_:
+        ; "AYUDA" (Help)
+        db $81, $99, $95, $84, $81, $00
+
+        _string_message__drawing_app_help_text__70A5_:
+        ; "F1: GROSOR" (Thickness ...)
+        db $86, $C1, $FE, $BE, $87, $92, $8F, $93, $8F, $92, $00
+        ; "    TRAZO" (... Stroke)
+        db $BE, $BE, $BE, $BE, $94, $92, $81, $9A, $8F, $00
+        ; "F2: TONO DE GRIS" (Color of Gray to draw with)
+        db $86, $C2, $FE, $BE, $94, $8F, $8E, $8F, $BE, $84, $85, $BE, $87, $92, $89, $93, $00
+        ; "F3: SALVAR" (Save ...)
+        db $86, $C3, $FE, $BE, $93, $81, $8C, $96, $81, $92, $00
+        ; "    ARCHIVO" (... File)
+        db $BE, $BE, $BE, $BE, $81, $92, $83, $88, $89, $96, $8F, $00
+        ; "F4: LLENO" (Fill)
+        db $86, $C4, $FE, $BE, $8C, $8C, $85, $8E, $8F, $00
+        ; "F5: BORRAR" (Erase)
+        db $86, $C5, $FE, $BE, $82, $8F, $92, $92, $81, $92, $00
+        ; "F6: PLUMA DE" (Pen for ...)
+        db $86, $C6, $FE, $BE, $90, $8C, $95, $8D, $81, $BE, $84, $85, $00
+        ; "    DIBUJO" (... Drawing)
+        db $BE, $BE, $BE, $BE, $84, $89, $82, $95, $8A, $8F, $00
+        ; "F7: Flecha" (Arrow?)
+        db $86, $C7, $FE, $BE, $86, $8C, $85, $83, $88, $81, $00
+
+
 
 _LABEL_711A_:
         ; GFX Loading 128 Tiles (but 45 are valid at start, then a whole separate block, then some code at the end)
@@ -8324,16 +8482,16 @@ gfx_load_tile_map_20x6_at_438a__7691_:
     call display_clear_screen_with_space_char__4875_
     ; Load a tile map for ... ? TODO
     ld   de, tile_map_0x438a_20x6_120_bytes__438a_
-    ld   hl, (_TILEMAP0 + (_TILEMMAP_WIDTH * 10)) ; $9940 ; 0,10 (x,y) on Tilemap 0
+    ld   hl, (_TILEMAP0 + (_TILEMAP_WIDTH * 10)) ; $9940 ; 0,10 (x,y) on Tilemap 0
     call wait_until_vbl__92C_
     call display_screen_off__94C_
     ld   c, $06                         ; 6 Rows x 20 Tiles wide of Tile Map entries
 
     loop_tilemap_row_load___76A2_:
-        ld   b, _TILEMMAP_SCREEN_WIDTH  ; $14 ; 20 bytes / Tile Map entries
+        ld   b, _TILEMAP_SCREEN_WIDTH  ; $14 ; 20 bytes / Tile Map entries
         call memcopy_b_bytes_from_de_to_hl__481F_
         ; Skip remainder of current Tile Map row down to next line
-        ld   a, (_TILEMMAP_WIDTH - _TILEMMAP_SCREEN_WIDTH)  ; $0C
+        ld   a, (_TILEMAP_WIDTH - _TILEMAP_SCREEN_WIDTH)  ; $0C
         call add_a_to_hl__486E_
         dec  c
         jr   nz, loop_tilemap_row_load___76A2_
@@ -8424,7 +8582,7 @@ _LABEL_7733_:
         call wait_until_vbl__92C_
         call display_screen_off__94C_
         ld   hl, _TILEDATA8800                         ; Dest
-        ld   de, gfx_tile_data__main_menu_font__2F2A_   ; Source
+        ld   de, gfx_tile_data__main_menu_font__2F2A_  ; Source
         ld   bc, (MENU_FONT_128_TILES * TILE_SZ_BYTES) ; Copy size: 128 tiles (2048 bytes)
         call _memcopy_in_RAM__C900_
 
@@ -8444,7 +8602,7 @@ _LABEL_7751_:
         ld   de, $120A
         ld   a, $F2
         ld   hl, _TILEMAP0; $9800
-        call _LABEL_48EB_
+        call display_textbox_draw_xy_in_bc_wh_in_de_st_id_in_a__48EB_
         ld   de, _DATA_7888_
         ld   hl, $0707
         ld   c, PRINT_NORMAL  ; $01
