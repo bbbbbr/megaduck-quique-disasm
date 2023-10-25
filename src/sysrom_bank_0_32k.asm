@@ -137,15 +137,15 @@ _VBL_HANDLER__6D_:
         jr   _VBL_HANDLER_TAIL__AF_
 
     _VBL_HANDLER_3__91_:
-        cp   $03
+        cp   VBL_CMD_COPY_16_BYTES_FROM_COPY_BUF_TO_HL  ; $03
         jr   nz, _VBL_HANDLER_4__9A_
-        call _LABEL_481A_
+        call memcopy_16_bytes_from_copy_buffer__RAM_DCF0_to_hl__481A_
         jr   _VBL_HANDLER_TAIL__AF_
 
     _VBL_HANDLER_4__9A_:
-        cp   $04
+        cp   VBL_CMD_COPY_16_BYTES_FROM_HL_TO_COPY_BUF  ; $04
         jr   nz, _VBL_HANDLER_5__A3_
-        call _LABEL_4826_
+        call memcopy_16_bytes_from_hl_to_copy_buffer__RAM_DCF0__4826_
         jr   _VBL_HANDLER_TAIL__AF_
 
     _VBL_HANDLER_5__A3_:
@@ -869,11 +869,11 @@ _LABEL_52F_:
     ld   hl, _RAM_D740_
     ld   de, _RAM_CD00_
     ld   b, $C0
-    call _LABEL_482B_
+    call memcopy_b_bytes_from_hl_to_de__482B_
     ld   hl, _RAM_DAD0_
     ld   de, _RAM_D081_
     ld   b, $C0
-    jp   _LABEL_482B_
+    jp   memcopy_b_bytes_from_hl_to_de__482B_
 
 _LABEL_54B_:
     ld   a, [_RAM_D080_]
@@ -885,11 +885,11 @@ _LABEL_54B_:
     ld   hl, _RAM_CD00_
     ld   de, _RAM_D740_
     ld   b, $C0
-    call _LABEL_482B_
+    call memcopy_b_bytes_from_hl_to_de__482B_
     ld   hl, _RAM_D081_
     ld   de, _RAM_DAD0_
     ld   b, $C0
-    jp   _LABEL_482B_
+    jp   memcopy_b_bytes_from_hl_to_de__482B_
 
 _LABEL_56E_:
     ; Load Tile Data for the main menu font
@@ -3063,26 +3063,28 @@ db $8E, $8E, $8E, $8E, $DC, $DC, $78, $78, $00, $00, $00, $00, $38, $38, $7C, $7
 db $0C, $0C, $3C, $3C, $6C, $6C, $6C, $6C, $3E, $3E, $00, $00, $7E, $7E, $7E, $7E
 ds 10, $00
 
-_LABEL_481A_:
-    ld   de, _RAM_DCF0_ ; _RAM_DCF0_ = $DCF0
-    ld   b, $10
-_LABEL_481F_:
+
+memcopy_16_bytes_from_copy_buffer__RAM_DCF0_to_hl__481A_:
+    ld   de, copy_buffer__RAM_DCF0_
+    ld   b, $10  ; 16 bytes
+memcopy_b_bytes_from_de_to_hl__481F_:
     ld   a, [de]
     ldi  [hl], a
     inc  de
     dec  b
-    jr   nz, _LABEL_481F_
+    jr   nz, memcopy_b_bytes_from_de_to_hl__481F_
     ret
 
-_LABEL_4826_:
-    ld   de, _RAM_DCF0_ ; _RAM_DCF0_ = $DCF0
-    ld   b, $10
-_LABEL_482B_:
+
+memcopy_16_bytes_from_hl_to_copy_buffer__RAM_DCF0__4826_:
+    ld   de, copy_buffer__RAM_DCF0_
+    ld   b, $10  ; 16 bytes
+memcopy_b_bytes_from_hl_to_de__482B_:
     ldi  a, [hl]
     ld   [de], a
     inc  de
     dec  b
-    jr   nz, _LABEL_482B_
+    jr   nz, memcopy_b_bytes_from_hl_to_de__482B_
     ret
 
 _LABEL_4832_:
@@ -4060,7 +4062,7 @@ _LABEL_4D94_:
     ld   hl, _RAM_D028_
     ld   de, _RAM_D074_ + 1 ; _RAM_D074_ + 1 = $D075
     ld   b, $03
-    call _LABEL_482B_
+    call memcopy_b_bytes_from_hl_to_de__482B_
 _LABEL_4DCD_:
     call _LABEL_4875_
 
@@ -4071,7 +4073,7 @@ _LABEL_4DCD_:
     ld   de, _TILEDATA8800 + (113 * TILE_SZ_BYTES)  ; $8F10    ; Start loading 113 tiles into 8800 range
     ld   b, $A0                                                ; Copy size: 10 tiles (160 bytes)
 
-    call _LABEL_482B_
+    call memcopy_b_bytes_from_hl_to_de__482B_
     ld   hl, $9820
     ld   bc, $1002
     ld   a, $18
@@ -5662,7 +5664,7 @@ _LABEL_59B7_:
     ld   b, $08
     ld   hl, _RAM_D051_
     ld   de, _RAM_D028_
-    call _LABEL_482B_
+    call memcopy_b_bytes_from_hl_to_de__482B_
     ld   a, $0B
     ld   [serial_cmd_to_send__RAM_D035_], a
 _LABEL_59D5_:
@@ -6190,7 +6192,7 @@ _LABEL_5D50_:
     ld   b, $08
     ld   hl, _RAM_D028_
     ld   de, _RAM_D051_
-    call _LABEL_482B_
+    call memcopy_b_bytes_from_hl_to_de__482B_
     ret
 
 _LABEL_5D5F_:
@@ -6525,7 +6527,7 @@ _LABEL_6044_:
     ld   b, $10
     ld   de, _RAM_D6F0_
     ld   hl, _RAM_D6D0_
-    call _LABEL_481F_
+    call memcopy_b_bytes_from_de_to_hl__481F_
     call _LABEL_62BD_
     call _display_bg_sprites_on__627_
     jp   _LABEL_5E9A_
@@ -6564,7 +6566,7 @@ _LABEL_6080_:
     ld   b, $10
     ld   de, _RAM_D6F0_
     ld   hl, _RAM_D6D0_
-    call _LABEL_481F_
+    call memcopy_b_bytes_from_de_to_hl__481F_
     call _LABEL_62BD_
     call _display_bg_sprites_on__627_
     jp   _LABEL_5E9A_
@@ -8329,7 +8331,7 @@ _LABEL_7691_:
         ld   c, $06
 _LABEL_76A2_:
         ld   b, $14
-        call _LABEL_481F_
+        call memcopy_b_bytes_from_de_to_hl__481F_
         ld   a, $0C
         call add_a_to_hl__486E_
         dec  c

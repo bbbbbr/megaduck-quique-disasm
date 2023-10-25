@@ -79,6 +79,10 @@ DEF SYS_KEY_SELECT                EQU $2E  ; SELECT seems to be mapped to Enter 
 DEF SYS_KEY_MAYBE_INVALID_OR_NODATA    EQU $FF  ; TODO
 
 
+DEF VBL_CMD_COPY_16_BYTES_FROM_COPY_BUF_TO_HL   EQU $3
+DEF VBL_CMD_COPY_16_BYTES_FROM_HL_TO_COPY_BUF   EQU $4
+
+
 DEF TIMER_FLAG__BIT_TICKED        EQU 2    ; Set by timer interrupt, cleared by...
 
 DEF OAM_SLOT_EMPTY                EQU $00
@@ -340,7 +344,7 @@ init_key_slot_3__RAM_DBFE_: db
 _RAM_DBFF_: db
 
 SECTION "wram_dcf0", WRAMX[$dcf0], BANK[$1]
-_RAM_DCF0_: db
+copy_buffer__RAM_DCF0_: ds 16  ; Assuming size 16 here since that's what is used by the associated memcpy functions
 
 SECTION "hram_ff80", HRAM[$FF80]
 _oam_dma_routine_in_HRAM__FF80_: db
