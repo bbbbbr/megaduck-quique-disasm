@@ -999,7 +999,7 @@ maybe_try_run_cart_from_slot__5E1_:
 ; After a short delay this message is cleared and the program
 ; returns to the main menu
 display_message__no_cart_in_slot_to_run__5F9:
-    call _LABEL_4875_
+    call display_clear_screen_with_space_char__4875_
     ld   de, _string_message__no_cart_in_slot_to_run__734_
     ; Render first line
     ld   hl, $030A         ; Column 3, Row 10 (zero based)
@@ -2979,18 +2979,11 @@ tile_data_0x40ba_720_bytes__40BA_:
 INCBIN "res/tile_data_0x40ba_720_bytes.2bpp"
 
 
-; Data from 438A to 4819 (1168 bytes)
-_DATA_438A_:
-db $BE, $BE, $6A, $6D, $6D, $70, $6D, $6D, $6D, $70, $6D, $6D, $70, $6D, $6D, $6D
-db $71, $BE, $BE, $BE, $BE, $BE, $6B, $6E, $6E, $6B, $6E, $6E, $6E, $6B, $6E, $6E
-db $6B, $6E, $6E, $6E, $6B, $BE, $BE, $BE, $BE, $BE, $6B, $6E, $6E, $6B, $6E, $6E
-db $6E, $6B, $6E, $6E, $6B, $6E, $6E, $6E, $6B, $BE, $BE, $BE, $BE, $BE
-ds 15, $6B
-db $BE, $BE, $BE, $BE, $BE
-ds 15, $6B
-db $BE, $BE, $BE, $BE, $BE, $6C
-ds 13, $6F
-db $72, $BE, $BE, $BE
+; Tile Map data loaded by gfx_load_tile_map_20x6_at_438a__7691_
+tile_map_0x438a_20x6_120_bytes__438a_:
+INCBIN "res/tile_map_0x438a_20x6_120_bytes.bin"
+
+
 ds 26, $00
 db $24, $24, $18, $18, $2C, $2C, $2C, $2C, $2C, $2C, $18, $18, $00, $00, $00, $00
 db $24, $24, $18, $18, $2C, $2C, $2C, $2C, $2C, $2C, $18, $18, $00, $00, $00, $00
@@ -3159,19 +3152,23 @@ add_a_to_hl__486E_:
     ld   h, a
     ret
 
-_LABEL_4875_:
+; Clears TileMap0 with the Empty/Space character (0xBE)
+;
+; Destroys A, HL
+display_clear_screen_with_space_char__4875_:
     call wait_until_vbl__92C_
     call display_screen_off__94C_
     ld   hl, _TILEMAP0; $9800
-_LABEL_487E_:
-    ld   a, $BE
-    ldi  [hl], a
-    ld   a, h
-    cp   $9C
-    jr   nz, _LABEL_487E_
+    clear_tilemap0_loop__487E_:
+        ld   a, CHAR_BLANKSPACE  ; $BE
+        ldi  [hl], a
+        ld   a, h
+        cp   HIGH(_TILEMAP1) ; $9C
+        jr   nz, clear_tilemap0_loop__487E_
     ldh  a, [rLCDC]
-    and  $CF
-    or   $C1
+    ; Turn off window and select LCDCF_BG8800 tile data
+    and  ~(LCDCF_WINON | LCDCF_BG8000)  ; $CF
+    or   (LCDCF_ON | LCDCF_BGON | LCDCF_OBJON)  ; $C1
     ldh  [rLCDC], a
     ret
 
@@ -3586,7 +3583,7 @@ _LABEL_4A72_:
     ret
 
 _LABEL_4A7B_:
-    call _LABEL_4875_
+    call display_clear_screen_with_space_char__4875_
     xor  a
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     ld   a, $03
@@ -4064,7 +4061,7 @@ _LABEL_4D94_:
     ld   b, $03
     call memcopy_b_bytes_from_hl_to_de__482B_
 _LABEL_4DCD_:
-    call _LABEL_4875_
+    call display_clear_screen_with_space_char__4875_
 
     ; Load 10 8x8 numeric character Tiles
     call wait_until_vbl__92C_
@@ -7666,7 +7663,7 @@ _LABEL_7185_:
         ld   bc, (128 * TILE_SZ_BYTES)                        ; Copy size: 128 tiles (2048 bytes)
         call _memcopy_in_RAM__C900_
 
-        call _LABEL_7691_
+        call gfx_load_tile_map_20x6_at_438a__7691_
         call _LABEL_761F_
         call _display_bg_sprites_on__627_
         xor  a
@@ -7721,7 +7718,7 @@ _LABEL_720B_:
         ld   b, $00
         call _LABEL_7242_
         ret  z
-        call _LABEL_7691_
+        call gfx_load_tile_map_20x6_at_438a__7691_
         call _LABEL_761F_
         call _LABEL_765B_
         call _display_bg_sprites_on__627_
@@ -7734,7 +7731,7 @@ _LABEL_7226_:
         ld   b, $01
         call _LABEL_7242_
         ret  z
-        call _LABEL_7691_
+        call gfx_load_tile_map_20x6_at_438a__7691_
         call _LABEL_761F_
         call _LABEL_766D_
         call _display_bg_sprites_on__627_
@@ -7765,7 +7762,7 @@ _LABEL_7242_:
         ld   bc, (128 * TILE_SZ_BYTES)                        ; Copy size: 128 tiles (2048 bytes)
         call _memcopy_in_RAM__C900_
 
-        call _LABEL_4875_
+        call display_clear_screen_with_space_char__4875_
         call wait_until_vbl__92C_
         call display_screen_off__94C_
         call _LABEL_761F_
@@ -8025,7 +8022,7 @@ _LABEL_741D_:
         ld   bc, (128 * TILE_SZ_BYTES)                        ; Copy size: 128 tiles (2048 bytes)
         call _memcopy_in_RAM__C900_
 
-        call _LABEL_7691_
+        call gfx_load_tile_map_20x6_at_438a__7691_
         call _LABEL_7631_
         call _LABEL_7704_
         call _LABEL_767F_
@@ -8322,21 +8319,26 @@ _LABEL_767F_:
         call _LABEL_764C_
         ret
 
-_LABEL_7691_:
-        call _LABEL_4875_
-        ld   de, _DATA_438A_
-        ld   hl, $9940
-        call wait_until_vbl__92C_
-        call display_screen_off__94C_
-        ld   c, $06
-_LABEL_76A2_:
-        ld   b, $14
+
+gfx_load_tile_map_20x6_at_438a__7691_:
+    call display_clear_screen_with_space_char__4875_
+    ; Load a tile map for ... ? TODO
+    ld   de, tile_map_0x438a_20x6_120_bytes__438a_
+    ld   hl, (_TILEMAP0 + (_TILEMMAP_WIDTH * 10)) ; $9940 ; 0,10 (x,y) on Tilemap 0
+    call wait_until_vbl__92C_
+    call display_screen_off__94C_
+    ld   c, $06                         ; 6 Rows x 20 Tiles wide of Tile Map entries
+
+    loop_tilemap_row_load___76A2_:
+        ld   b, _TILEMMAP_SCREEN_WIDTH  ; $14 ; 20 bytes / Tile Map entries
         call memcopy_b_bytes_from_de_to_hl__481F_
-        ld   a, $0C
+        ; Skip remainder of current Tile Map row down to next line
+        ld   a, (_TILEMMAP_WIDTH - _TILEMMAP_SCREEN_WIDTH)  ; $0C
         call add_a_to_hl__486E_
         dec  c
-        jr   nz, _LABEL_76A2_
-        ret
+        jr   nz, loop_tilemap_row_load___76A2_
+    ret
+
 
 _LABEL_76B0_:
         ld   de, _DATA_7918_
