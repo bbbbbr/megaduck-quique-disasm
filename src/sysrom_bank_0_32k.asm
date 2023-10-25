@@ -289,7 +289,7 @@ _GB_ENTRY_POINT_100_:
         call wait_until_vbl__92C_
         call display_screen_off__94C_
         ld   hl, _TILEDATA8800                         ; Dest
-        ld   de, gfx_tile_data__main_menu_font_2F2A_   ; Source
+        ld   de, gfx_tile_data__main_menu_font__2F2A_   ; Source
         ld   bc, (MENU_FONT_128_TILES * TILE_SZ_BYTES) ; Copy size: 128 tiles (2048 bytes)
         call _memcopy_in_RAM__C900_
 
@@ -326,7 +326,7 @@ _LABEL_1B3_:
     ld   hl, _RST__08_  ; _RST__08_ = $0008
     res  7, h
     ld   a, $01
-    call _switch_bank_jump_hl_RAM__C920_    ; Possibly invalid
+    call _switch_bank_jump_hl_RAM__C920_
     ei
     jr   _LABEL_15C_
 
@@ -337,7 +337,7 @@ _LABEL_1C5_:
     ld   hl, _RST__10_  ; _RST__10_ = $0010
     res  7, h
     ld   a, $01
-    call _switch_bank_jump_hl_RAM__C920_    ; Possibly invalid
+    call _switch_bank_jump_hl_RAM__C920_
     ei
     jr   _LABEL_15C_
 
@@ -348,7 +348,7 @@ _LABEL_1D7_:
         ld   hl, _RST__18_  ; _RST__18_ = $0018
         res  7, h
         ld   a, $01
-        call _switch_bank_jump_hl_RAM__C920_    ; Possibly invalid
+        call _switch_bank_jump_hl_RAM__C920_
         ei
         jp   _LABEL_15C_
 
@@ -359,7 +359,7 @@ _LABEL_1EA_:
     ld   hl, _RST__20_  ; _RST__20_ = $0020
     res  7, h
     ld   a, $01
-    call _switch_bank_jump_hl_RAM__C920_    ; Possibly invalid
+    call _switch_bank_jump_hl_RAM__C920_
     ei
     jp   _LABEL_15C_
 
@@ -896,7 +896,7 @@ _LABEL_56E_:
     call wait_until_vbl__92C_
     call display_screen_off__94C_
     ld   hl, _TILEDATA8800                         ; Dest
-    ld   de, gfx_tile_data__main_menu_font_2F2A_   ; Source
+    ld   de, gfx_tile_data__main_menu_font__2F2A_   ; Source
     ld   bc, (MENU_FONT_128_TILES * TILE_SZ_BYTES) ; Copy size: 128 tiles (2048 bytes)
     call _memcopy_in_RAM__C900_
 
@@ -1988,6 +1988,7 @@ delay_quarter_msec__BD6_:
 
 ; Data from BE3 to C8C (170 bytes)
 ; Some kind of table with values incrementing from 0x0022 -> 0x07FF
+; Used by code at _LABEL_37D_
 _DATA_BE3_:
 db $00, $22, $00, $97, $00, $FF, $01, $72, $01, $C4, $02, $1F, $02, $80, $02, $C8
 db $03, $15, $03, $5A, $03, $98, $03, $D8, $04, $19, $04, $52, $04, $86, $04, $B9
@@ -2442,7 +2443,7 @@ db $D3, $DB
 ;     dec  c
 ;     inc  c
 ;     ld   [hl], h
-;     call z, $0E0F   ; Possibly invalid
+;     call z, $0E0F
 ;     bit  0, b
 ;     cpl
 ;     stop
@@ -2758,301 +2759,30 @@ db $3B, $3C, $00, $00, $00, $0D, $0E, $0F, $00, $3D
 ds 10, $00
 db $3E, $00, $00, $00, $00, $10, $11, $12, $00, $3F, $40, $00, $00, $00, $00, $00
 db $00, $00, $00, $41, $42, $00, $00, $00, $00, $00, $00, $00, $43, $44, $45, $46
+
 db $47, $00, $54, $55, $00, $48, $49, $4A, $4B, $4C, $00, $00, $00, $00, $00, $00
-    db $4D, $4E, $4F, $50, $51, $52, $53, $56, $57, $58, $59, $5A, $5B, $5C, $00
+db $4D, $4E, $4F, $50, $51, $52, $53, $56, $57, $58, $59, $5A, $5B, $5C, $00
 
-; Data from 275A to 2FFF (2214 bytes)
-_DATA_275A_:
-    db $00, $FF, $00, $C3, $00, $99, $00, $99, $00, $99, $00, $99, $00, $C3, $00, $FF
-    db $00, $FF, $00, $E7, $00, $C7, $00, $E7, $00, $E7, $00, $E7, $00, $C3, $00, $FF
-    db $00, $FF, $00, $C3, $00, $B1, $00, $F1, $00, $C3, $00, $8F, $00, $81, $00, $FF
-    db $00, $FF, $00, $83, $00, $F1, $00, $C3, $00, $F1, $00, $F1, $00, $83, $00, $FF
-    db $00, $FF, $00, $C3, $00, $93, $00, $B3, $00, $B1, $00, $81, $00, $F3, $00, $FF
-    db $00, $FF, $00, $83, $00, $9F, $00, $83, $00, $F1, $00, $B1, $00, $C3, $00, $FF
-    db $00, $FF, $00, $C3, $00, $9F, $00, $83, $00, $99, $00, $99, $00, $C3, $00, $FF
-    db $00, $FF, $00, $81, $00, $F9, $00, $F3, $00, $E7, $00, $C7, $00, $C7, $00, $FF
-    db $00, $FF, $00, $C3, $00, $B1, $00, $C3, $00, $B1, $00, $B1, $00, $C3, $00, $FF
-    db $00, $FF, $00, $C3, $00, $B1, $00, $B1, $00, $C1, $00, $F1, $00, $C3, $00, $FF
-    db $FF, $FF, $C7, $C7, $93, $93, $39, $39, $39, $39, $31, $31, $29, $29, $29, $29
-    db $29, $29, $19, $19, $39, $39, $39, $39, $39, $39, $93, $93, $C7, $C7, $FF, $FF
-    db $FF, $FF, $E7, $E7, $C7, $C7, $87, $87
-ds 18, $E7
-db $81, $81, $81, $81, $FF, $FF, $FF, $FF, $C7, $C7, $83, $83, $31, $31, $79, $79
-db $79, $79, $F9, $F9, $F3, $F3, $C7, $C7, $8F, $8F, $9F, $9F, $3F, $3F, $3F, $3F
-db $01, $01, $01, $01, $FF, $FF, $FF, $FF, $C7, $C7, $83, $83, $31, $31, $79, $79
-db $F9, $F9, $F3, $F3, $C7, $C7, $C7, $C7, $F3, $F3, $F9, $F9, $79, $79, $31, $31
-db $83, $83, $C7, $C7, $FF, $FF, $FF, $FF, $E3, $E3, $E3, $E3, $C3, $C3, $D3, $D3
-db $D3, $D3, $93, $93, $B3, $B3, $B3, $B3, $B3, $B3, $33, $33, $01, $01, $01, $01
-db $F3, $F3, $F3, $F3, $FF, $FF, $FF, $FF, $03, $03, $03, $03, $7F, $7F, $7F, $7F
-db $7F, $7F, $07, $07, $73, $73, $F9, $F9, $F9, $F9, $F9, $F9, $79, $79, $73, $73
-db $03, $03, $87, $87, $FF, $FF, $FF, $FF, $C7, $C7, $83, $83, $39, $39, $3D, $3D
-db $3F, $3F, $27, $27, $03, $03, $19, $19, $39, $39, $3D, $3D, $3D, $3D, $99, $99
-db $83, $83, $C7, $C7, $FF, $FF, $FF, $FF, $01, $01, $01, $01, $7D, $7D, $F9, $F9
-db $FB, $FB, $F7, $F7, $E7, $E7, $E7, $E7, $CF, $CF, $CF, $CF, $8F, $8F, $8F, $8F
-db $8F, $8F, $8F, $8F, $FF, $FF, $FF, $FF, $C7, $C7, $93, $93, $39, $39, $7D, $7D
-db $39, $39, $93, $93, $C7, $C7, $93, $93, $39, $39, $7D, $7D, $7D, $7D, $39, $39
-db $83, $83, $C7, $C7, $FF, $FF, $FF, $FF, $C7, $C7, $83, $83, $39, $39, $79, $79
-db $79, $79, $79, $79, $79, $79, $31, $31, $89, $89, $F9, $F9, $F9, $F9, $39, $39
-db $83, $83, $C7, $C7
-ds 24, $FF
-db $E7, $E7, $E7, $E7, $F7, $F7, $F7, $F7, $EF, $EF, $FF, $FF, $FF, $FF, $FF, $FF
-db $E7, $E7, $E7, $E7
-ds 10, $FF
-db $E7, $E7, $E7, $E7
-ds 42, $FF
-db $C7, $C7, $83, $83, $B3, $B3, $39, $39, $39, $39, $79, $79, $79, $79, $01, $01
-ds 12, $79
-db $FF, $FF, $FF, $FF, $07, $07, $33, $33, $39, $39, $39, $39, $39, $39, $33, $33
-db $0F, $0F, $33, $33, $39, $39, $39, $39, $39, $39, $39, $39, $33, $33, $07, $07
-db $FF, $FF, $FF, $FF, $C7, $C7, $83, $83, $19, $19, $3D, $3D, $3D, $3D, $3F, $3F
-db $3F, $3F, $3F, $3F, $3F, $3F, $3D, $3D, $3D, $3D, $19, $19, $83, $83, $C7, $C7
-db $FF, $FF, $FF, $FF, $0F, $0F, $03, $03, $71, $71
-ds 16, $79
-db $71, $71, $03, $03, $0F, $0F, $FF, $FF, $FF, $FF, $03, $03, $01, $01, $3D, $3D
-db $3F, $3F, $3F, $3F, $07, $07, $07, $07, $3F, $3F, $3F, $3F, $3F, $3F, $3F, $3F
-db $3D, $3D, $01, $01, $03, $03, $FF, $FF, $FF, $FF, $03, $03, $01, $01, $3D, $3D
-db $3F, $3F, $3F, $3F, $3F, $3F, $07, $07, $07, $07
-ds 12, $3F
-db $FF, $FF, $FF, $FF, $C7, $C7, $83, $83, $19, $19, $3D, $3D, $3F, $3F, $3F, $3F
-db $3F, $3F, $31, $31, $39, $39, $39, $39, $39, $39, $11, $11, $83, $83, $C7, $C7
-db $FF, $FF, $FF, $FF
-ds 12, $79
-db $01, $01, $01, $01
-ds 12, $79
-db $FF, $FF, $FF, $FF, $C3, $C3, $C3, $C3
-ds 20, $E7
-db $C3, $C3, $C3, $C3, $FF, $FF, $FF, $FF, $E1, $E1, $E1, $E1
-ds 14, $F3
-db $73, $73, $73, $73, $33, $33, $03, $03, $87, $87, $FF, $FF, $FF, $FF, $39, $39
-db $39, $39, $33, $33, $37, $37, $2F, $2F, $0F, $0F, $1F, $1F, $1F, $1F, $2F, $2F
-db $27, $27, $37, $37, $31, $31, $39, $39, $39, $39, $FF, $FF, $FF, $FF
-ds 24, $3F
-db $03, $03, $03, $03, $FF, $FF, $FF, $FF, $7D, $7D, $39, $39, $39, $39, $11, $11
-db $55, $55, $45, $45, $45, $45, $6D, $6D, $6D, $6D
-ds 10, $7D
-db $FF, $FF, $FF, $FF, $79, $79, $39, $39, $39, $39, $19, $19, $19, $19, $59, $59
-db $49, $49, $69, $69, $69, $69, $61, $61, $71, $71, $71, $71, $71, $71, $79, $79
-db $FF, $FF, $FF, $FF, $C7, $C7, $93, $93
-ds 20, $39
-db $93, $93, $C7, $C7, $FF, $FF, $FF, $FF, $07, $07, $33, $33, $39, $39, $39, $39
-db $39, $39, $39, $39, $33, $33, $03, $03, $0F, $0F
-ds 10, $3F
-db $FF, $FF, $FF, $FF, $C7, $C7, $93, $93, $39, $39, $3D, $3D, $3D, $3D, $3D, $3D
-db $3D, $3D, $35, $35, $35, $35, $35, $35, $39, $39, $3B, $3B, $91, $91, $C5, $C5
-db $FF, $FF, $FF, $FF, $07, $07, $33, $33, $39, $39, $39, $39, $39, $39, $33, $33
-db $07, $07, $0F, $0F, $2F, $2F, $2F, $2F, $27, $27, $37, $37, $31, $31, $39, $39
-db $FF, $FF, $FF, $FF, $C7, $C7, $93, $93, $39, $39, $3D, $3D, $3F, $3F, $9F, $9F
-db $CF, $CF, $F3, $F3, $F9, $F9, $79, $79, $79, $79, $31, $31, $83, $83, $C7, $C7
-db $FF, $FF, $FF, $FF, $01, $01, $29, $29, $6D, $6D
-ds 22, $EF
-db $FF, $FF, $FF, $FF
-ds 20, $79
-db $71, $71, $71, $71, $23, $23, $87, $87, $FF, $FF, $FF, $FF, $79, $79, $79, $79
-db $79, $79, $39, $39, $BB, $BB, $BB, $BB, $B3, $B3, $B3, $B3, $D7, $D7, $D7, $D7
-db $C7, $C7, $EF, $EF, $EF, $EF, $EF, $EF, $FF, $FF, $FF, $FF, $79, $79
-ds 12, $59
-db $49, $49, $49, $49, $49, $49, $29, $29, $33, $33, $B3, $B3, $B7, $B7, $FF, $FF
-db $FF, $FF, $79, $79, $39, $39, $BB, $BB, $B3, $B3, $97, $97, $C7, $C7, $C7, $C7
-db $C7, $C7, $D7, $D7, $97, $97, $9B, $9B, $3B, $3B, $39, $39, $3D, $3D, $FF, $FF
-db $FF, $FF, $7D, $7D, $7D, $7D, $39, $39, $BB, $BB, $93, $93, $C7, $C7, $C7, $C7
-ds 14, $EF
-db $FF, $FF, $FF, $FF, $01, $01, $F9, $F9, $F9, $F9, $F3, $F3, $F7, $F7, $E7, $E7
-db $EF, $EF, $CF, $CF, $DF, $DF, $9F, $9F, $3F, $3F, $3F, $3F, $01, $01, $01, $01
-db $FF, $FF, $FF, $FF, $B3, $B3, $FF, $FF, $C7, $C7, $83, $83, $B3, $B3, $39, $39
-db $39, $39, $79, $79, $79, $79, $01, $01, $79, $79, $79, $79, $79, $79, $79, $79
-db $FF, $FF, $FF, $FF, $B3, $B3, $FF, $FF, $C7, $C7, $93, $93
-ds 16, $39
-db $93, $93, $C7, $C7, $FF, $FF, $FF, $FF, $B3, $B3, $FF, $FF
-ds 16, $79
-db $71, $71, $71, $71, $23, $23, $87, $87, $FF, $FF, $FF, $FF, $C7, $C7, $93, $93
-db $B9, $B9, $3D, $3D, $39, $39, $33, $33, $07, $07, $33, $33, $39, $39, $3D, $3D
-db $19, $19, $03, $03, $27, $27, $3F, $3F
-ds 16, $FF
-db $01, $01, $01, $01
-ds 26, $FF
-db $FE, $FE, $FE, $FE, $F8, $F8, $F8, $F8, $F8, $F8, $F8, $F8
-ds 10, $FF
-db $9F, $9F, $87, $87, $87, $87, $9B, $9B, $9B, $9B, $1F, $1F, $1F, $1F, $1F, $1F
-db $1F, $1F, $7F, $7F, $7F, $7F, $FE, $FE, $FE, $FE
-ds 12, $FF
-db $FC, $FC, $F3, $F3, $8F, $8F, $BF, $BF, $BE, $BE, $BE, $BE, $BF, $BF, $3F, $3F
-db $3F, $3F, $7F, $7F
-ds 10, $FF
-db $3F, $3F, $BF, $BF, $BF, $BF, $BF, $BF, $3F, $3F, $3F, $3F, $7E, $7E, $FC, $FC
-db $F8, $F8, $F9, $F9
-ds 12, $FF
-db $7F, $7F, $3F, $3F, $3F, $3F
-ds 10, $7F
-ds 12, $FF
-db $FB, $FB, $F9, $F9, $F9, $F9, $FA, $FA, $E3, $E3, $E3, $E3, $C3, $C3, $C7, $C7
-ds 22, $FF
-db $FE, $FE, $FD, $FD, $FC, $FC
-ds 10, $FD
-db $F9, $F9, $F9, $F9, $F3, $F3, $F3, $F3, $E7, $E7, $D7, $D7, $A7, $A7, $47, $47
-db $A7, $A7, $67, $67, $C7, $C7, $CF, $CF, $FF, $FF, $FF, $FF, $FC, $FC, $FC, $FC
-db $FC, $FC, $7C, $7C
-ds 10, $FF
-db $C7, $C7, $C3, $C3, $CB, $CB, $CF, $CF, $CF, $CF, $0F, $0F, $0F, $0F, $0F, $0F
-db $0F, $0F, $3F, $3F, $3F, $3F, $FF, $FF, $FF, $FF, $00, $00, $00, $00, $1F, $1F
-db $1F, $1F
-ds 32, $18
-db $1F, $1F, $1F, $1F, $00, $00, $00, $00, $00, $00, $00, $00, $FF, $FF, $FF, $FF
-ds 24, $7E
-db $18, $18, $18, $18, $18, $18, $18, $18, $FF, $FF, $FF, $FF, $00, $00, $00, $00
-db $00, $00, $00, $00, $FF, $FF, $FF, $FF, $18, $18, $18, $18, $18, $18, $18, $18
-db $00, $00, $00, $00, $F8, $F8, $F8, $F8
-ds 16, $18
-db $F8, $F8, $F8, $F8, $00, $00, $00, $00
 
-; 128 Tiles of Main Menu Font
+; 10 Tiles of 8x8 numeric characters
+; Loaded to: _TILEDATA8800 + (113 * TILE_SZ_BYTES)  ; $8F10    ; Start loading 113 tiles into 8800 range
+tile_data_0x275A_160_bytes_8x8_num_chars__275A_:
+INCBIN "res/tile_data_0x275A_160_bytes_8x8_num_chars.2bpp"
+
+
+; 115 Tiles of 8x16 font characters + some misc at the end
+; Loaded to _TILEDATA9000
+; Note: Code loading these accidentally(?) copies more tiles than are in the the tile
+;       set blob so it picks up the first 13 tiles of the following 8x8 font (at 0x2FA).
+tile_data_0x27fa_1840_bytes_8x16_font__27FA_:
+INCBIN "res/tile_data_0x27fa_1840_bytes_8x16_font.2bpp"
+
+
+; 128 Tiles of 8x8 Main Menu Font characters
 ; Loaded to _TILEDATA8800 during startup
-gfx_tile_data__main_menu_font_2F2A_:
+gfx_tile_data__main_menu_font__2F2A_:
 INCBIN "res/tile_data_0x2f2a_2048_bytes_main_menu_font.2bpp"
 
-; $00, $00, $00, $00, $08, $08, $1C, $1C
-; db $3E, $3E, $3E, $3E, $00, $00, $00, $00, $00, $00, $3C, $3C, $4E, $4E, $4E, $4E
-; db $7E, $7E, $4E, $4E, $4E, $4E, $00, $00, $00, $00, $7C, $7C, $66, $66, $7C, $7C
-; db $66, $66, $66, $66, $7C, $7C, $00, $00, $00, $00, $3C, $3C, $66, $66, $60, $60
-; db $60, $60, $66, $66, $3C, $3C, $00, $00, $00, $00, $7C, $7C, $4E, $4E, $4E, $4E
-; db $4E, $4E, $4E, $4E, $7C, $7C, $00, $00, $00, $00, $7E, $7E, $60, $60, $7C, $7C
-; db $60, $60, $60, $60, $7E, $7E, $00, $00, $00, $00, $7E, $7E, $60, $60, $60, $60
-; db $7C, $7C, $60, $60, $60, $60, $00, $00, $00, $00, $3C, $3C, $66, $66, $60, $60
-; db $6E, $6E, $66, $66, $3E, $3E, $00, $00, $00, $00, $46, $46, $46, $46, $7E, $7E
-; db $46, $46, $46, $46, $46, $46, $00, $00, $00, $00, $3C, $3C, $18, $18, $18, $18
-; db $18, $18, $18, $18, $3C, $3C, $00, $00, $00, $00, $1E, $1E, $0C, $0C, $0C, $0C
-; db $6C, $6C, $6C, $6C, $38, $38, $00, $00, $00, $00, $66, $66, $6C, $6C, $78, $78
-; db $78, $78, $6C, $6C, $66, $66, $00, $00, $00, $00
-; ds 10, $60
-; db $7E, $7E, $00, $00, $00, $00, $46, $46, $6E, $6E
-
-
-; _LABEL_3000_:
-;     ld   a, [hl]
-;     ld   a, [hl]
-; Data from 3002 to 3FFF (4094 bytes)
-; db $56, $56, $46, $46, $46, $46, $00, $00, $00, $00, $46, $46, $66, $66, $76, $76
-; db $5E, $5E, $4E, $4E, $46, $46, $00, $00, $00, $00, $3C, $3C, $66, $66, $66, $66
-; db $66, $66, $66, $66, $3C, $3C, $00, $00, $00, $00, $7C, $7C, $66, $66, $66, $66
-; db $7C, $7C, $60, $60, $60, $60, $00, $00, $00, $00, $3C, $3C, $62, $62, $62, $62
-; db $6A, $6A, $64, $64, $3A, $3A, $00, $00, $00, $00, $7C, $7C, $66, $66, $66, $66
-; db $7C, $7C, $68, $68, $66, $66, $00, $00, $00, $00, $3C, $3C, $60, $60, $3C, $3C
-; db $0E, $0E, $4E, $4E, $3C, $3C, $00, $00, $00, $00, $7E, $7E
-; ds 10, $18
-; db $00, $00, $00, $00, $46, $46, $46, $46, $46, $46, $46, $46, $4E, $4E, $3C, $3C
-; db $00, $00, $00, $00, $46, $46, $46, $46, $46, $46, $46, $46, $2C, $2C, $18, $18
-; db $00, $00, $00, $00, $46, $46, $46, $46, $56, $56, $7E, $7E, $6E, $6E, $46, $46
-; db $00, $00, $00, $00, $46, $46, $2C, $2C, $18, $18, $38, $38, $64, $64, $42, $42
-; db $00, $00, $00, $00, $66, $66, $66, $66, $3C, $3C, $18, $18, $18, $18, $18, $18
-; db $00, $00, $00, $00, $7E, $7E, $0E, $0E, $1C, $1C, $38, $38, $70, $70, $7E, $7E
-; db $00, $00, $00, $00, $44, $44, $30, $30, $7C, $7C, $4C, $4C, $7C, $7C, $4C, $4C
-; db $00, $00, $00, $00, $44, $44, $38, $38, $4C, $4C, $4C, $4C, $4C, $4C, $38, $38
-; db $00, $00, $66, $66, $00, $00, $46, $46, $46, $46, $46, $46, $4E, $4E, $3C, $3C
-; ds 10, $00
-; db $18, $18, $18, $18, $08, $08, $10, $10, $00, $00, $00, $00, $00, $00, $18, $18
-; db $18, $18
-; ds 20, $00
-; db $FF, $FF, $00, $00, $00, $00, $38, $38, $0C, $0C, $3C, $3C, $4C, $4C, $7E, $7E
-; db $00, $00, $00, $00, $60, $60, $60, $60, $78, $78, $64, $64, $64, $64, $78, $78
-; db $00, $00, $00, $00, $00, $00, $3C, $3C, $64, $64, $60, $60, $64, $64, $3C, $3C
-; db $00, $00, $00, $00, $0C, $0C, $0C, $0C, $3C, $3C, $4C, $4C, $4C, $4C, $3C, $3C
-; db $00, $00, $00, $00, $00, $00, $38, $38, $6C, $6C, $7C, $7C, $60, $60, $3C, $3C
-; db $00, $00, $00, $00, $1C, $1C, $30, $30, $7C, $7C, $30, $30, $30, $30, $30, $30
-; db $00, $00, $00, $00, $00, $00, $3C, $3C, $4C, $4C, $3C, $3C, $0C, $0C, $78, $78
-; db $00, $00, $00, $00, $60, $60, $60, $60, $78, $78, $6C, $6C, $6C, $6C, $6C, $6C
-; db $00, $00, $00, $00, $18, $18, $00, $00, $18, $18, $18, $18, $18, $18, $18, $18
-; db $00, $00, $00, $00, $0C, $0C, $00, $00, $0C, $0C, $0C, $0C, $2C, $2C, $3C, $3C
-; db $18, $18, $00, $00, $60, $60, $6C, $6C, $78, $78, $70, $70, $78, $78, $6C, $6C
-; db $00, $00, $00, $00
-; ds 12, $18
-; db $00, $00, $00, $00, $00, $00, $AC, $AC, $D6, $D6, $D6, $D6, $D6, $D6, $D6, $D6
-; db $00, $00, $00, $00, $00, $00, $58, $58, $6C, $6C, $6C, $6C, $6C, $6C, $6C, $6C
-; db $00, $00, $00, $00, $00, $00, $38, $38, $6C, $6C, $6C, $6C, $6C, $6C, $38, $38
-; db $00, $00, $00, $00, $00, $00, $78, $78, $6C, $6C, $6C, $6C, $78, $78, $60, $60
-; db $60, $60, $00, $00, $00, $00, $3C, $3C, $6C, $6C, $6C, $6C, $3C, $3C, $0C, $0C
-; db $0C, $0C, $00, $00, $00, $00, $58, $58, $74, $74, $60, $60, $60, $60, $60, $60
-; db $00, $00, $00, $00, $00, $00, $3C, $3C, $60, $60, $38, $38, $0C, $0C, $7C, $7C
-; db $00, $00, $00, $00, $30, $30, $7C, $7C, $30, $30, $30, $30, $34, $34, $18, $18
-; db $00, $00, $00, $00, $00, $00, $6C, $6C, $6C, $6C, $6C, $6C, $6C, $6C, $3A, $3A
-; db $00, $00, $00, $00, $00, $00, $6C, $6C, $6C, $6C, $6C, $6C, $38, $38, $10, $10
-; db $00, $00, $00, $00, $00, $00, $C6, $C6, $D6, $D6, $D6, $D6, $EE, $EE, $44, $44
-; db $00, $00, $00, $00, $00, $00, $66, $66, $3C, $3C, $18, $18, $3C, $3C, $66, $66
-; db $00, $00, $00, $00, $00, $00, $22, $22, $36, $36, $1C, $1C, $0C, $0C, $18, $18
-; db $70, $70, $00, $00, $00, $00, $7C, $7C, $18, $18, $30, $30, $60, $60, $7C, $7C
-; db $00, $00, $00, $00, $44, $44, $38, $38, $0C, $0C, $3C, $3C, $4C, $4C, $3E, $3E
-; db $00, $00, $00, $00, $24, $24, $18, $18, $2C, $2C, $2C, $2C, $2C, $2C, $18, $18
-; db $00, $00, $6C, $6C, $00, $00, $00, $00, $6C, $6C, $6C, $6C, $6C, $6C, $3A, $3A
-; ds 20, $00
-; db $7C, $7C, $4C, $4C, $0C, $0C, $38, $38, $00, $00, $38, $38, $00, $00, $00, $00
-; db $3E, $3E, $67, $67, $6B, $6B, $6B, $6B, $73, $73, $3E, $3E, $00, $00, $00, $00
-; db $18, $18, $38, $38, $18, $18, $18, $18, $18, $18, $3C, $3C, $00, $00, $00, $00
-; db $3C, $3C, $4E, $4E, $0E, $0E, $3C, $3C, $70, $70, $7E, $7E, $00, $00, $00, $00
-; db $7C, $7C, $0E, $0E, $3C, $3C, $0E, $0E, $0E, $0E, $7C, $7C, $00, $00, $00, $00
-; db $3C, $3C, $6C, $6C, $4C, $4C, $4E, $4E, $7E, $7E, $0C, $0C, $00, $00, $00, $00
-; db $7C, $7C, $60, $60, $7C, $7C, $0E, $0E, $4E, $4E, $3C, $3C, $00, $00, $00, $00
-; db $3C, $3C, $60, $60, $7C, $7C, $66, $66, $66, $66, $3C, $3C, $00, $00, $00, $00
-; db $7E, $7E, $06, $06, $0C, $0C, $18, $18, $38, $38, $38, $38, $00, $00, $00, $00
-; db $3C, $3C, $4E, $4E, $3C, $3C, $4E, $4E, $4E, $4E, $3C, $3C, $00, $00, $00, $00
-; db $3C, $3C, $4E, $4E, $4E, $4E, $3E, $3E, $0E, $0E, $3C, $3C, $00, $00, $00, $00
-; db $00, $00, $10, $10, $10, $10, $10, $7C, $10, $10, $10, $10
-; ds 10, $00
-; db $7C, $7C
-; ds 10, $00
-; db $44, $44, $28, $28, $10, $10, $28, $28, $44, $44, $00, $00, $00, $00, $00, $00
-; db $10, $10, $00, $00, $7C, $7C, $00, $00, $10, $10, $00, $00, $00, $00, $00, $00
-; db $00, $00, $7C, $7C, $00, $00, $7C, $7C, $00, $00, $00, $00, $00, $00, $1E, $1E
-; db $18, $18, $18, $18, $58, $58, $38, $38, $18, $18, $00, $00, $00, $00, $18, $18
-; db $00, $00, $38, $38, $70, $70, $72, $72, $76, $76, $3C, $3C, $00, $00, $18, $18
-; db $00, $00, $18, $18, $3C, $3C, $3C, $3C, $3C, $3C, $18, $18, $00, $00, $30, $30
-; ds 10, $60
-; db $30, $30, $00, $00, $0C, $0C
-; ds 10, $06
-; db $0C, $0C, $00, $00, $3C, $3C, $0C, $0C, $34, $34, $3A, $3A, $00, $00, $3C, $3C
-; db $00, $00, $34, $34, $28, $28, $46, $46, $66, $66, $76, $76, $5E, $5E, $4E, $4E
-; db $00, $00, $18, $18, $60, $60, $38, $38, $4C, $4C, $4C, $4C, $7C, $7C, $4C, $4C
-; db $00, $00, $0C, $0C, $30, $30, $7E, $7E, $60, $60, $7C, $7C, $60, $60, $7E, $7E
-; db $00, $00, $0C, $0C, $30, $30, $3C, $3C, $18, $18, $18, $18, $18, $18, $3C, $3C
-; db $00, $00, $0C, $0C, $30, $30, $3C, $3C, $66, $66, $66, $66, $66, $66, $3C, $3C
-; db $00, $00, $0C, $0C, $10, $10, $46, $46, $46, $46, $46, $46, $4E, $4E, $3C, $3C
-; db $00, $00, $00, $00, $18, $18, $34, $34, $3C, $3C, $18, $18, $00, $00, $3C, $3C
-; db $00, $00, $68, $68, $50, $50, $00, $00, $58, $58, $6C, $6C, $6C, $6C, $6C, $6C
-; db $00, $00, $18, $18, $60, $60, $00, $00, $78, $78, $18, $18, $68, $68, $74, $74
-; db $00, $00, $0C, $0C, $30, $30, $00, $00, $3C, $3C, $4C, $4C, $70, $70, $3C, $3C
-; db $00, $00, $0C, $0C, $30, $30, $00, $00, $38, $38, $18, $18, $18, $18, $3C, $3C
-; db $00, $00, $0C, $0C, $30, $30, $00, $00, $3C, $3C, $66, $66, $66, $66, $3C, $3C
-; db $00, $00, $18, $18, $60, $60, $00, $00, $6C, $6C, $6C, $6C, $6C, $6C, $3A, $3A
-; db $00, $00, $FF, $FF, $FF, $FF, $00, $00, $18, $18, $18, $18, $00, $00, $FF, $FF
-; db $FF, $FF, $00, $FF, $00, $C3, $00, $99, $00, $99, $00, $99, $00, $99, $00, $C3
-; db $00, $FF, $00, $FF, $00, $E7, $00, $C7, $00, $E7, $00, $E7, $00, $E7, $00, $C3
-; db $00, $FF, $00, $FF, $00, $C3, $00, $B1, $00, $F1, $00, $C3, $00, $8F, $00, $81
-; db $00, $FF, $00, $FF, $00, $83, $00, $F1, $00, $C3, $00, $F1, $00, $F1, $00, $83
-; db $00, $FF, $00, $FF, $00, $C3, $00, $93, $00, $B3, $00, $B1, $00, $81, $00, $F3
-; db $00, $FF, $00, $FF, $00, $83, $00, $9F, $00, $83, $00, $F1, $00, $B1, $00, $C3
-; db $00, $FF, $00, $FF, $00, $C3, $00, $9F, $00, $83, $00, $99, $00, $99, $00, $C3
-; db $00, $FF, $00, $FF, $00, $81, $00, $F9, $00, $F3, $00, $E7, $00, $C7, $00, $C7
-; db $00, $FF, $00, $FF, $00, $C3, $00, $B1, $00, $C3, $00, $B1, $00, $B1, $00, $C3
-; db $00, $FF, $00, $FF, $00, $C3, $00, $B1, $00, $B1, $00, $C1, $00, $F1, $00, $C3
-; db $00, $FF, $00, $00, $00, $00, $00, $00, $1E, $1E, $21, $21, $4C, $4C, $42, $42
-; db $43, $43, $00, $00, $00, $00, $00, $00, $00, $00, $FC, $FC, $82, $82, $FC, $FC
-; db $90, $90, $04, $04, $03, $03, $44, $44, $23, $23, $10, $10, $0F, $0F, $00, $00
-; db $00, $00, $10, $10, $F0, $F0, $20, $20, $E0, $E0, $40, $40, $C0, $C0, $00, $00
-; db $00, $00, $00, $00, $06, $06, $0C, $0C, $18, $18, $30, $30, $60, $60, $40, $40
-; db $00, $00, $00, $00, $00, $00, $00, $00, $07, $07, $18, $18, $20, $20, $40, $40
-; db $40, $40, $00, $00, $00, $00, $00, $00, $FF, $FF
-; ds 14, $00
-; db $E0, $E0, $18, $18, $04, $04, $02, $02, $02, $02
-; ds 16, $80
-; ds 16, $00
-; ds 16, $01
-; db $40, $40, $40, $40, $20, $20, $18, $18, $07, $07
-; ds 14, $00
-; db $FF, $FF, $00, $00, $00, $00, $00, $00, $02, $02, $02, $02, $04, $04, $18, $18
-; db $E0, $E0, $00, $00, $00, $00, $00, $00
-; ds 16, $FF
-; db $28, $28, $28, $28, $7C, $7C, $28, $28, $7C, $7C, $28, $28, $28, $28, $00, $00
-; db $00, $00, $00, $00, $3E, $3E, $3E, $3E, $1C, $1C, $08, $08, $00, $00, $00, $00
-; db $00, $00, $00, $00, $18, $18, $18, $18, $00, $00, $18, $18, $18, $18
-; ds 14, $00
-; db $FF, $FF, $FF, $FF
 
 _DATA_372A_:
 db $00, $00, $18, $18, $18, $18, $18, $18, $18, $18, $00, $00
@@ -3241,54 +2971,13 @@ db $18, $18, $18, $18, $08, $08, $08, $08, $10, $10
 ds 14, $00
 db $18, $18, $18, $18
 ds 44, $00
-db $FF, $FF, $FB, $00, $F9, $00, $F9, $00, $FA, $00, $FB, $00, $F3, $00, $E3, $00
-db $E7, $00, $FF, $00, $FF, $00, $FF, $07, $FF, $18, $F9, $21, $E1, $41, $E1, $41
-db $C3, $83, $FF, $00, $FF, $00, $FF, $F8, $FE, $08, $FC, $08, $FC, $88, $5A, $48
-db $19, $08, $FF, $00, $FF, $03, $EF, $04, $DC, $18, $7C, $20, $60, $30, $40, $78
-db $40, $7C, $C7, $87, $86, $06, $00, $00, $03, $03, $07, $07, $0F, $0F, $0C, $0C
-db $08, $08, $09, $08, $08, $08, $E8, $E8, $F8, $F8, $F8, $F8, $78, $78, $18, $18
-db $08, $08, $46, $78, $7F, $7F, $55, $55, $55, $55, $40, $40, $7F, $7F, $00, $00
-db $00, $00, $09, $09, $E8, $E8, $4A, $4A, $4D, $4D, $1C, $1C, $DA, $DA, $21, $21
-db $03, $03, $48, $48, $08, $08, $28, $28, $58, $58, $9C, $9C, $2C, $2C, $42, $42
-db $E0, $E0, $FF, $00, $DF, $00, $CF, $00, $D7, $04, $DF, $06, $9F, $05, $1F, $04
-db $1F, $0C, $FF, $00, $FF, $00, $FF, $07, $FF, $18, $F8, $20, $E0, $40, $E0, $40
-db $C0, $80, $FF, $00, $FF, $00, $FF, $F8, $FF, $08, $1F, $08, $1F, $08, $1F, $08
-db $FF, $F0, $FF, $1C, $FF, $1B, $FF, $04, $FC, $18, $78, $20, $60, $30, $40, $78
-db $40, $7C, $DF, $9F, $BE, $3E, $3C, $3C, $3E, $3E, $1E, $1E, $00, $00, $07, $07
-db $07, $07, $FF, $FC, $1F, $1E, $0F, $0E, $0F, $0E, $1F, $1E, $7F, $7C, $FF, $F0
-db $CF, $C8, $67, $58, $7F, $7F, $55, $55, $55, $55, $40, $40, $7F, $7F, $00, $00
-db $00, $00, $E0, $00, $FB, $FB, $57, $57, $53, $53, $00, $00, $FF, $FF, $00, $00
-db $00, $00, $0D, $08, $C9, $C8, $EA, $E8, $CA, $C8, $0B, $08, $FF, $F8, $1E, $00
-db $20, $00, $BF, $00, $9F, $00, $AF, $00, $3F, $00, $3F, $01, $7F, $03, $7F, $00
-db $FF, $00, $FF, $00, $FF, $80, $FF, $C7, $FF, $98, $F8, $A0, $E0, $40, $F0, $50
-db $D8, $98, $FF, $00, $FF, $00, $FF, $F8, $FF, $08, $1F, $08, $1F, $08, $3F, $08
-db $3F, $08, $FF, $00, $FF, $03, $FF, $04, $FC, $18, $70, $20, $60, $30, $40, $78
-db $40, $70, $D4, $94, $90, $10, $30, $30, $70, $70, $F0, $F0, $E1, $E0, $03, $00
-db $0E, $01, $3F, $08, $3F, $08, $7F, $08, $7F, $28, $7F, $28, $EF, $78, $EF, $F8
-db $7F, $A8, $67, $58, $7F, $7F, $55, $55, $55, $55, $40, $40, $7F, $7F, $00, $00
-db $00, $00, $DD, $03, $FF, $FF, $55, $55, $55, $55, $00, $00, $FF, $FF, $00, $00
-db $00, $00, $7D, $08, $FC, $F8, $5A, $58, $58, $58, $08, $08, $F8, $F8, $00, $00
-db $00, $00, $DF, $00, $CF, $00, $D7, $00, $DE, $00, $DE, $00, $DE, $00, $9E, $00
-db $1C, $00, $FF, $00, $FF, $00, $FF, $07, $FF, $18, $7F, $21, $F9, $41, $F1, $41
-db $E3, $83, $FF, $00, $FF, $00, $FC, $FC, $FC, $04, $DC, $04, $9C, $84, $5C, $44
-db $1C, $04, $38, $00, $FB, $03, $FD, $06, $FA, $1C, $EC, $30, $E8, $30, $C4, $78
-db $40, $7C, $C7, $87, $C6, $06, $80, $00, $00, $00, $00, $00, $35, $35, $7F, $7F
-db $FE, $80, $1C, $04, $1C, $04, $1C, $04, $1A, $02, $1C, $04, $5C, $54, $FE, $FE
-db $39, $01, $4E, $70, $7F, $7F, $55, $55, $55, $55, $40, $40, $7F, $7F, $00, $00
-db $00, $00, $E0, $80, $D8, $98, $EC, $AC, $F5, $B4, $9A, $98, $80, $80, $7F, $7F
-db $00, $00, $41, $01, $9B, $19, $AF, $2D, $37, $35, $1B, $19, $3F, $01, $FE, $FE
-db $00, $00, $00, $00, $00, $00, $00, $00, $07, $07, $08, $08, $09, $09, $09, $09
-db $09, $09, $00, $00, $00, $00, $00, $00, $F0, $F0, $08, $08, $84, $84, $24, $24
-db $94, $94
-ds 10, $00
-db $01, $01, $00, $00, $01, $01, $30, $30, $40, $40, $A0, $A0, $A0, $A0, $80, $80
-db $EF, $EF, $24, $3C, $18, $18, $02, $02, $01, $01, $00, $00, $00, $00, $00, $00
-db $CF, $DF, $24, $3C, $18, $18, $00, $00, $06, $06, $8D, $8D, $99, $9B, $B7, $BF
-db $9C, $9C, $01, $01, $08, $08, $00, $00, $F0, $F0, $07, $07
-ds 12, $00
-db $0F, $0F, $E0, $E0, $01, $01
-ds 10, $00
-db $C0, $C0, $00, $00, $F8, $F8, $00, $00, $00, $00, $00, $00, $00, $00
+db $FF, $FF,
+
+; ; 45 Tiles of ...?
+; ; Loaded to _TILEDATA9000 from _LABEL_711A_
+tile_data_0x40ba_720_bytes__40BA_:
+INCBIN "res/tile_data_0x40ba_720_bytes.2bpp"
+
 
 ; Data from 438A to 4819 (1168 bytes)
 _DATA_438A_:
@@ -4353,17 +4042,20 @@ _LABEL_4D94_:
     call wait_until_vbl__92C_
     call display_screen_off__94C_
     ld   hl, _TILEDATA8800                         ; Dest
-    ld   de, gfx_tile_data__main_menu_font_2F2A_   ; Source
+    ld   de, gfx_tile_data__main_menu_font__2F2A_   ; Source
     ld   bc, (MENU_FONT_128_TILES * TILE_SZ_BYTES) ; Copy size: 128 tiles (2048 bytes)
     call _memcopy_in_RAM__C900_
 
-    ; TODO: GFX Loading 128 Tiles
+    ; GFX Loading 128 Tiles (only 115 intended though?) of 8x16 font
+    ;
+    ; Note: This accidentally(?) copies more tiles than are in the the tile
+    ;       set blob so it picks up the first 13 tiles of the  following 8x8 font (at 0x2FA).
     call wait_until_vbl__92C_
     call display_screen_off__94C_
-    ld   hl, _TILEDATA9000                          ; Dest
-    ld   de, $27FA
-    ld   bc, (128 * TILE_SZ_BYTES) ; Copy size: 128 tiles (2048 bytes)
-    call _memcopy_in_RAM__C900_ ; Possibly invalid
+    ld   hl, _TILEDATA9000                                ; Dest
+    ld   de, tile_data_0x27fa_1840_bytes_8x16_font__27FA_ ; Source
+    ld   bc, (128 * TILE_SZ_BYTES)                        ; Copy size: 128 tiles (2048 bytes)
+    call _memcopy_in_RAM__C900_
 
     ld   hl, _RAM_D028_
     ld   de, _RAM_D074_ + 1 ; _RAM_D074_ + 1 = $D075
@@ -4371,11 +4063,14 @@ _LABEL_4D94_:
     call _LABEL_482B_
 _LABEL_4DCD_:
     call _LABEL_4875_
+
+    ; Load 10 8x8 numeric character Tiles
     call wait_until_vbl__92C_
     call display_screen_off__94C_
-    ld   hl, _DATA_275A_
-    ld   de, $8F10
-    ld   b, $A0
+    ld   hl, tile_data_0x275A_160_bytes_8x8_num_chars__275A_   ;Source
+    ld   de, _TILEDATA8800 + (113 * TILE_SZ_BYTES)  ; $8F10    ; Start loading 113 tiles into 8800 range
+    ld   b, $A0                                                ; Copy size: 10 tiles (160 bytes)
+
     call _LABEL_482B_
     ld   hl, $9820
     ld   bc, $1002
@@ -5717,7 +5412,7 @@ _LABEL_57D5_:
     ; Load Tile Data for the main menu font
     call wait_until_vbl__92C_
     call display_screen_off__94C_
-    ld   de, gfx_tile_data__main_menu_font_2F2A_ ; Source
+    ld   de, gfx_tile_data__main_menu_font__2F2A_ ; Source
     ld   bc, $0000                               ; No source and no dest offset (0/0)
     ld   hl, _TILEDATA8800                       ; Dest
     ld   a, MENU_FONT_128_TILES                  ; Copy size: 128 tiles (2048 bytes)
@@ -6590,7 +6285,7 @@ _LABEL_5E61_:
 
     ; Load last character (underscore) Tile from the main menu font
     ; to Tile Num 0x7B in 0x8800 range
-    ld   de, gfx_tile_data__main_menu_font_2F2A_ ; Source
+    ld   de, gfx_tile_data__main_menu_font__2F2A_ ; Source
     ld   b, $7F                                  ; Offset +127 tiles (last char)
     ld   hl, _TILEDATA8800                       ; Dest
     ld   c, $7B                                  ; Offset 0x8800 + 0x7B0 = 8FB0
@@ -7897,19 +7592,20 @@ db $95, $8D, $81, $BE, $84, $85, $00, $BE, $BE, $BE, $BE, $84, $89, $82, $95, $8
     db $8F, $00, $86, $C7, $FE, $BE, $86, $8C, $85, $83, $88, $81, $00
 
 _LABEL_711A_:
-        ; TODO: GFX Loading 128 Tiles
+        ; GFX Loading 128 Tiles (but 45 are valid at start, then a whole separate block, then some code at the end)
+        ; Seems to load at least some garbage tiles...
         call wait_until_vbl__92C_
         call display_screen_off__94C_
-        ld   hl, _TILEDATA9000                          ; Dest
-        ld   de, $40BA
-        ld   bc, (128 * TILE_SZ_BYTES) ; Copy size: 128 tiles (2048 bytes)
+        ld   hl, _TILEDATA9000                     ; Dest
+        ld   de, tile_data_0x40ba_720_bytes__40BA_ ; $40BA
+        ld   bc, (128 * TILE_SZ_BYTES)             ; Copy size: 128 tiles (2048 bytes)
         call _memcopy_in_RAM__C900_
 
         ; Load Tile Data for the main menu font
         call wait_until_vbl__92C_
         call display_screen_off__94C_
         ld   hl, _TILEDATA8800                         ; Dest
-        ld   de, gfx_tile_data__main_menu_font_2F2A_   ; Source
+        ld   de, gfx_tile_data__main_menu_font__2F2A_   ; Source
         ld   bc, (MENU_FONT_128_TILES * TILE_SZ_BYTES) ; Copy size: 128 tiles (2048 bytes)
         call _memcopy_in_RAM__C900_
 
@@ -7953,16 +7649,19 @@ _LABEL_7185_:
         call wait_until_vbl__92C_
         call display_screen_off__94C_
         ld   hl, _TILEDATA8800                         ; Dest
-        ld   de, gfx_tile_data__main_menu_font_2F2A_   ; Source
+        ld   de, gfx_tile_data__main_menu_font__2F2A_   ; Source
         ld   bc, (MENU_FONT_128_TILES * TILE_SZ_BYTES) ; Copy size: 128 tiles (2048 bytes)
         call _memcopy_in_RAM__C900_
 
-        ; TODO: GFX Loading 128 Tiles
+        ; GFX Loading 128 Tiles (only 115 intended though?) of 8x16 font
+        ;
+        ; Note: This accidentally(?) copies more tiles than are in the the tile
+        ;       set blob so it picks up the first 13 tiles of the  following 8x8 font (at 0x2FA).
         call wait_until_vbl__92C_
         call display_screen_off__94C_
-        ld   hl, _TILEDATA9000                          ; Dest
-        ld   de, $27FA
-        ld   bc, (128 * TILE_SZ_BYTES) ; Copy size: 128 tiles (2048 bytes)
+        ld   hl, _TILEDATA9000                                ; Dest
+        ld   de, tile_data_0x27fa_1840_bytes_8x16_font__27FA_ ; Source
+        ld   bc, (128 * TILE_SZ_BYTES)                        ; Copy size: 128 tiles (2048 bytes)
         call _memcopy_in_RAM__C900_
 
         call _LABEL_7691_
@@ -8049,16 +7748,19 @@ _LABEL_7242_:
         call wait_until_vbl__92C_
         call display_screen_off__94C_
         ld   hl, _TILEDATA8800                         ; Dest
-        ld   de, gfx_tile_data__main_menu_font_2F2A_   ; Source
+        ld   de, gfx_tile_data__main_menu_font__2F2A_   ; Source
         ld   bc, (MENU_FONT_128_TILES * TILE_SZ_BYTES) ; Copy size: 128 tiles (2048 bytes)
         call _memcopy_in_RAM__C900_
 
-        ; TODO: GFX Loading 128 Tiles
+        ; GFX Loading 128 Tiles (only 115 intended though?) of 8x16 font
+        ;
+        ; Note: This accidentally(?) copies more tiles than are in the the tile
+        ;       set blob so it picks up the first 13 tiles of the  following 8x8 font (at 0x2FA).
         call wait_until_vbl__92C_
         call display_screen_off__94C_
-        ld   hl, _TILEDATA9000                          ; Dest
-        ld   de, $27FA
-        ld   bc, (128 * TILE_SZ_BYTES) ; Copy size: 128 tiles (2048 bytes)
+        ld   hl, _TILEDATA9000                                ; Dest
+        ld   de, tile_data_0x27fa_1840_bytes_8x16_font__27FA_ ; Source
+        ld   bc, (128 * TILE_SZ_BYTES)                        ; Copy size: 128 tiles (2048 bytes)
         call _memcopy_in_RAM__C900_
 
         call _LABEL_4875_
@@ -8306,16 +8008,19 @@ _LABEL_741D_:
         call wait_until_vbl__92C_
         call display_screen_off__94C_
         ld   hl, _TILEDATA8800                         ; Dest
-        ld   de, gfx_tile_data__main_menu_font_2F2A_   ; Source
+        ld   de, gfx_tile_data__main_menu_font__2F2A_   ; Source
         ld   bc, (MENU_FONT_128_TILES * TILE_SZ_BYTES) ; Copy size: 128 tiles (2048 bytes)
         call _memcopy_in_RAM__C900_
 
-        ; TODO: GFX Loading 128 Tiles
+        ; GFX Loading 128 Tiles (only 115 intended though?) of 8x16 font
+        ;
+        ; Note: This accidentally(?) copies more tiles than are in the the tile
+        ;       set blob so it picks up the first 13 tiles of the  following 8x8 font (at 0x2FA).
         call wait_until_vbl__92C_
         call display_screen_off__94C_
-        ld   hl, _TILEDATA9000                          ; Dest
-        ld   de, $27FA
-        ld   bc, (128 * TILE_SZ_BYTES) ; Copy size: 128 tiles (2048 bytes)
+        ld   hl, _TILEDATA9000                                ; Dest
+        ld   de, tile_data_0x27fa_1840_bytes_8x16_font__27FA_ ; Source
+        ld   bc, (128 * TILE_SZ_BYTES)                        ; Copy size: 128 tiles (2048 bytes)
         call _memcopy_in_RAM__C900_
 
         call _LABEL_7691_
@@ -8715,7 +8420,7 @@ _LABEL_7733_:
         call wait_until_vbl__92C_
         call display_screen_off__94C_
         ld   hl, _TILEDATA8800                         ; Dest
-        ld   de, gfx_tile_data__main_menu_font_2F2A_   ; Source
+        ld   de, gfx_tile_data__main_menu_font__2F2A_   ; Source
         ld   bc, (MENU_FONT_128_TILES * TILE_SZ_BYTES) ; Copy size: 128 tiles (2048 bytes)
         call _memcopy_in_RAM__C900_
 
