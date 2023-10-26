@@ -16,6 +16,9 @@ _PORT_60_ EQU $60
 ; TODO: add _ to the front of all these defs
 
 ; MegaDuck QuiQue specific defines
+
+include "char_constants.inc"
+
 ; Megaduck QuiQue System ROM Bank Switching
 ; 32K bank selected by writing to 0x1000
 DEF rROMB_SWITCH_MEGADUCK_QUIQUE  EQU $1000
@@ -32,11 +35,6 @@ DEF TIMER_DIV_TO_20HZ             EQU ($100 - 201)
 
 DEF COLS_0WHT_1LGRY_2DGRY_3BLK    EQU ((%11 << 6) | (%10 << 4) | (%01 << 2) | %00) ; $E4
 DEF COLS_0BLK_1DGRY_2LGRY_3WHT    EQU ((%00 << 6) | (%01 << 4) | (%10 << 2) | %11) ; $1B
-
-DEF STR_TERMINATOR                EQU $00
-DEF CHAR_BLANKSPACE               EQU $BE
-DEF CHAR_TEXTBOX_START            EQU $F2
-DEF CHAR_COLON                    EQU $FE
 
 DEF PRINT_NORMAL                  EQU $01
 DEF PRINT_ERASE                   EQU $00
@@ -309,7 +307,7 @@ SECTION "wram_d411", WRAMX[$D411]
 _RAM_D411_: db
 
 SECTION "wram_d6d0", WRAMX[$D6D0]
-_RAM_D6D0_: db
+maybe_text_buffer__RAM_D6D0_: ds 16  ; maybe used for strings... printing buffer?
 
 SECTION "wram_d6e0", WRAMX[$D6E0]
 _RAM_D6E0_: db
@@ -324,7 +322,7 @@ SECTION "wram_d6e7", WRAMX[$D6E7]
 _rombank_readbyte_result__D6E7_: db  ; Read by calling _switch_bank_read_byte_at_hl_ROM__80C_ / _RAM_C980_
 
 SECTION "wram_d6f0", WRAMX[$D6F0]
-_RAM_D6F0_: db
+_RAM_D6F0_: db    ; maybe 16 bytes, maybe used for strings
 
 SECTION "wram_d715", WRAMX[$D715]
 _RAM_D715_: db
