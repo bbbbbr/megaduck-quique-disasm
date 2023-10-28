@@ -3160,7 +3160,7 @@ display_clear_screen_with_space_char__4875_:
     call display_screen_off__94C_
     ld   hl, _TILEMAP0; $9800
     clear_tilemap0_loop__487E_:
-        ld   a, CHAR_BLANKSPACE  ; $BE
+        ld   a, FONT_BLANKSPACE  ; $BE
         ldi  [hl], a
         ld   a, h
         cp   HIGH(_TILEMAP1) ; $9C
@@ -3602,7 +3602,7 @@ render_string_at_de_to_tilemap0_xy_in_hl__4A46_:
         inc  de
         cp   STR_TERMINATOR  ; $00
         ret  z
-        ld   a, CHAR_BLANKSPACE  ; $BE
+        ld   a, FONT_BLANKSPACE  ; $BE
         ldi  [hl], a
         jr   _loop_erase_chars_to_tilemap__4A68_
 
@@ -6334,7 +6334,7 @@ _LABEL_5E61_:
     ld   a, $18
     ld   [_RAM_D03B_], a
 
-    ld   a, CHAR_BLANKSPACE  ; $BE
+    ld   a, FONT_BLANKSPACE  ; $BE
     ld   b, $10
     ld   hl, maybe_text_buffer__RAM_D6D0_
     loop_fill_with_spaces__5E93_:
@@ -6391,7 +6391,7 @@ _LABEL_5EEA_:
     cp   $3E
     jr   nz, _LABEL_5F13_
     ld   a, [maybe_text_buffer__RAM_D6D0_]
-    cp   CHAR_BLANKSPACE  ; $BE
+    cp   FONT_BLANKSPACE  ; $BE
     jp   z, _LABEL_5E9A_
     ld   a, [_RAM_D03B_]
     sub  $08
@@ -6410,7 +6410,7 @@ _LABEL_5F13_:
     cp   $3F
     jr   nz, _LABEL_5F34_
     ld   a, [maybe_text_buffer__RAM_D6D0_]
-    cp   CHAR_BLANKSPACE  ; $BE
+    cp   FONT_BLANKSPACE  ; $BE
     jp   z, _LABEL_5E9A_
     ld   a, [_RAM_D03B_]
     add  $08
@@ -6476,65 +6476,65 @@ _LABEL_5F7A_:
     ld   a, $CB
     ld   [maybe_input_key_new_pressed__RAM_D025_], a
     _LABEL_5F93_:
-        cp   CHAR_BLANKSPACE  ; $BE
+        cp   FONT_BLANKSPACE  ; $BE
         jr   nz, char_not_blankspace__5FA1_
 
         ld   a, [_RAM_D03B_]
         cp   $18
         jp   z, _LABEL_5E9A_
-        ld   a, CHAR_BLANKSPACE        ; $BE
+        ld   a, FONT_BLANKSPACE        ; $BE
     char_not_blankspace__5FA1_:
 
-        ; if (char < A..Z) [aka is: CHAR_UPARROW]
-        cp   CHAR_UPPERCASE_FIRST      ; $81
+        ; if (char < A..Z) [aka is: FONT_UPARROW]
+        cp   FONT_UPPERCASE_FIRST      ; $81
         jp   c, _LABEL_5E9A_
 
         ; if (char < ,._) [aka is: A..Z uppercase]
-        cp   (CHAR_UPPERCASE_LAST + 1) ; $9E ; (aka CHAR_COMMA)
+        cp   (FONT_UPPERCASE_LAST + 1) ; $9E ; (aka FONT_COMMA)
         jr   c, maybe_handle_alpha_chars__5FDA_
 
         ; if (char < a..z) [aka is: ,._]
-        cp   CHAR_LOWERCASE_FIRST      ; $A1
+        cp   FONT_LOWERCASE_FIRST      ; $A1
         jp   c, _LABEL_5E9A_
 
         ; if (char >= ?) [aka is: ?,0-9,and higher (upper 65 chars)]
-        cp   CHAR_QUESTIONMARK        ; $BF
+        cp   FONT_QUESTIONMARK        ; $BF
         jp   nc, _LABEL_5FBF_
 
-        cp   CHAR_BLANKSPACE  ; $BE
+        cp   FONT_BLANKSPACE  ; $BE
         jr   z, maybe_handle_alpha_chars__5FDA_
 
         ; What remains are Lower Case characters
         ; Convert them to Upper Case
         ; Save the result
-        sub  CHAR_LOWER_TO_UPPER_SUB  ; $20
+        sub  FONT_LOWER_TO_UPPER_SUB  ; $20
         ld   [maybe_input_key_new_pressed__RAM_D025_], a
         jr   maybe_handle_alpha_chars__5FDA_
 
     _LABEL_5FBF_:
         ; Is this a bug that they used $D6 (A-Tilde) instead of the $D5 (N-Tilde) that starts the upper-case tilde chars?
         ; if (char < uppercase A-Tilde) [aka is: a whole bunch, chars 63 - 85]
-        cp   (CHAR_UPPER_TILDE_FIRST + 1) ; $D6
+        cp   (FONT_UPPER_TILDE_FIRST + 1) ; $D6
         jp   c, _LABEL_5E9A_
 
         ; if (char < jot-underbar) [aka is: upper case tilde]
-        cp   (CHAR_UPPER_TILDE_LAST + 1)  ; $DB
+        cp   (FONT_UPPER_TILDE_LAST + 1)  ; $DB
         jr   c, maybe_handle_alpha_chars__5FDA_
-        ; if (char == CHAR_JOT_UNDERBAR_MAYBE)
+        ; if (char == FONT_JOT_UNDERBAR_MAYBE)
         jp   z, _LABEL_5E9A_
 
         ; if (char >= dot between bars) [aka is: dot-bars, color inverted 0-9,and higher
-        cp   CHAR_DOT_BETWEEN_BARS_MAYBE  ; $E2
+        cp   FONT_DOT_BETWEEN_BARS_MAYBE  ; $E2
         jp   nc, _LABEL_5E9A_
 
         ; if (char < lowercase a-Tilde) skip over lower -> upper adjustment
-        cp   CHAR_LOWER_TILDE_FIRST  ; $DC
+        cp   FONT_LOWER_TILDE_FIRST  ; $DC
         jp   c, maybe_handle_alpha_chars__5FDA_
 
         ; What remains are Lower Case Tilde characters
         ; Convert them to Upper Case Tilde characters
         ; Save the result
-        sub  CHAR_TILDE_LOWER_TO_UPPER_SUB  ; $07
+        sub  FONT_TILDE_LOWER_TO_UPPER_SUB  ; $07
         ld   [maybe_input_key_new_pressed__RAM_D025_], a
 
     ; Seems to handle A-Z + Tilde + space characters
@@ -6550,7 +6550,7 @@ _LABEL_5F7A_:
         ld   [_RAM_D04B_], a
 
         ; Fill maybe_text_buffer__RAM_D6D0_ with blank spaces (clear it out probably)
-        ld   a, CHAR_BLANKSPACE  ; $BE
+        ld   a, FONT_BLANKSPACE  ; $BE
         ld   b, $10
         ld   hl, maybe_text_buffer__RAM_D6D0_
         loop_fill_with_spaces__5FF7_:
@@ -6577,7 +6577,7 @@ _LABEL_5F7A_:
     _LABEL_6022_:
         ld   hl, maybe_text_buffer__RAM_D6D0_
         ld   a, [hl]
-        cp   CHAR_BLANKSPACE  ; $BE
+        cp   FONT_BLANKSPACE  ; $BE
         jp   z, _LABEL_5E9A_
         ld   a, $0F
         ld   [_RAM_D717_], a
@@ -7692,7 +7692,7 @@ drawing_app_help_menu_show__6FED_:
         ; Make a textbox
         ld   bc, $0104             ; Start at 1,4 (x,y) in tiles
         ld   de, $120E             ; Width, Height in tiles
-        ld   a, CHAR_TEXTBOX_START ; $F2
+        ld   a, FONT_TEXTBOX_START ; $F2
         ld   hl, _TILEMAP0         ; $9800
         call display_textbox_draw_xy_in_bc_wh_in_de_st_id_in_a__48EB_
 
