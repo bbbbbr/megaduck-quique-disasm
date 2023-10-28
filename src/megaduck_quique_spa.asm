@@ -17,7 +17,7 @@ _PORT_60_ EQU $60
 
 ; MegaDuck QuiQue specific defines
 
-include "char_constants.inc"
+include "font_constants.inc"
 
 ; Megaduck QuiQue System ROM Bank Switching
 ; 32K bank selected by writing to 0x1000
