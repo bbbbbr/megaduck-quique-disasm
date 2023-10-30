@@ -1,4 +1,13 @@
 
+; TODO: maybe add in shift-equivalent keys, maybe in similar approach to SameBoy Workboy style (but with bit 7 reset)
+;
+;     GB_WORKBOY_NONE = 0xFF,
+;     GB_WORKBOY_REQUIRE_SHIFT = 0x40,
+;     GB_WORKBOY_FORBID_SHIFT = 0x80,
+;
+;     GB_WORKBOY_1 = 17 | GB_WORKBOY_REQUIRE_SHIFT,
+;     https://github.com/LIJI32/SameBoy/blob/aff42affc01a394937979b0758d86c6918f58d2b/Core/workboy.h#L44C1-L44C50
+
 ;
 ;
 ; RX Bytes for Keyboard Serial Reply
@@ -210,5 +219,6 @@ DEF SYS_KBD_CODE_PIANO_FA_2          EQU  $E3
 DEF SYS_KBD_CODE_PIANO_SOL_2         EQU  $E7
 DEF SYS_KBD_CODE_PIANO_LA_2          EQU  $EB
 DEF SYS_KBD_CODE_PIANO_SI_2          EQU  $EF
+
 
 

@@ -34,12 +34,14 @@ DEF SYS_CHAR_PIANO_LA_2        EQU  $15
 DEF SYS_CHAR_PIANO_LA_2_SHARP  EQU  $16
 DEF SYS_CHAR_PIANO_SI_2        EQU  $17
 
+DEF SYS_CHAR_LAST_PIANO        EQU (SYS_CHAR_PIANO_SI_2)
 
 ; Gap 0x18 - 0x29
 
 
 ; Command Keys  0x2A - 0x2F
 DEF SYS_CHAR_SALIDA            EQU  $2A  ; Esc
+; Gap 0x2B
 DEF SYS_CHAR_BACKSPACE         EQU  $2C
 DEF SYS_CHAR_AYUDA             EQU  $2D  ; Help
 DEF SYS_CHAR_ENTRA_CR          EQU  $2E  ; Return
@@ -238,7 +240,7 @@ DEF SYS_CHAR_N_TILDE_LOWER              EQU  $DC
 
 
 ; TODO: Confirm
-DEF SYS_CHAR_MAYBE_INVALID_OR_NODATA    EQU $FF
+DEF SYS_CHAR_INVALID_OR_NODATA    EQU $FF
 
 
 ; Aliases used by Gamepad -> Keyboard Mapping in var D025

@@ -228,7 +228,7 @@ _RAM_D081_: ds $ff
 _RAM_D180_: db
 
 SECTION "wram_d181", WRAMX[$d181], BANK[$1]
-_RAM_D181_: db
+input_prev_key_pressed__RAM_D181_: db
 
 SECTION "wram_d192", WRAMX[$D192]
 _RAM_D192_: db

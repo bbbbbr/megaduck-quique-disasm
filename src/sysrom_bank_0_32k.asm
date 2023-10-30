@@ -2040,7 +2040,7 @@ input_read_keys__C8D_:
         jr   nz, .rx_byte_2_ok__CC8_
 
     .req_key_failed_so_send04__CB9_:
-        ld   a, SYS_CHAR_MAYBE_INVALID_OR_NODATA  ; $FF
+        ld   a, SYS_CHAR_INVALID_OR_NODATA  ; $FF
         ld   [input_key_pressed__RAM_D025_], a
         ld   a, SYS_CMD_ABORT_OR_FAIL  ; $04 ; TODO: Maybe a failed/reset/cancel input system command SYS_CMD
         ld   [serial_tx_data__RAM_D023_], a
@@ -2086,8 +2086,9 @@ input_read_keys__C8D_:
         ld   [serial_tx_data__RAM_D023_], a
         call serial_io_send_byte__B64_
         call _LABEL_D0F_
+        ; Save key for later use with key repeat
         ld   a, [input_key_pressed__RAM_D025_]
-        ld   [_RAM_D181_], a
+        ld   [input_prev_key_pressed__RAM_D181_], a
 
     .done_restore_int__call_TODO_and_return__D06_:
         ld   a, [_rIE_saved_serial__RAM_D078_]
@@ -2101,15 +2102,17 @@ input_read_keys__C8D_:
 
 _LABEL_D0F_:
     ld   a, [input_key_modifier_flags__RAM_D027_]
-    bit  0, a
-    jp   nz, _LABEL_DD5_
+    bit  SYS_KBD_FLAG_KEY_REPEAT_BIT, a  ; 0, a
+    jp   nz, input_handle_key_repeat_flag__DD5_
+
     ld   a, [input_key_modifier_flags__RAM_D027_]
-    bit  3, a
+    bit  SYS_KBD_FLAG_PRINTSCREEN_LEFT_BIT, a  ; 3, a
     jr   z, _LABEL_D24_
-    ld   a, $2F
+    ld   a, SYS_CHAR_PRINTSCREEN  ; $2F
     ld   [input_key_pressed__RAM_D025_], a
     ret
 
+; TODO : Some keyboard input and flag processing
 _LABEL_D24_:
     ld   a, [input_key_pressed__RAM_D025_]
     and  a
@@ -2124,20 +2127,27 @@ _LABEL_D24_:
     ld   a, [hl]
     ld   [input_key_pressed__RAM_D025_], a
     ld   b, a
+
     ld   a, [input_key_modifier_flags__RAM_D027_]
-    and  $0E
+    and  (SYS_KBD_FLAG_PRINTSCREEN_LEFT | SYS_KBD_FLAG_SHIFT | SYS_KBD_FLAG_CAPSLOCK)  ; $0E
     jr   z, _LABEL_DC5_
+
     ld   a, [input_key_modifier_flags__RAM_D027_]
-    and  $06
+    and  (SYS_KBD_FLAG_SHIFT | SYS_KBD_FLAG_CAPSLOCK)  ; $06
     jr   z, _LABEL_DC5_
-    bit  2, a
+
+    bit  SYS_KBD_FLAG_SHIFT_BIT, a  ; 2, a
     jr   nz, _LABEL_D68_
+
+    ; TODO: What is signaled by bit 7 of input_key_pressed__RAM_D025_ ?
     ld   a, b
     bit  7, a
     jr   z, _LABEL_DC5_
-    cp   $A1
+
+    cp   SYS_CHAR_A_LOWER  ; $A1
     jr   c, _LABEL_DC5_
-    cp   $BE
+
+    cp   SYS_CHAR_SPACE  ; $BE
     jr   nc, _LABEL_DC5_
 _LABEL_D61_:
     res  5, a
@@ -2213,35 +2223,48 @@ _LABEL_DC5_:
     ld   a, [input_key_pressed__RAM_D025_]
     cp   $F0
     ret  nc
-    ld   [_RAM_D181_], a
+    ld   [input_prev_key_pressed__RAM_D181_], a
     ret
 
 _LABEL_DCF_:
-    ld   a, SYS_CHAR_MAYBE_INVALID_OR_NODATA  ; $FF
+    ld   a, SYS_CHAR_INVALID_OR_NODATA  ; $FF
     ld   [input_key_pressed__RAM_D025_], a
     ret
 
-_LABEL_DD5_:
-    ld   a, [_RAM_D181_]
-    cp   SYS_CHAR_UP_RIGHT  ; $CA
-    jp   z, maybe_save_to_input__DF8_
-    cp   SYS_CHAR_DOWN_RIGHT  ; $CB
-    jp   z, maybe_save_to_input__DF8_
-    cp   SYS_CHAR_DOWN_LEFT  ; $CC
-    jp   z, maybe_save_to_input__DF8_
-    cp   SYS_CHAR_UP_LEFT  ; $CD
-    jp   z, maybe_save_to_input__DF8_
-    cp   $41
-    jr   c, maybe_save_to_input__DF8_
-    cp   $18
-    jr   nc, maybe_no_match_found__DF6_
-    jr   maybe_save_to_input__DF8_
 
-    maybe_no_match_found__DF6_:
-        ld   a, SYS_CHAR_MAYBE_INVALID_OR_NODATA  ; $FF
-    maybe_save_to_input__DF8_:
+; Called when the keyboard repeat flag SYS_KBD_FLAG_KEY_REPEAT
+; is detected in input_key_modifier_flags__RAM_D027_
+; - Loads to input_key_pressed__RAM_D025_
+input_handle_key_repeat_flag__DD5_:
+    ld   a, [input_prev_key_pressed__RAM_D181_]
+    cp   SYS_CHAR_UP_RIGHT  ; $CA
+    jp   z, .load_repeat_key_to_input__DF8_
+
+    cp   SYS_CHAR_DOWN_RIGHT  ; $CB
+    jp   z, .load_repeat_key_to_input__DF8_
+
+    cp   SYS_CHAR_DOWN_LEFT  ; $CC
+    jp   z, .load_repeat_key_to_input__DF8_
+
+    cp   SYS_CHAR_UP_LEFT  ; $CD
+    jp   z, .load_repeat_key_to_input__DF8_
+
+    ; TODO: Is order of tests correct?
+    cp   SYS_CHAR_MEMORY_PLUS  ; $41
+    jr   c, .load_repeat_key_to_input__DF8_
+
+    cp   (SYS_CHAR_LAST_PIANO + 1)  ; $18
+    jr   nc, .repeat_blocked__DF6_
+
+    jr   .load_repeat_key_to_input__DF8_
+
+    .repeat_blocked__DF6_:
+        ld   a, SYS_CHAR_INVALID_OR_NODATA  ; $FF
+
+    .load_repeat_key_to_input__DF8_:
         ld   [input_key_pressed__RAM_D025_], a
         ret
+
 
 _LABEL_DFC_:
     ld   a, [input_key_pressed__RAM_D025_]
@@ -2252,11 +2275,13 @@ _LABEL_DFC_:
     jr   _LABEL_E37_
 
 _LABEL_E0A_:
-    cp   $2B
+    cp   $2B  ; TODO: what is this value? Missing in SYS_CHAR_...
     jr   nz, _LABEL_E1C_
+
     ld   a, [input_key_modifier_flags__RAM_D027_]
-    bit  2, a
+    bit  SYS_KBD_FLAG_SHIFT_BIT, a  ; 2, a
     jr   z, _LABEL_E37_
+
     ld   a, $D2
     ld   [input_key_pressed__RAM_D025_], a
     jr   _LABEL_E37_
@@ -2265,15 +2290,19 @@ _LABEL_E1C_:
     ld   a, [input_key_pressed__RAM_D025_]
     cp   $DC
     jr   nz, _LABEL_E37_
+
+    ; Looks Negate Caps Lock and Shift negate each other
     ld   a, [input_key_modifier_flags__RAM_D027_]
     ld   c, a
-    and  $02
+    and  SYS_KBD_FLAG_CAPSLOCK  ; $02
     sla  a
     ld   b, a
     ld   a, c
-    and  $04
+    and  SYS_KBD_FLAG_SHIFT  ; $04
     xor  b
     jr   z, _LABEL_E37_
+
+    ; TODO: Load SYS_CHAR_N_TILDE ? hmm... 
     ld   a, $D5
     ld   [input_key_pressed__RAM_D025_], a
 _LABEL_E37_:
@@ -2309,13 +2338,13 @@ _LABEL_E4C_:
     ld   a, $AA
     ld   [hl], a
 _LABEL_E6A_:
-    ld   a, SYS_CHAR_MAYBE_INVALID_OR_NODATA  ; $FF
+    ld   a, SYS_CHAR_INVALID_OR_NODATA  ; $FF
     ld   [input_key_pressed__RAM_D025_], a
     ret
 
 _LABEL_E70_:
     ld   a, [input_key_pressed__RAM_D025_]
-    cp   SYS_CHAR_MAYBE_INVALID_OR_NODATA  ; $FF
+    cp   SYS_CHAR_INVALID_OR_NODATA  ; $FF
     ret  z
     ld   hl, _RAM_D222_ ; _RAM_D222_ = $D222
     ld   b, [hl]
@@ -3772,7 +3801,7 @@ maybe_input_wait_for_keys__4B84:
     call timer_wait_tick_AND_TODO__289_
     call input_read_keys__C8D_
     ld   a, [input_key_pressed__RAM_D025_]
-    cp   SYS_CHAR_MAYBE_INVALID_OR_NODATA  ; $FF
+    cp   SYS_CHAR_INVALID_OR_NODATA  ; $FF
     jr   nz, maybe_input_wait_for_keys__4B84
     ret
 
@@ -5622,7 +5651,7 @@ _LABEL_5919_:
 _LABEL_5931_:
     ld   [_RAM_D03A_], a
     ld   a, $FF
-    ld   [_RAM_D181_], a
+    ld   [input_prev_key_pressed__RAM_D181_], a
     jp   _LABEL_59F1_
 
 _LABEL_593C_:
@@ -8113,13 +8142,16 @@ _LABEL_7354_:
         ld   a, [_RAM_D07B_]
         and  a
         jr   nz, _LABEL_7375_
-_LABEL_7366_:
+
+input_repeat_key_until_released__7366_:
         call input_read_keys__C8D_
         ld   a, [input_key_modifier_flags__RAM_D027_]
-        bit  0, a
+        bit  SYS_KBD_FLAG_KEY_REPEAT_BIT, a  ; 0, a
         jr   z, _LABEL_7375_
+
+        ; delay before key repeat test
         call timer_wait_tick_AND_TODO__289_
-        jr   _LABEL_7366_
+        jr   input_repeat_key_until_released__7366_
 
 _LABEL_7375_:
         pop  bc
