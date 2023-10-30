@@ -441,13 +441,13 @@ _LABEL_25E_:
     ld   [serial_cmd_to_send__RAM_D035_], a
     ld   a, $08
     ld   [serial_maybe_control_var__RAM_D034_], a
-    loop_wait_maybe_some_key__27B_:
+    .loop_wait_maybe_some_key__27B_:
         call _LABEL_A34_
         ld   a, [input_key_pressed__RAM_D025_]
         cp   $FC
         ret  z
         call timer_wait_tick_AND_TODO__289_
-        jr   loop_wait_maybe_some_key__27B_
+        jr   .loop_wait_maybe_some_key__27B_
 
 
 ; Turn on interrupts and wait for a Timer tick
@@ -1198,10 +1198,10 @@ _vram_init__752_:
         ld   a, OAM_SLOT_EMPTY
         ld   b, (OAM_USAGE_SZ + 2) ; $2A ; TODO: Why +2 here what is at _RAM_C8C8_ and C9?
         ld   hl, oam_slot_usage__RAM_C8A0_
-        loop_oam_clear__7C5_:
+        .loop_oam_clear__7C5_:
             ldi  [hl], a
             dec  b
-            jr   nz, loop_oam_clear__7C5_
+            jr   nz, .loop_oam_clear__7C5_
         ret
 
 ; Always copies 32 bytes
@@ -1293,11 +1293,11 @@ oam_find_slot_and_load_into__86F:
     ld   hl, oam_slot_usage__RAM_C8A0_
 
     ; Find first empty OAM slot
-    loop_find_empty_slot_874_:
+    .loop_find_empty_slot_874_:
         inc  c
         ldi  a, [hl]
         cp   OAM_SLOT_EMPTY ; $00
-        jr   nz, loop_find_empty_slot_874_
+        jr   nz, .loop_find_empty_slot_874_
 
     ; Mark the newly found slot as used
     dec  hl
@@ -1315,12 +1315,12 @@ oam_find_slot_and_load_into__86F:
     ld   b, $04
     ; Copy 4 bytes from TODO into the Shadow OAM slot
     ; Presumably sprite data
-    loop_shadow_oam_copy__88A_:
+    .loop_shadow_oam_copy__88A_:
         ld   a, [de]
         ldi  [hl], a
         inc  de
         dec  b
-        jr   nz, loop_shadow_oam_copy__88A_
+        jr   nz, .loop_shadow_oam_copy__88A_
 
     ; TODO: Is this some kind of oam slot copy increment for multiple sprites?
     ld   a, [_RAM_C8C8_]    ; _RAM_C8C8_ = $C8C8
@@ -1562,11 +1562,11 @@ _LABEL_97A_:
     ldh  [rAUD3LEN], a
     ld   a, $55
     ld   bc, $0800 | LOW(_AUD3WAVERAM_LAST) ; | _PORT_3F_
-    loop_fill_ch3_wave_ram_LABEL__9A3_:
+    .loop_fill_ch3_wave_ram_LABEL__9A3_:
         ldh  [c], a
         dec  c
         dec  b
-        jr   nz, loop_fill_ch3_wave_ram_LABEL__9A3_
+        jr   nz, .loop_fill_ch3_wave_ram_LABEL__9A3_
     ld   hl, rAUDENA
     ld   a, AUDENA_ON  ; $80
     ldd  [hl], a
@@ -1614,11 +1614,11 @@ serial_system_init_check__9CF_:
     xor  a
     ; Sending some kind of init(? TODO) count up sequence through the serial IO (0,1,2,3...255)
     ; Then wait for a response with no timeout
-    loop_send_sequence__9D8_:
+    .loop_send_sequence__9D8_:
         ld   [serial_tx_data__RAM_D023_], a
         call serial_io_send_byte__B64_
         inc  a
-        jr   nz, loop_send_sequence__9D8_
+        jr   nz, .loop_send_sequence__9D8_
     call serial_io_read_byte_no_timeout__B7D_
 
     ; Handle reply
@@ -1635,14 +1635,14 @@ serial_system_init_check__9CF_:
     ; ? Expects a reply sequence through the serial IO of (255,254...0) ?
     ld   b, $01             ; This might not do anything, again... (not used and later overwritten)
     ld   c, $FF
-    loop_receive_sequence__9F6_:
+    .loop_receive_sequence__9F6_:
         call serial_io_read_byte_no_timeout__B7D_
         cp   c
         call nz, serial_system_status_set_fail__BBA_  ; Set status failed if reply doesn't match expected  sequence value
         dec  c
         ld   a, c
         cp   $FF
-        jr   nz, loop_receive_sequence__9F6_
+        jr   nz, .loop_receive_sequence__9F6_
 
     ; Check for failures during the reply sequence
     ld   a, [serial_system_status__RAM_D024_]
@@ -1742,7 +1742,7 @@ _LABEL_A34_:
         call delay_quarter_msec__BD6_
 
         ld   hl, _RAM_D028_
-        loop_continue_sending__A8B_:
+        .loop_continue_sending__A8B_:
             ldi  a, [hl]
             ld   [serial_tx_data__RAM_D023_], a
             ld   c, a
@@ -1762,7 +1762,7 @@ _LABEL_A34_:
             jp   nz, maybe_fail_and_return_value_FD___A5B_
             call serial_io_send_byte__B64_
             dec  b
-            jr   nz, loop_continue_sending__A8B_
+            jr   nz, .loop_continue_sending__A8B_
 
         call serial_io_wait_receive_w_timeout_50msec__B8F_
         and  a
@@ -1897,10 +1897,10 @@ serial_io_read_byte_no_timeout__B7D_:
     ld   [serial_status__RAM_D022_], a
     call serial_io_enable_receive_byte__A17_
 
-    loop_wait_reply__B85_:
+    .loop_wait_reply__B85_:
         ld   a, [serial_status__RAM_D022_]
         and  a
-        jr   z, loop_wait_reply__B85_
+        jr   z, .loop_wait_reply__B85_
         ld   a, [serial_rx_data__RAM_D021_]
         ret
 
@@ -1927,13 +1927,13 @@ serial_io_wait_receive_w_timeout_50msec__B8F_:
     call serial_io_enable_receive_byte__A17_
 
     ld   b, $02
-    loop_wait_reply__BA9_:
+    .loop_wait_reply__BA9_:
         call serial_io_wait_for_transfer_w_timeout_25msec__BC5_
         ld   a, [serial_status__RAM_D022_]
         and  a
         jr   nz, serial_done__BB8_
         dec  b
-        jr   nz, loop_wait_reply__BA9_
+        jr   nz, .loop_wait_reply__BA9_
 
         ld   a, [serial_status__RAM_D022_]
     serial_done__BB8_:
@@ -1958,13 +1958,13 @@ serial_system_status_set_fail__BBA_:
 serial_io_wait_for_transfer_w_timeout_25msec__BC5_:
     push bc
     ld   b, $64
-    loop_wait_reply__BC8_:
+    .loop_wait_reply__BC8_:
         call delay_quarter_msec__BD6_
         ld   a, [serial_status__RAM_D022_]
         and  a
         jr   nz, serial_done__BD4_
         dec  b
-        jr   nz, loop_wait_reply__BC8_
+        jr   nz, .loop_wait_reply__BC8_
     serial_done__BD4_:
         pop  bc
         ret
@@ -3212,12 +3212,12 @@ copy_b_x_tile_patterns_from_de_to_hl__48B7_:
 
     skip_wait_vbl__48C1_:
         ld   c, $10
-    loop_tile_pattern_copy_16_bytes__48C3_:
+    .loop_tile_pattern_copy_16_bytes__48C3_:
         ld   a, [de]
         ldi  [hl], a
         inc  de
         dec  c
-        jr   nz, loop_tile_pattern_copy_16_bytes__48C3_
+        jr   nz, .loop_tile_pattern_copy_16_bytes__48C3_
         dec  b
         jr   nz, copy_b_x_tile_patterns_from_de_to_hl__48B7_
         ret
@@ -3291,12 +3291,12 @@ display_textbox_draw_xy_in_bc_wh_in_de_st_id_in_a__48EB_:
 
     ; Draw middle section of box (variable height)
     ; A+3 is the offset to next part of textbox tiles
-    loop_textbox_middle_rows__4907_:
+    .loop_textbox_middle_rows__4907_:
         ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
         add  TEXTBOX_OFFSET_TO_MIDDLE_TILES  ; $03
         call display_textbox_draw_row__491B_
         dec  b
-        jr   nz, loop_textbox_middle_rows__4907_
+        jr   nz, .loop_textbox_middle_rows__4907_
 
     ; Draw bottom of textbox
     ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
@@ -3324,10 +3324,10 @@ display_textbox_draw_xy_in_bc_wh_in_de_st_id_in_a__48EB_:
 
         ; Write middle tiles
         ; Then increment a to middle tile
-        loop_middle_tiles__4925_:
+        .loop_middle_tiles__4925_:
             ldi  [hl], a
             dec  c
-            jr   nz, loop_middle_tiles__4925_
+            jr   nz, .loop_middle_tiles__4925_
         inc  a
 
         ; Write right edge tile
@@ -5461,12 +5461,12 @@ _LABEL_57D5_:
 
     ; Clear Tile Map 0
     ld   hl, _TILEMAP0  ; $9800
-    loop_clear_tilemap_9800__57F9_:
+    .loop_clear_tilemap_9800__57F9_:
         xor  a
         ldi  [hl], a
         ld   a, h
         cp   HIGH(_TILEMAP1) ; $9C
-        jr   nz, loop_clear_tilemap_9800__57F9_
+        jr   nz, .loop_clear_tilemap_9800__57F9_
 
     xor  a
     ld   [_RAM_D069_], a
@@ -6345,10 +6345,10 @@ _LABEL_5E61_:
     ld   a, FONT_BLANKSPACE  ; $BE
     ld   b, $10
     ld   hl, maybe_text_buffer__RAM_D6D0_
-    loop_fill_with_spaces__5E93_:
+    .loop_fill_with_spaces__5E93_:
         ldi  [hl], a
         dec  b
-        jr   nz, loop_fill_with_spaces__5E93_
+        jr   nz, .loop_fill_with_spaces__5E93_
 
     call _LABEL_6240_
 
@@ -6561,10 +6561,10 @@ _LABEL_5F7A_:
         ld   a, FONT_BLANKSPACE  ; $BE
         ld   b, $10
         ld   hl, maybe_text_buffer__RAM_D6D0_
-        loop_fill_with_spaces__5FF7_:
+        .loop_fill_with_spaces__5FF7_:
             ldi  [hl], a
             dec  b
-            jr   nz, loop_fill_with_spaces__5FF7_
+            jr   nz, .loop_fill_with_spaces__5FF7_
 
         call _LABEL_620A_
         call _LABEL_62BD_
@@ -7681,13 +7681,13 @@ drawing_app_help_menu_show__6FED_:
         call display_screen_off__94C_
         ld   hl, _TILEDATA8800  ; $8800
         ld   de, _TILEDATA8000  ; $8000
-        loop_copy_tile_data__7014_:
+        .loop_copy_tile_data__7014_:
             ldi  a, [hl]
             ld   [de], a
             inc  de
             ld   a, d
             cp   HIGH(_TILEDATA8800)  ; $88
-            jp   nz, loop_copy_tile_data__7014_
+            jp   nz, .loop_copy_tile_data__7014_
 
         ; Now load 8x8 font Tile Patterns into 0x8800
         call wait_until_vbl__92C_
@@ -7715,7 +7715,7 @@ drawing_app_help_menu_show__6FED_:
         ld   hl, $0206   ; Start at 2,6 (x,y) in tiles
         ld   b, 10       ; $0A ; Loop for 10 lines
         ld   c, PRINT_NORMAL  ; $01
-        loop_render_text__7052_:
+        .loop_render_text__7052_:
             push bc
             push hl
             call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
@@ -7723,7 +7723,7 @@ drawing_app_help_menu_show__6FED_:
             pop  bc
             inc  l
             dec  b
-            jr   nz, loop_render_text__7052_
+            jr   nz, .loop_render_text__7052_
 
         call _display_bg_sprites_on__627_
 
@@ -7738,13 +7738,13 @@ drawing_app_help_menu_show__6FED_:
         call display_screen_off__94C_
         ld   hl, _TILEDATA8000
         ld   de, _TILEDATA8800
-        loop_copy_tile_data__7075_:
+        .loop_copy_tile_data__7075_:
             ldi  a, [hl]
             ld   [de], a
             inc  de
             ld   a, h
             cp   HIGH(_TILEDATA8800)  ; $88
-            jp   nz, loop_copy_tile_data__7075_
+            jp   nz, .loop_copy_tile_data__7075_
 
         ; Fill Tilemap0 with 0xC8 (TODO: What is this char? "8" ?? (0xC8 - 128 = 72)
         ld   hl, _TILEMAP0
@@ -8537,14 +8537,14 @@ gfx_load_tile_map_20x6_at_438a__7691_:
     call display_screen_off__94C_
     ld   c, $06                         ; 6 Rows x 20 Tiles wide of Tile Map entries
 
-    loop_tilemap_row_load___76A2_:
+    .loop_tilemap_row_load___76A2_:
         ld   b, _TILEMAP_SCREEN_WIDTH  ; $14 ; 20 bytes / Tile Map entries
         call memcopy_b_bytes_from_de_to_hl__481F_
         ; Skip remainder of current Tile Map row down to next line
         ld   a, (_TILEMAP_WIDTH - _TILEMAP_SCREEN_WIDTH)  ; $0C
         call add_a_to_hl__486E_
         dec  c
-        jr   nz, loop_tilemap_row_load___76A2_
+        jr   nz, .loop_tilemap_row_load___76A2_
     ret
 
 
