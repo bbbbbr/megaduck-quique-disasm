@@ -192,7 +192,7 @@ DEF SYS_CHAR_Z_LOWER     EQU  $BA
 ; Gap 0xBB - 0xBC
 
 
-DEF SYS_CHAR_u_UMLAUT           EQU  $BD
+DEF SYS_CHAR_U_UMLAUT_LOWER     EQU  $BD
 DEF SYS_CHAR_SPACE              EQU  $BE
 DEF SYS_CHAR_FONT_QUESTIONMARK  EQU  $BF
 
@@ -213,7 +213,7 @@ DEF SYS_CHAR_9     EQU  $C9
 ; Math Keys  0xCa - 0xCE
 DEF SYS_CHAR_PLUS               EQU  $CA
 DEF SYS_CHAR_MINUS              EQU  $CB
-; DEF SYS_CHAR_DASH             EQU  $CB ; Shared with Minus
+DEF SYS_CHAR_DASH               EQU  (SYS_CHAR_MINUS) ; Shared with Minus
 DEF SYS_CHAR_MULTIPLY           EQU  $CC
 DEF SYS_CHAR_DIVIDE             EQU  $CD
 DEF SYS_CHAR_EQUALS             EQU  $CE
@@ -228,8 +228,13 @@ DEF SYS_CHAR_LEFT_SQ_BRACKET            EQU  $D2
 DEF SYS_CHAR_RIGHT_SQ_BRACKET           EQU  $D3
 DEF SYS_CHAR_SHIFTED_A_OVER_LINE        EQU  $D4
 DEF SYS_CHAR_N_TILDE                    EQU  $D5
+
+
+; Gap 0xD6 - 0xDA
+
+
 DEF SYS_CHAR_O_OVER_LINE                EQU  $DB
-DEF SYS_CHAR_n_TILDE                    EQU  $DC
+DEF SYS_CHAR_N_TILDE_LOWER              EQU  $DC
 
 
 ; TODO: Confirm

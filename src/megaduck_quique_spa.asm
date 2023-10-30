@@ -10,6 +10,7 @@ include "inc/hardware.inc"
 ; MegaDuck QuiQue specific defines
 include "inc/font_constants.inc"
 include "inc/sys_char_constants.inc"
+include "inc/keyboard_scan_codes.inc"
 
 ; Ports 
 ; Wave pattern
