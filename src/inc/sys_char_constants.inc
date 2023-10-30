@@ -1,7 +1,8 @@
 
 ; System
-; These are primarily read from the variable at RAM D025
-; They are translations from the raw keycode data
+; - Used for a lot of input handling
+; - These are primarily read from the variable at RAM D025
+; - The values have been translated by the system rom from the raw keycode data
 ;
 ; - ON key seems masked out
 ; - Caps Lock and shift are handled during the translation, uppercase A-Z are (-0x40) vs lowercase a-z
@@ -67,18 +68,18 @@ DEF SYS_CHAR_BORRAR         EQU  $3C
 
 
 ; Arrow Keys  0x3D - 0x40
-DEF SYS_CHAR_ARROW_UP       EQU  $3D
-DEF SYS_CHAR_ARROW_LEFT     EQU  $3E
-DEF SYS_CHAR_ARROW_RIGHT    EQU  $3F
-DEF SYS_CHAR_ARROW_DOWN     EQU  $40
+DEF SYS_CHAR_UP       EQU  $3D
+DEF SYS_CHAR_LEFT     EQU  $3E
+DEF SYS_CHAR_RIGHT    EQU  $3F
+DEF SYS_CHAR_DOWN     EQU  $40
 
 
 ; Memory and Page Up/Down  0x41 - 0x46
 DEF SYS_CHAR_MEMORY_PLUS    EQU  $41
 DEF SYS_CHAR_MEMORY_RECALL  EQU  $42
 DEF SYS_CHAR_SQRT           EQU  $43
-DEF SYS_CHAR_PG_ARRIBA      EQU  $44
-DEF SYS_CHAR_PG_ABAJO       EQU  $45
+DEF SYS_CHAR_PG_ARRIBA      EQU  $44  ; Page Up
+DEF SYS_CHAR_PG_ABAJO       EQU  $45  ; Page Down
 DEF SYS_CHAR_MEMORY_MINUS   EQU  $46
 
 
@@ -229,3 +230,21 @@ DEF SYS_CHAR_SHIFTED_A_OVER_LINE        EQU  $D4
 DEF SYS_CHAR_N_TILDE                    EQU  $D5
 DEF SYS_CHAR_O_OVER_LINE                EQU  $DB
 DEF SYS_CHAR_n_TILDE                    EQU  $DC
+
+
+; TODO: Confirm
+DEF SYS_CHAR_MAYBE_INVALID_OR_NODATA    EQU $FF
+
+
+; Aliases used by Gamepad -> Keyboard Mapping in var D025
+; SELECT seems to be mapped to Enter (instead of START)
+DEF SYS_CHAR_GPAD_START        EQU  (SYS_CHAR_SALIDA)
+DEF SYS_CHAR_GPAD_SELECT       EQU  (SYS_CHAR_ENTRA_CR)
+DEF SYS_CHAR_GPAD_A            EQU  (SYS_CHAR_PG_ARRIBA)
+DEF SYS_CHAR_GPAD_B            EQU  (SYS_CHAR_PG_ABAJO)
+; for 8-way equivalent input on keyboard
+DEF SYS_CHAR_UP_RIGHT          EQU  (SYS_CHAR_PLUS)
+DEF SYS_CHAR_DOWN_RIGHT        EQU  (SYS_CHAR_MINUS)
+DEF SYS_CHAR_DOWN_LEFT         EQU  (SYS_CHAR_MULTIPLY)
+DEF SYS_CHAR_UP_LEFT           EQU  (SYS_CHAR_DIVIDE)
+

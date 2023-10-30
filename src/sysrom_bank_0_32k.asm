@@ -2040,7 +2040,7 @@ input_read_keys__C8D_:
         jr   nz, .rx_byte_2_ok__CC8_
 
     .req_key_failed_so_send04__CB9_:
-        ld   a, SYS_KEY_MAYBE_INVALID_OR_NODATA  ; $FF
+        ld   a, SYS_CHAR_MAYBE_INVALID_OR_NODATA  ; $FF
         ld   [input_key_pressed__RAM_D025_], a
         ld   a, SYS_CMD_ABORT_OR_FAIL  ; $04 ; TODO: Maybe a failed/reset/cancel input system command SYS_CMD
         ld   [serial_tx_data__RAM_D023_], a
@@ -2217,19 +2217,19 @@ _LABEL_DC5_:
     ret
 
 _LABEL_DCF_:
-    ld   a, SYS_KEY_MAYBE_INVALID_OR_NODATA  ; $FF
+    ld   a, SYS_CHAR_MAYBE_INVALID_OR_NODATA  ; $FF
     ld   [input_key_pressed__RAM_D025_], a
     ret
 
 _LABEL_DD5_:
     ld   a, [_RAM_D181_]
-    cp   SYS_KEY_UP_RIGHT  ; $CA
+    cp   SYS_CHAR_UP_RIGHT  ; $CA
     jp   z, maybe_save_to_input__DF8_
-    cp   SYS_KEY_DOWN_RIGHT  ; $CB
+    cp   SYS_CHAR_DOWN_RIGHT  ; $CB
     jp   z, maybe_save_to_input__DF8_
-    cp   SYS_KEY_DOWN_LEFT  ; $CC
+    cp   SYS_CHAR_DOWN_LEFT  ; $CC
     jp   z, maybe_save_to_input__DF8_
-    cp   SYS_KEY_UP_LEFT  ; $CD
+    cp   SYS_CHAR_UP_LEFT  ; $CD
     jp   z, maybe_save_to_input__DF8_
     cp   $41
     jr   c, maybe_save_to_input__DF8_
@@ -2238,7 +2238,7 @@ _LABEL_DD5_:
     jr   maybe_save_to_input__DF8_
 
     maybe_no_match_found__DF6_:
-        ld   a, SYS_KEY_MAYBE_INVALID_OR_NODATA  ; $FF
+        ld   a, SYS_CHAR_MAYBE_INVALID_OR_NODATA  ; $FF
     maybe_save_to_input__DF8_:
         ld   [input_key_pressed__RAM_D025_], a
         ret
@@ -2309,13 +2309,13 @@ _LABEL_E4C_:
     ld   a, $AA
     ld   [hl], a
 _LABEL_E6A_:
-    ld   a, SYS_KEY_MAYBE_INVALID_OR_NODATA  ; $FF
+    ld   a, SYS_CHAR_MAYBE_INVALID_OR_NODATA  ; $FF
     ld   [input_key_pressed__RAM_D025_], a
     ret
 
 _LABEL_E70_:
     ld   a, [input_key_pressed__RAM_D025_]
-    cp   SYS_KEY_MAYBE_INVALID_OR_NODATA  ; $FF
+    cp   SYS_CHAR_MAYBE_INVALID_OR_NODATA  ; $FF
     ret  z
     ld   hl, _RAM_D222_ ; _RAM_D222_ = $D222
     ld   b, [hl]
@@ -3491,22 +3491,22 @@ input_map_gamepad_buttons_to_keycodes__49C2_:
 
     ; Handle A/B/Start/Select mapping
     _handle_btn_a__49EE_:
-        ld   a, SYS_KEY_A  ; $44
+        ld   a, SYS_CHAR_GPAD_A  ; $44
         ld   [input_key_pressed__RAM_D025_], a
         ret
 
     _handle_btn_b__49F4_:
-        ld   a, SYS_KEY_B  ; $45
+        ld   a, SYS_CHAR_GPAD_B  ; $45
         ld   [input_key_pressed__RAM_D025_], a
         ret
 
     _handle_btn_select__49FA_:
-        ld   a, SYS_KEY_SELECT  ; $2E
+        ld   a, SYS_CHAR_GPAD_SELECT  ; $2E
         ld   [input_key_pressed__RAM_D025_], a
         ret
 
     _handle_btn_start__4A00_:
-        ld   a, SYS_KEY_START  ; $2A
+        ld   a, SYS_CHAR_GPAD_START  ; $2A
         ld   [input_key_pressed__RAM_D025_], a
         ret
 
@@ -3516,7 +3516,7 @@ input_map_gamepad_buttons_to_keycodes__49C2_:
         jr   nz, handle_joy_up_and_right___4A2E_
         bit  7, a
         jr   nz, handle_joy_down_and_right___4A34_
-        ld   a, SYS_KEY_RIGHT  ; $3F
+        ld   a, SYS_CHAR_RIGHT  ; $3F
         ld   [input_key_pressed__RAM_D025_], a
         ret
 
@@ -3525,38 +3525,38 @@ input_map_gamepad_buttons_to_keycodes__49C2_:
         jr   nz, handle_joy_up_and_left__4A3A_
         bit  7, a
         jr   nz, handle_joy_down_and_left__4A40_
-        ld   a, SYS_KEY_LEFT  ; $3E
+        ld   a, SYS_CHAR_LEFT  ; $3E
         ld   [input_key_pressed__RAM_D025_], a
         ret
 
     handle_joy_up__4A22_:
-        ld   a, SYS_KEY_UP  ; $3D
+        ld   a, SYS_CHAR_UP  ; $3D
         ld   [input_key_pressed__RAM_D025_], a
         ret
 
     handle_joy_down__4A28_:
-        ld   a, SYS_KEY_DOWN  ; $40
+        ld   a, SYS_CHAR_DOWN  ; $40
         ld   [input_key_pressed__RAM_D025_], a
         ret
 
         ; Extra mapping for JoyPad diagonals
         handle_joy_up_and_right___4A2E_:
-            ld   a, SYS_KEY_UP_RIGHT  ; $CA
+            ld   a, SYS_CHAR_UP_RIGHT  ; $CA
             ld   [input_key_pressed__RAM_D025_], a
             ret
 
         handle_joy_down_and_right___4A34_:
-            ld   a, SYS_KEY_DOWN_RIGHT  ; $CB
+            ld   a, SYS_CHAR_DOWN_RIGHT  ; $CB
             ld   [input_key_pressed__RAM_D025_], a
             ret
 
         handle_joy_up_and_left__4A3A_:
-            ld   a, SYS_KEY_UP_LEFT  ; $CD
+            ld   a, SYS_CHAR_UP_LEFT  ; $CD
             ld   [input_key_pressed__RAM_D025_], a
             ret
 
         handle_joy_down_and_left__4A40_:
-            ld   a, SYS_KEY_DOWN_LEFT  ; $CC
+            ld   a, SYS_CHAR_DOWN_LEFT  ; $CC
             ld   [input_key_pressed__RAM_D025_], a
             ret
 
@@ -3712,10 +3712,10 @@ _LABEL_4B0E_:
     ld   hl, _RAM_D06D_ ; _RAM_D06D_ = $D06D
     ld   a, [input_key_pressed__RAM_D025_]
 
-    cp   SYS_KEY_SELECT  ; $2E
+    cp   SYS_CHAR_GPAD_SELECT  ; $2E
     jp   z, _LABEL_4C83_
 
-    cp   SYS_KEY_START  ; $2A
+    cp   SYS_CHAR_GPAD_START  ; $2A
     jp   z, _LABEL_4C76_
 
     cp   $2F
@@ -3772,7 +3772,7 @@ maybe_input_wait_for_keys__4B84:
     call timer_wait_tick_AND_TODO__289_
     call input_read_keys__C8D_
     ld   a, [input_key_pressed__RAM_D025_]
-    cp   SYS_KEY_MAYBE_INVALID_OR_NODATA  ; $FF
+    cp   SYS_CHAR_MAYBE_INVALID_OR_NODATA  ; $FF
     jr   nz, maybe_input_wait_for_keys__4B84
     ret
 
@@ -4015,40 +4015,40 @@ input_map_keycodes_to_gamepad_buttons__4D30_:
     jr   nz, check_down__4d3c_
     set  PADB_UP, [hl]  ; 6, [hl]
     check_down__4d3c_:
-        cp   SYS_KEY_DOWN  ; $40
+        cp   SYS_CHAR_DOWN  ; $40
         jr   nz, check_left__4d42_
         set  PADB_DOWN, [hl]  ; 7, [hl]
 
     check_left__4d42_:
-        cp   SYS_KEY_LEFT  ; $3E
+        cp   SYS_CHAR_LEFT  ; $3E
         jr   nz, check_right__4d48_
         set  PADB_LEFT, [hl]  ; 5, [hl]
 
     check_right__4d48_:
-        cp   SYS_KEY_RIGHT  ; $3F
+        cp   SYS_CHAR_RIGHT  ; $3F
         jr   nz, check_up_left__4d4e_
         set  PADB_RIGHT, [hl]  ; 4, [hl]
 
     check_up_left__4d4e_:
-        cp   SYS_KEY_UP_LEFT  ; $CD
+        cp   SYS_CHAR_UP_LEFT  ; $CD
         jr   nz, check_up_right__4d56_
         set  PADB_LEFT, [hl]  ; 5, [hl]
         set  PADB_UP, [hl]  ; 6, [hl]
 
     check_up_right__4d56_:
-        cp   SYS_KEY_UP_RIGHT  ; $CA
+        cp   SYS_CHAR_UP_RIGHT  ; $CA
         jr   nz, check_down_left__4d5e_
         set  PADB_RIGHT, [hl]  ; 4, [hl]
         set  PADB_UP, [hl]  ; 6, [hl]
 
     check_down_left__4d5e_:
-        cp   SYS_KEY_DOWN_LEFT  ; $CC
+        cp   SYS_CHAR_DOWN_LEFT  ; $CC
         jr   nz, check_down_right__4d66_
         set  PADB_LEFT, [hl]  ; 5, [hl]
         set  PADB_DOWN, [hl]  ; 7, [hl]
 
     check_down_right__4d66_:
-        cp   SYS_KEY_DOWN_RIGHT  ; $CB
+        cp   SYS_CHAR_DOWN_RIGHT  ; $CB
         jr   nz, done__4D6E_
         set  PADB_RIGHT, [hl]  ; 4, [hl]
         set  PADB_DOWN, [hl]  ; 7, [hl]

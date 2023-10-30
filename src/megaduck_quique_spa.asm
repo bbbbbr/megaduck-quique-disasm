@@ -9,6 +9,7 @@ include "inc/hardware.inc"
 
 ; MegaDuck QuiQue specific defines
 include "inc/font_constants.inc"
+include "inc/sys_char_constants.inc"
 
 ; Ports 
 ; Wave pattern
@@ -63,24 +64,6 @@ DEF SYS_REPLY_READ_CONTINUE_MAYBE EQU $00
 DEF SYS_REPLY__BIT_BOOT_FAIL      EQU 0
 DEF SYS_REPLY_NO_CART_IN_SLOT     EQU $06
 DEF SYS_REPLY_MAYBE_KBD_START     EQU $0E  ; Maybe 0x0E... why 0x04 when logged? Reply at start of a 4 byte keyboard reply packet 
-
-
-DEF SYS_KEY_UP                    EQU $3D
-DEF SYS_KEY_LEFT                  EQU $3E
-DEF SYS_KEY_RIGHT                 EQU $3F
-DEF SYS_KEY_DOWN                  EQU $40
-
-DEF SYS_KEY_UP_RIGHT              EQU $CA
-DEF SYS_KEY_DOWN_RIGHT            EQU $CB
-DEF SYS_KEY_DOWN_LEFT             EQU $CC
-DEF SYS_KEY_UP_LEFT               EQU $CD
-; TODO: Naming may be incorrect here, either they are joystick specific, or mapped to something else more general such as Enter, etc
-DEF SYS_KEY_START                 EQU $2A
-DEF SYS_KEY_SELECT                EQU $2E  ; SELECT seems to be mapped to Enter (instead of START, confusingly)
-DEF SYS_KEY_A                     EQU $44
-DEF SYS_KEY_B                     EQU $45
-
-DEF SYS_KEY_MAYBE_INVALID_OR_NODATA    EQU $FF  ; TODO
 
 
 DEF VBL_CMD_COPY_16_BYTES_FROM_COPY_BUF_TO_HL   EQU $3
