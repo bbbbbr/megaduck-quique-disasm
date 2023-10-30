@@ -2,6 +2,12 @@
 ; If you want to reassemble this disassembly make sure to disable RGBDS optimizations.
 ; To disable them use the -h and -L commandline flags when invoking rgbasm.
 
+
+; Turn on to enable skipping some Megaduck QuiQue hardware specific code
+; def GB_DEBUG = 1
+
+ def KEYBOARD_LOG = 1
+
 include "hardware.inc"
 
 ; Ports 
@@ -61,6 +67,7 @@ DEF SYS_REPLY_READ_FAIL_MAYBE     EQU $00
 DEF SYS_REPLY_READ_CONTINUE_MAYBE EQU $00
 DEF SYS_REPLY__BIT_BOOT_FAIL      EQU 0
 DEF SYS_REPLY_NO_CART_IN_SLOT     EQU $06
+DEF SYS_REPLY_MAYBE_KBD_START     EQU $0E  ; TODO: maybe
 
 DEF SYS_KEY_UP                    EQU $3D
 DEF SYS_KEY_LEFT                  EQU $3E
@@ -72,10 +79,10 @@ DEF SYS_KEY_DOWN_RIGHT            EQU $CB
 DEF SYS_KEY_DOWN_LEFT             EQU $CC
 DEF SYS_KEY_UP_LEFT               EQU $CD
 ; TODO: Naming may be incorrect here, either they are joystick specific, or mapped to something else more general such as Enter, etc
-DEF SYS_KEY_A                     EQU $44
-DEF SYS_KEY_B                     EQU $45
 DEF SYS_KEY_START                 EQU $2A
 DEF SYS_KEY_SELECT                EQU $2E  ; SELECT seems to be mapped to Enter (instead of START, confusingly)
+DEF SYS_KEY_A                     EQU $44
+DEF SYS_KEY_B                     EQU $45
 
 DEF SYS_KEY_MAYBE_INVALID_OR_NODATA    EQU $FF  ; TODO
 
@@ -98,9 +105,6 @@ DEF MENU_FONT_128_TILES           EQU 128
 
 DEF TEXTBOX_OFFSET_TO_MIDDLE_TILES EQU $3 ; Top, middle and bottom of textbox are each comprised of 3 tiles (left/middle/right)
 DEF TEXTBOX_OFFSET_TO_BOTTOM_TILES EQU $6 ; Top, middle and bottom of textbox are each comprised of 3 tiles (left/middle/right)
-
-; Turn on to enable skipping some Megaduck QuiQue hardware specific code
-; def GB_DEBUG = 1
 
 SECTION "wram_c800__shadow_oam_", WRAM0[$C800]
 _RAM_SHADOW_OAM_BASE__C800_: ds SHADOW_OAM_SZ ; 160
@@ -170,9 +174,9 @@ serial_rx_data__RAM_D021_: db
 serial_status__RAM_D022_: db
 serial_tx_data__RAM_D023_: db
 serial_system_status__RAM_D024_: db
-maybe_input_key_new_pressed__RAM_D025_: db  ; TODO: Looking like input keycode (gamepad/"mouse" input gets mapped to this too)
-_RAM_D026_: db
-maybe_input_second_rx_byte__RAM_D027_: db
+maybe_input_key_new_pressed__RAM_D025_: db  ; TODO: input_kbd_rx_3_keycode__RAM_D025_  Looking like input keycode (gamepad/"mouse" input gets mapped to this too)
+serial_rx_check_calc__RAM_D026_: db    ; Seems to store check-byte (sum of 1st, 2nd, 3rd bytes) - should equal 4th byte
+maybe_input_second_rx_byte__RAM_D027_: db  ; TODO: input_kbd_rx_2_modifiers__RAM_D027_ Stores Modifier flag keys
 _RAM_D028_: db
 _RAM_D029_: db
 _RAM_D02A_: ds $3
@@ -305,6 +309,14 @@ _RAM_D40F_: db
 
 SECTION "wram_d411", WRAMX[$D411]
 _RAM_D411_: db
+
+SECTION "debug_test_wram_d500", WRAMX[$D500]
+DEF  __DEBUG_BUG_SZ  EQU 16
+____debug_buf__addr_start:
+__debug_buf__RAM_D500: ds __DEBUG_BUG_SZ
+; __debug_print_vram_offset: db
+__debug_buf_ptr: db
+
 
 SECTION "wram_d6d0", WRAMX[$D6D0]
 maybe_text_buffer__RAM_D6D0_: ds 16  ; maybe used for strings... printing buffer?

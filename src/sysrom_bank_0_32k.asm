@@ -193,18 +193,34 @@ serial_int_handler__00CE_:
     push af
     ldh  a, [rSB]
     ld   [serial_rx_data__RAM_D021_], a
+
+    if (def(KEYBOARD_LOG))
+        push  hl
+        ; Save value in A via debug pointer
+        ld    hl, __debug_buf_ptr
+        ld    l, [hl]
+        ld    h, HIGH(____debug_buf__addr_start)
+        ld    [hl], a
+        ; Increment pointer
+        ld    a, l
+        inc   a
+        ld    [__debug_buf_ptr], a
+        pop   hl
+    endc
+
     ld   a, SERIAL_STATUS_DONE ; $01
     ld   [serial_status__RAM_D022_], a
     call serial_int_disable__A2B_
     pop  af
     ret
 
+if (!def(KEYBOARD_LOG))
+    ; Data from DE to FE (33 bytes)
+    _DATA_00DE_:
+    ds 34, $00
+endc
 
-; Data from DE to FE (33 bytes)
-_DATA_00DE_:
-ds 34, $00
-
-
+SECTION "rom0_gbentrypoint_100", ROM0[$0100]
 _GB_ENTRY_POINT_100_:
     di
     xor  a
@@ -1734,7 +1750,7 @@ _LABEL_A34_:
         ld   b, a
         add  $02
         ld   [serial_tx_data__RAM_D023_], a
-        ld   [_RAM_D026_], a
+        ld   [serial_rx_check_calc__RAM_D026_], a
         call delay_quarter_msec__BD6_
         call serial_io_send_byte__B64_
         call delay_quarter_msec__BD6_
@@ -1745,9 +1761,9 @@ _LABEL_A34_:
             ldi  a, [hl]
             ld   [serial_tx_data__RAM_D023_], a
             ld   c, a
-            ld   a, [_RAM_D026_]
+            ld   a, [serial_rx_check_calc__RAM_D026_]
             add  c
-            ld   [_RAM_D026_], a
+            ld   [serial_rx_check_calc__RAM_D026_], a
             call serial_io_wait_receive_w_timeout_50msec__B8F_
             ;
             and  a
@@ -1771,7 +1787,7 @@ _LABEL_A34_:
         jp   z, _LABEL_AE4_
         cp   $03
         jp   nz, maybe_fail_and_return_value_FD___A5B_
-        ld   hl, _RAM_D026_
+        ld   hl, serial_rx_check_calc__RAM_D026_
         xor  a
         sub  [hl]
         ld   [serial_tx_data__RAM_D023_], a
@@ -1820,7 +1836,7 @@ _LABEL_B13_:
     jr   _LABEL_B58_
 
 _LABEL_B1C_:
-    ld   [_RAM_D026_], a
+    ld   [serial_rx_check_calc__RAM_D026_], a
     dec  a
     dec  a
     ld   [serial_maybe_control_var__RAM_D034_], a
@@ -1835,9 +1851,9 @@ _LABEL_B28_:
     ld   a, [serial_rx_data__RAM_D021_]
     ldi  [hl], a
     ld   c, a
-    ld   a, [_RAM_D026_]
+    ld   a, [serial_rx_check_calc__RAM_D026_]
     add  c
-    ld   [_RAM_D026_], a
+    ld   [serial_rx_check_calc__RAM_D026_], a
     dec  b
     jr   nz, _LABEL_B28_
     call serial_io_wait_receive_with_timeout__B8F_
@@ -1845,7 +1861,7 @@ _LABEL_B28_:
     jr   z, _LABEL_B13_
     call delay_quarter_msec__BD6_
     ld   a, [serial_rx_data__RAM_D021_]
-    ld   hl, _RAM_D026_
+    ld   hl, serial_rx_check_calc__RAM_D026_
     add  [hl]
     jr   nz, _LABEL_B13_
     ld   a, $F9
@@ -2020,16 +2036,18 @@ maybe_input_read_keys__C8D_:
     jr   z, maybe_input_req_key_failed_so_send04__CB9_
     ; Fail if RX byte was zero
     ld   a, [serial_rx_data__RAM_D021_]
+
     cp   SYS_REPLY_READ_FAIL_MAYBE ; $00
     jr   z, maybe_input_req_key_failed_so_send04__CB9_
-    ; TODO ...
-    cp   $0E  ; TODO: does this mean another serial byte is incoming? Or is it a modifier keycode?
+
+    cp   SYS_REPLY_MAYBE_KBD_START  ; $0E  ; TODO: Verify
     jr   z, _LABEL_CB0_
+
     jr   nc, maybe_input_req_key_failed_so_send04__CB9_
 
     ; TODO: Save last RX byte and wait for another
     _LABEL_CB0_:
-        ld   [_RAM_D026_], a
+        ld   [serial_rx_check_calc__RAM_D026_], a
         call serial_io_wait_receive_with_timeout__B8F_
         and  a
         jr   nz, _LABEL_CC8_
@@ -2045,32 +2063,35 @@ maybe_input_read_keys__C8D_:
 
     ; TODO: Maybe extended reading of keyboard input
     _LABEL_CC8_:
-        ; Save RX input byte #2
-        ; Also add and save it to _RAM_D026_
-        ; - (Code above loaded $0E into _RAM_D026_)
+        ; Save RX input byte #2 and add it to checksum
         ld   a, [serial_rx_data__RAM_D021_]
         ld   [maybe_input_second_rx_byte__RAM_D027_], a
-        ld   hl, _RAM_D026_
+        ld   hl, serial_rx_check_calc__RAM_D026_
         add  [hl]
         ld   [hl], a
+
         ; Wait for RX input byte #3
-        ; If successful, save it
-        ; Also add and save it to _RAM_D026_
+        ; If successful then save it and add to checksum
         call serial_io_wait_receive_with_timeout__B8F_
         and  a
         jr   z, maybe_input_req_key_failed_so_send04__CB9_
         ld   a, [serial_rx_data__RAM_D021_]
         ld   [maybe_input_key_new_pressed__RAM_D025_], a
-        ld   hl, _RAM_D026_
+        ld   hl, serial_rx_check_calc__RAM_D026_
         add  [hl]
-        ld   [_RAM_D026_], a
+        ld   [serial_rx_check_calc__RAM_D026_], a
+
         ; Wait for RX input byte #4
-        ; If successful, save it
+        ; If successful then verify it against the
+        ; calculated checksum in serial_rx_check_calc__RAM_D026_
+        ;
+        ; Make sure RX byte #4 == (((#1 + #2 + #3) XOR 0xFF) + 1) [two's complement]
+        ; I.E: (#4 + #1 + #2 + #3) == 0x100 -> unsigned overflow -> 0x00
         call serial_io_wait_receive_with_timeout__B8F_
         and  a
         jr   z, maybe_input_req_key_failed_so_send04__CB9_
         ld   a, [serial_rx_data__RAM_D021_]
-        ld   hl, _RAM_D026_
+        ld   hl, serial_rx_check_calc__RAM_D026_
         add  [hl]
         jr   nz, maybe_input_req_key_failed_so_send04__CB9_
 
@@ -2927,9 +2948,12 @@ db $00, $00, $86, $86, $C6, $C6, $44, $44, $4C, $4C, $68, $68, $38, $38, $38, $3
 db $38, $38, $28, $28, $68, $68, $64, $64, $C4, $C4, $C6, $C6, $C2, $C2, $00, $00
 db $00, $00, $82, $82, $82, $82, $C6, $C6, $44, $44, $6C, $6C, $38, $38, $38, $38
 ds 14, $10
+if (!def(KEYBOARD_LOG))
+; Needed to free up space since RGBDS doesn't understand 32K bank sizes
 db $00, $00, $00, $00, $FE, $FE, $06, $06, $06, $06, $0C, $0C, $08, $08, $18, $18
 db $10, $10, $30, $30, $20, $20, $60, $60, $C0, $C0, $C0, $C0, $FE, $FE, $FE, $FE
 db $00, $00, $00, $00, $82, $82, $00, $00
+endc
 
 SECTION "rom1", ROMX[$4000], BANK[$1]
 _LABEL_4000_:
@@ -3698,11 +3722,39 @@ _LABEL_4AE6_:
     ld   [_RAM_D05B_], a    ; _RAM_D05B_ = $D05B
     call maybe_input_wait_for_keys__4B84
 ; TODO: maybe this is the main menu loop
+    ; if (def(KEYBOARD_LOG))
+    ;     ; Reset debug buffer pointer
+    ;     ld a, LOW( ____debug_buf__addr_start )
+    ;     ld [__debug_buf_ptr], a
+    ; endc
 _LABEL_4B0E_:
+    if (def(KEYBOARD_LOG))
+        ; Reset debug buffer pointer
+        ld   a, [__debug_buf_ptr]
+        cp   a, (__DEBUG_BUG_SZ + 1)
+        jr   c, .skip_debug_ptr_reset
+
+            ld   a, LOW( ____debug_buf__addr_start )
+            ld   [__debug_buf_ptr], a
+        .skip_debug_ptr_reset
+    endc
+
     call timer_wait_tick_AND_TODO__289_
     call maybe_input_read_keys__C8D_
     ld   hl, _RAM_D06D_ ; _RAM_D06D_ = $D06D
     ld   a, [maybe_input_key_new_pressed__RAM_D025_]
+
+if (def(KEYBOARD_LOG))
+        call debug_log_serial_keyboard_data
+        ; loop forever
+       jr _LABEL_4B0E_
+
+        ; ld   a, [__debug_buf_ptr]
+        ; cp   a, __DEBUG_BUG_SZ
+        ; jr   nz, _LABEL_4B0E_
+        ; .permaloop:
+        ;     jr .permaloop
+endc
 
     cp   SYS_KEY_SELECT  ; $2E
     jp   z, _LABEL_4C83_
@@ -8902,4 +8954,11 @@ _DATA_79B2_:
     db $64, $90, $8D, $89, $BE, $BE, $6C, $90, $86, $81, $BE, $BE, $70, $58, $86, $81
     db $FC, $BE, $74, $90, $93, $8F, $8C, $BE, $78, $58, $93, $8F, $8C, $FC, $7C, $90
     db $8C, $81, $BE, $BE, $80, $58, $8C, $81, $FC, $BE, $84, $90, $93, $89, $BE, $BE
+
+
+if (def(KEYBOARD_LOG))
+    include "debug/keyboard_log.asm"
+else
+; Unused space at end of 32K Bank 0
 ds 1470, $00
+endc

@@ -81,6 +81,11 @@ usage:
 flashduck:
 	-cd tools/gbxcart_duck; ./gbxcart_rw_megaduck_32kb_flasher ../../$(DIRDUCK)/$(ROMNAME_BASE).duck &
 
+flashbank0:
+	mkdir -p $(DIRDUCK)/splitroms
+	split --verbose --bytes=32k --numeric-suffixes --suffix-length=2 $(DIRDUCK)/$(ROMNAME_BASE).duck $(DIRDUCK)/splitroms/bank.
+	-cd tools/gbxcart_duck; ./gbxcart_rw_megaduck_32kb_flasher ../../$(DIRDUCK)/splitroms/bank.00
+	rm -rf $(DIRDUCK)/splitroms
 
 # rom-first-32k:
 #	dd bs=32K count=1 if=$(REFERENCE_ROM) of=$(REFERENCE_ROM)_32k.duck
