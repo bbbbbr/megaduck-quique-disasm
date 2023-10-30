@@ -5,7 +5,10 @@
 
  
 
-include "hardware.inc"
+include "inc/hardware.inc"
+
+; MegaDuck QuiQue specific defines
+include "inc/font_constants.inc"
 
 ; Ports 
 ; Wave pattern
@@ -16,11 +19,6 @@ _PORT_3F_ EQU $3F
 _PORT_60_ EQU $60   
 
 
-; TODO: add _ to the front of all these defs
-
-; MegaDuck QuiQue specific defines
-
-include "font_constants.inc"
 
 ; Megaduck QuiQue System ROM Bank Switching
 ; 32K bank selected by writing to 0x1000
