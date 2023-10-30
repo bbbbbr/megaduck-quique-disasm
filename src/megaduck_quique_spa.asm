@@ -171,9 +171,9 @@ serial_rx_data__RAM_D021_: db
 serial_status__RAM_D022_: db
 serial_tx_data__RAM_D023_: db
 serial_system_status__RAM_D024_: db
-input_key_pressed__RAM_D025_: db ; Byte 3/4 in Keyboard reply seq. Gamepad/"mouse" input gets mapped to this too
+input_key_pressed__RAM_D025_: db           ; Byte 3/4 in Keyboard reply seq. Gamepad/"mouse" input gets mapped to this too
 serial_rx_check_calc__RAM_D026_: db        ; Byte 4/4 in Keyboard reply seq. Should == 2's Complement of (Byte 1 + Byte 2 + Byte 3_
-maybe_input_second_rx_byte__RAM_D027_: db  ; Byte 2/4 in Keyboard reply seq. input_kbd_rx_2_modifiers__RAM_D027_ Stores Modifier flag keys
+input_key_modifier_flags__RAM_D027_: db  ; Byte 2/4 in Keyboard reply seq. input_kbd_rx_2_modifiers__RAM_D027_ Stores Modifier flag keys
 _RAM_D028_: db
 _RAM_D029_: db
 _RAM_D02A_: ds $3

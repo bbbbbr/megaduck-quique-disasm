@@ -2051,7 +2051,7 @@ input_read_keys__C8D_:
     .rx_byte_2_ok__CC8_:
         ; Save RX input byte #2 and add it to checksum
         ld   a, [serial_rx_data__RAM_D021_]
-        ld   [maybe_input_second_rx_byte__RAM_D027_], a
+        ld   [input_key_modifier_flags__RAM_D027_], a
         ld   hl, serial_rx_check_calc__RAM_D026_
         add  [hl]
         ld   [hl], a
@@ -2100,10 +2100,10 @@ input_read_keys__C8D_:
 ; TODO: Maybe lots of special input handling and processing below
 
 _LABEL_D0F_:
-    ld   a, [maybe_input_second_rx_byte__RAM_D027_]
+    ld   a, [input_key_modifier_flags__RAM_D027_]
     bit  0, a
     jp   nz, _LABEL_DD5_
-    ld   a, [maybe_input_second_rx_byte__RAM_D027_]
+    ld   a, [input_key_modifier_flags__RAM_D027_]
     bit  3, a
     jr   z, _LABEL_D24_
     ld   a, $2F
@@ -2124,10 +2124,10 @@ _LABEL_D24_:
     ld   a, [hl]
     ld   [input_key_pressed__RAM_D025_], a
     ld   b, a
-    ld   a, [maybe_input_second_rx_byte__RAM_D027_]
+    ld   a, [input_key_modifier_flags__RAM_D027_]
     and  $0E
     jr   z, _LABEL_DC5_
-    ld   a, [maybe_input_second_rx_byte__RAM_D027_]
+    ld   a, [input_key_modifier_flags__RAM_D027_]
     and  $06
     jr   z, _LABEL_DC5_
     bit  2, a
@@ -2254,7 +2254,7 @@ _LABEL_DFC_:
 _LABEL_E0A_:
     cp   $2B
     jr   nz, _LABEL_E1C_
-    ld   a, [maybe_input_second_rx_byte__RAM_D027_]
+    ld   a, [input_key_modifier_flags__RAM_D027_]
     bit  2, a
     jr   z, _LABEL_E37_
     ld   a, $D2
@@ -2265,7 +2265,7 @@ _LABEL_E1C_:
     ld   a, [input_key_pressed__RAM_D025_]
     cp   $DC
     jr   nz, _LABEL_E37_
-    ld   a, [maybe_input_second_rx_byte__RAM_D027_]
+    ld   a, [input_key_modifier_flags__RAM_D027_]
     ld   c, a
     and  $02
     sla  a
@@ -8115,7 +8115,7 @@ _LABEL_7354_:
         jr   nz, _LABEL_7375_
 _LABEL_7366_:
         call input_read_keys__C8D_
-        ld   a, [maybe_input_second_rx_byte__RAM_D027_]
+        ld   a, [input_key_modifier_flags__RAM_D027_]
         bit  0, a
         jr   z, _LABEL_7375_
         call timer_wait_tick_AND_TODO__289_
