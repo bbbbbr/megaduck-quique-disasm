@@ -2085,8 +2085,8 @@ input_read_keys__C8D_:
         ld   a, SYS_CMD_DONE_OR_OK ; $01
         ld   [serial_tx_data__RAM_D023_], a
         call serial_io_send_byte__B64_
-        call _LABEL_D0F_
-        ; Save key for later use with key repeat
+        call input_process_key_codes_and_flags__D0F_
+        ; Save key for later use with Key Repeat
         ld   a, [input_key_pressed__RAM_D025_]
         ld   [input_prev_key_pressed__RAM_D181_], a
 
@@ -2096,174 +2096,189 @@ input_read_keys__C8D_:
         call _LABEL_DFC_
         ret
 
+    ; Processing of the received Key Codes below
 
-
-; TODO: Maybe lots of special input handling and processing below
-
-_LABEL_D0F_:
+input_process_key_codes_and_flags__D0F_:
+    ; Check if Key Repeat flag is enabled
     ld   a, [input_key_modifier_flags__RAM_D027_]
     bit  SYS_KBD_FLAG_KEY_REPEAT_BIT, a  ; 0, a
-    jp   nz, input_handle_key_repeat_flag__DD5_
+    jp   nz, .input_handle_key_repeat_flag__DD5_
 
+    ; Check if Left PrintScreen flag is set
+    ; If it isn't then continue processing
+    ; (Right PrintScreen generates an actual scancode)
     ld   a, [input_key_modifier_flags__RAM_D027_]
     bit  SYS_KBD_FLAG_PRINTSCREEN_LEFT_BIT, a  ; 3, a
-    jr   z, _LABEL_D24_
+    jr   z, .continue_processing_key_codes__D24_
+
     ld   a, SYS_CHAR_PRINTSCREEN  ; $2F
     ld   [input_key_pressed__RAM_D025_], a
     ret
 
-; TODO : Some keyboard input and flag processing
-_LABEL_D24_:
-    ld   a, [input_key_pressed__RAM_D025_]
-    and  a
-    jp   z, _LABEL_DCF_
-    bit  7, a
-    jp   z, _LABEL_DBD_
-    cp   $F0
-    jp   nc, _LABEL_DC5_
-    res  7, a
-    ld   hl, $0EBF
-    call add_a_to_hl__486E_
-    ld   a, [hl]
-    ld   [input_key_pressed__RAM_D025_], a
-    ld   b, a
+    .continue_processing_key_codes__D24_:
+        ld   a, [input_key_pressed__RAM_D025_]
+        and  a
+        jp   z, .invalid_key_or_no_data__DCF_
 
-    ld   a, [input_key_modifier_flags__RAM_D027_]
-    and  (SYS_KBD_FLAG_PRINTSCREEN_LEFT | SYS_KBD_FLAG_SHIFT | SYS_KBD_FLAG_CAPSLOCK)  ; $0E
-    jr   z, _LABEL_DC5_
+        ; Keyboard keys must be 0x80+
+        bit  SYS_KBD_FLAG_KEYCODE_BASE, a  ; 7, a
+        jp   z, .not_a_keybaord_key__DBD_
 
-    ld   a, [input_key_modifier_flags__RAM_D027_]
-    and  (SYS_KBD_FLAG_SHIFT | SYS_KBD_FLAG_CAPSLOCK)  ; $06
-    jr   z, _LABEL_DC5_
+        ; If it's 0xF0 or higher it's not a keyboard key
+        cp   (SYS_KBD_CODE_LAST_KEY + 1)  ; $F0
+        jp   nc, .save_key_for_repeat__DC5_
 
-    bit  SYS_KBD_FLAG_SHIFT_BIT, a  ; 2, a
-    jr   nz, _LABEL_D68_
+        ; Strip 0x80 base offset from key code
+        ; and use it to index keycode into a LUT
+        res  SYS_KBD_FLAG_KEYCODE_BASE, a  ; 7, a
+        ld   hl, KEYCODE_LUT__0EBF_  ; $0EBF
+        call add_a_to_hl__486E_
+        ld   a, [hl]
+        ld   [input_key_pressed__RAM_D025_], a
+        ld   b, a
 
-    ; TODO: What is signaled by bit 7 of input_key_pressed__RAM_D025_ ?
-    ld   a, b
-    bit  7, a
-    jr   z, _LABEL_DC5_
+        ld   a, [input_key_modifier_flags__RAM_D027_]
+        and  (SYS_KBD_FLAG_PRINTSCREEN_LEFT | SYS_KBD_FLAG_SHIFT | SYS_KBD_FLAG_CAPSLOCK)  ; $0E
+        jr   z, .save_key_for_repeat__DC5_
 
-    cp   SYS_CHAR_A_LOWER  ; $A1
-    jr   c, _LABEL_DC5_
+        ld   a, [input_key_modifier_flags__RAM_D027_]
+        and  (SYS_KBD_FLAG_SHIFT | SYS_KBD_FLAG_CAPSLOCK)  ; $06
+        jr   z, .save_key_for_repeat__DC5_
 
-    cp   SYS_CHAR_SPACE  ; $BE
-    jr   nc, _LABEL_DC5_
-_LABEL_D61_:
-    res  5, a
-    ld   [input_key_pressed__RAM_D025_], a
-    jr   _LABEL_DC5_
+        bit  SYS_KBD_FLAG_SHIFT_BIT, a  ; 2, a
+        jr   nz, ._LABEL_D68_
 
-_LABEL_D68_:
-    bit  1, a
-    jr   z, _LABEL_D86_
-    ld   a, b
-    cp   $43
-    jr   nz, _LABEL_D78_
-    ld   a, $70
-    ld   [input_key_pressed__RAM_D025_], a
-    jr   _LABEL_DC5_
+        ; TODO: What is signaled by bit 7 of input_key_pressed__RAM_D025_ ?
+        ld   a, b
+        bit  7, a
+        jr   z, .save_key_for_repeat__DC5_
 
-_LABEL_D78_:
-    bit  7, a
-    jr   z, _LABEL_D86_
-    cp   $A1
-    jr   c, _LABEL_D86_
-    cp   $BE
-    jr   nc, _LABEL_D86_
-    jr   _LABEL_DC5_
+        cp   SYS_CHAR_A_LOWER  ; $A1
+        jr   c, .save_key_for_repeat__DC5_
 
-_LABEL_D86_:
-    ld   a, b
-    cp   $43
-    jr   nz, _LABEL_D92_
-    ld   a, $70
-    ld   [input_key_pressed__RAM_D025_], a
-    jr   _LABEL_DC5_
+        cp   SYS_CHAR_SPACE  ; $BE
+        jr   nc, .save_key_for_repeat__DC5_
+    ._LABEL_D61_:
+        res  5, a
+        ld   [input_key_pressed__RAM_D025_], a
+        jr   .save_key_for_repeat__DC5_
 
-_LABEL_D92_:
-    bit  7, a
-    jr   z, _LABEL_DAF_
-    cp   $A1
-    jr   c, _LABEL_DA0_
-    cp   $BE
-    jr   nc, _LABEL_DA0_
-    jr   _LABEL_D61_
+    ._LABEL_D68_:
+        bit  1, a
+        jr   z, ._LABEL_D86_
+        ld   a, b
+        cp   $43
+        jr   nz, ._LABEL_D78_
+        ld   a, $70
+        ld   [input_key_pressed__RAM_D025_], a
+        jr   .save_key_for_repeat__DC5_
 
-_LABEL_DA0_:
-    cp   $C1
-    jr   c, _LABEL_DAF_
-    cp   $CA
-    jr   nc, _LABEL_DAF_
-    sub  $5E
-    ld   [input_key_pressed__RAM_D025_], a
-    jr   _LABEL_DC5_
+    ._LABEL_D78_:
+        bit  7, a
+        jr   z, ._LABEL_D86_
+        cp   $A1
+        jr   c, ._LABEL_D86_
+        cp   $BE
+        jr   nc, ._LABEL_D86_
+        jr   .save_key_for_repeat__DC5_
 
-_LABEL_DAF_:
-    ld   c, $0B
-    ld   hl, _DATA_F2F_ ; _DATA_F2F_ = $0F2F
-_LABEL_DB4_:
-    ldi  a, [hl]
-    cp   b
-    jr   z, _LABEL_DC1_
-    inc  hl
-    dec  c
-    jr   nz, _LABEL_DB4_
-    ret
+    ._LABEL_D86_:
+        ld   a, b
+        cp   $43
+        jr   nz, ._LABEL_D92_
+        ld   a, $70
+        ld   [input_key_pressed__RAM_D025_], a
+        jr   .save_key_for_repeat__DC5_
 
-_LABEL_DBD_:
-    ld   a, $F6
-    jr   _LABEL_DC2_
+    ._LABEL_D92_:
+        bit  7, a
+        jr   z, ._LABEL_DAF_
+        cp   $A1
+        jr   c, ._LABEL_DA0_
+        cp   $BE
+        jr   nc, ._LABEL_DA0_
+        jr   ._LABEL_D61_
 
-_LABEL_DC1_:
-    ldi  a, [hl]
-_LABEL_DC2_:
-    ld   [input_key_pressed__RAM_D025_], a
-_LABEL_DC5_:
-    ld   a, [input_key_pressed__RAM_D025_]
-    cp   $F0
-    ret  nc
-    ld   [input_prev_key_pressed__RAM_D181_], a
-    ret
+    ._LABEL_DA0_:
+        cp   $C1
+        jr   c, ._LABEL_DAF_
+        cp   $CA
+        jr   nc, ._LABEL_DAF_
+        sub  $5E
+        ld   [input_key_pressed__RAM_D025_], a
+        jr   .save_key_for_repeat__DC5_
 
-_LABEL_DCF_:
-    ld   a, SYS_CHAR_INVALID_OR_NODATA  ; $FF
-    ld   [input_key_pressed__RAM_D025_], a
-    ret
+    ._LABEL_DAF_:
+        ld   c, $0B
+        ld   hl, _DATA_F2F_ ; _DATA_F2F_ = $0F2F
+    ._LABEL_DB4_:
+        ldi  a, [hl]
+        cp   b
+        jr   z, .load_at_hl_to_key_pressed__DC1_
+        inc  hl
+        dec  c
+        jr   nz, ._LABEL_DB4_
+        ret
 
+    ; Not sure if this gets used anywhere outside processing
+    .not_a_keybaord_key__DBD_:
+        ld   a, SYS_KBD_CODE_MAYBE_RX_NOT_A_KEY  ; $F6
+        jr   .load_reg_a_to_key_pressed__DC2_
 
-; Called when the keyboard repeat flag SYS_KBD_FLAG_KEY_REPEAT
-; is detected in input_key_modifier_flags__RAM_D027_
-; - Loads to input_key_pressed__RAM_D025_
-input_handle_key_repeat_flag__DD5_:
-    ld   a, [input_prev_key_pressed__RAM_D181_]
-    cp   SYS_CHAR_UP_RIGHT  ; $CA
-    jp   z, .load_repeat_key_to_input__DF8_
+    .load_at_hl_to_key_pressed__DC1_:
+        ldi  a, [hl]
 
-    cp   SYS_CHAR_DOWN_RIGHT  ; $CB
-    jp   z, .load_repeat_key_to_input__DF8_
+    .load_reg_a_to_key_pressed__DC2_:
+        ld   [input_key_pressed__RAM_D025_], a
 
-    cp   SYS_CHAR_DOWN_LEFT  ; $CC
-    jp   z, .load_repeat_key_to_input__DF8_
+    .save_key_for_repeat__DC5_:
+        ld   a, [input_key_pressed__RAM_D025_]
+        ; If it's 0xF0 or higher it's not a keyboard key
+        ; So don't save it for repeat
+        cp   (SYS_KBD_CODE_LAST_KEY + 1)  ; $F0
+        ret  nc
+        ld   [input_prev_key_pressed__RAM_D181_], a
+        ret
 
-    cp   SYS_CHAR_UP_LEFT  ; $CD
-    jp   z, .load_repeat_key_to_input__DF8_
-
-    ; TODO: Is order of tests correct?
-    cp   SYS_CHAR_MEMORY_PLUS  ; $41
-    jr   c, .load_repeat_key_to_input__DF8_
-
-    cp   (SYS_CHAR_LAST_PIANO + 1)  ; $18
-    jr   nc, .repeat_blocked__DF6_
-
-    jr   .load_repeat_key_to_input__DF8_
-
-    .repeat_blocked__DF6_:
+    .invalid_key_or_no_data__DCF_:
         ld   a, SYS_CHAR_INVALID_OR_NODATA  ; $FF
-
-    .load_repeat_key_to_input__DF8_:
         ld   [input_key_pressed__RAM_D025_], a
         ret
+
+
+    ; Called when the keyboard repeat flag SYS_KBD_FLAG_KEY_REPEAT
+    ; is detected in input_key_modifier_flags__RAM_D027_
+    ; - Loads to input_key_pressed__RAM_D025_
+    .input_handle_key_repeat_flag__DD5_:
+        ld   a, [input_prev_key_pressed__RAM_D181_]
+        cp   SYS_CHAR_UP_RIGHT  ; $CA
+        jp   z, .load_repeat_key_to_input__DF8_
+
+        cp   SYS_CHAR_DOWN_RIGHT  ; $CB
+        jp   z, .load_repeat_key_to_input__DF8_
+
+        cp   SYS_CHAR_DOWN_LEFT  ; $CC
+        jp   z, .load_repeat_key_to_input__DF8_
+
+        cp   SYS_CHAR_UP_LEFT  ; $CD
+        jp   z, .load_repeat_key_to_input__DF8_
+
+        ; TODO: Is order of tests correct?
+        cp   SYS_CHAR_MEMORY_PLUS  ; $41
+        jr   c, .load_repeat_key_to_input__DF8_
+
+        cp   (SYS_CHAR_LAST_PIANO + 1)  ; $18
+        jr   nc, .repeat_blocked__DF6_
+
+        jr   .load_repeat_key_to_input__DF8_
+
+        .repeat_blocked__DF6_:
+            ld   a, SYS_CHAR_INVALID_OR_NODATA  ; $FF
+
+        .load_repeat_key_to_input__DF8_:
+            ld   [input_key_pressed__RAM_D025_], a
+            ret
+
 
 
 _LABEL_DFC_:
@@ -2412,7 +2427,10 @@ _LABEL_EA3_:
 
 ; Reverting this to data (it had a jump to the middle of tile data)
 _LABEL_EB8_:
-db $2B, $B5, $E1, $2B, $95, $DA, $00, $30, $2A, $2D, $2F, $31, $C1, $B1, $A1, $32, $C2, $B7, $B3, $33, $C3, $A5, $A4
+db $2B, $B5, $E1, $2B, $95, $DA, $00
+
+KEYCODE_LUT__0EBF_:
+db $30, $2A, $2D, $2F, $31, $C1, $B1, $A1, $32, $C2, $B7, $B3, $33, $C3, $A5, $A4
 
 _LABEL_ECF_:
     inc  [hl]
@@ -8149,7 +8167,7 @@ input_repeat_key_until_released__7366_:
         bit  SYS_KBD_FLAG_KEY_REPEAT_BIT, a  ; 0, a
         jr   z, _LABEL_7375_
 
-        ; delay before key repeat test
+        ; delay before Key Repeat test
         call timer_wait_tick_AND_TODO__289_
         jr   input_repeat_key_until_released__7366_
 

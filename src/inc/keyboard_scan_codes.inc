@@ -37,7 +37,7 @@
 
 
 
-; Modifier Keys
+; Modifier Keys / Flags for RX Byte 2
 ;
 ; See input_key_modifier_flags__RAM_D027_
 DEF SYS_KBD_FLAG_KEY_REPEAT             EQU $01
@@ -50,6 +50,10 @@ DEF SYS_KBD_FLAG_SHIFT_BIT              EQU 2
 DEF SYS_KBD_FLAG_PRINTSCREEN_LEFT       EQU $08
 DEF SYS_KBD_FLAG_PRINTSCREEN_LEFT_BIT   EQU 3
 
+
+; RX Byte 3 Flags
+; All valid keys seem to have bit 7 set (0x80+)
+DEF SYS_KBD_FLAG_KEYCODE_BASE  EQU 7
 
 ; First 4 rows (top of keyboard)  ~ 0x80 - 0xB7
 ;
@@ -220,5 +224,8 @@ DEF SYS_KBD_CODE_PIANO_SOL_2         EQU  $E7
 DEF SYS_KBD_CODE_PIANO_LA_2          EQU  $EB
 DEF SYS_KBD_CODE_PIANO_SI_2          EQU  $EF
 
+DEF SYS_KBD_CODE_LAST_KEY            EQU  (SYS_KBD_CODE_PIANO_SI_2)
 
-
+; Special System Codes? 0xF0+
+DEF SYS_KBD_CODE_MAYBE_SYST_CODES_START  EQU  $F0
+DEF SYS_KBD_CODE_MAYBE_RX_NOT_A_KEY      EQU  $F6
