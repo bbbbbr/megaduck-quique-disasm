@@ -8,7 +8,6 @@ MACRO FONT_OFFSET ; Char Constant Name, Char Value
     DEF \1 EQU (\2 + FONT_BASE)
 ENDM
 
-; Indentation required for invoking macro
 DEF STR_TERMINATOR            EQU $00
 
 DEF FONT_UPPER_TO_LOWER_ADD   EQU 32  ; $20
@@ -16,6 +15,7 @@ DEF FONT_LOWER_TO_UPPER_SUB   EQU 32  ; $20
 DEF FONT_TILDE_UPPER_TO_LOWER_ADD   EQU 7  ; $07
 DEF FONT_TILDE_LOWER_TO_UPPER_SUB   EQU 7  ; $07
 
+; Indentation required for invoking macro
 ; Char nums with respect to the font when loaded starting at Tile ID 0x80
     FONT_OFFSET          FONT_UPARROW, 0 ; $80
     ; Upper case Letters
@@ -57,38 +57,39 @@ DEF FONT_UPPERCASE_LAST       EQU FONT_U_UMLAUT
     FONT_OFFSET          FONT_DOT,        31 ; $9F  ; Period?
     FONT_OFFSET          FONT_UNDERSCORE, 32 ; $A0
     ; Lower case Letters
-    FONT_OFFSET          FONT_a, 33 ; $A1 ; Upper case + 32 (0x20)
-    FONT_OFFSET          FONT_b, 34 ; $A2
-    FONT_OFFSET          FONT_c, 35 ; $A3
-    FONT_OFFSET          FONT_d, 36 ; $A4
-    FONT_OFFSET          FONT_e, 37 ; $A5
-    FONT_OFFSET          FONT_f, 38 ; $A6
-    FONT_OFFSET          FONT_g, 39 ; $A7
-    FONT_OFFSET          FONT_h, 40 ; $A8
-    FONT_OFFSET          FONT_i, 41 ; $A9
-    FONT_OFFSET          FONT_j, 42 ; $AA
-    FONT_OFFSET          FONT_k, 43 ; $AB
-    FONT_OFFSET          FONT_l, 44 ; $AC
-    FONT_OFFSET          FONT_m, 45 ; $AD
-    FONT_OFFSET          FONT_n, 46 ; $AE
-    FONT_OFFSET          FONT_o, 47 ; $AF
-    FONT_OFFSET          FONT_p, 48 ; $B0
-    FONT_OFFSET          FONT_q, 49 ; $B1
-    FONT_OFFSET          FONT_r, 50 ; $B2
-    FONT_OFFSET          FONT_s, 51 ; $B3
-    FONT_OFFSET          FONT_t, 52 ; $B4
-    FONT_OFFSET          FONT_u, 53 ; $B5
-    FONT_OFFSET          FONT_v, 54 ; $B6
-    FONT_OFFSET          FONT_w, 55 ; $B7
-    FONT_OFFSET          FONT_x, 56 ; $B8
-    FONT_OFFSET          FONT_y, 57 ; $B9
-    FONT_OFFSET          FONT_z, 58 ; $BA
+    ; TODO: convert lower case to ...N_LOWER instead of actual case
+    FONT_OFFSET          FONT_A_LOWER, 33 ; $A1 ; Upper case + 32 (0x20)
+    FONT_OFFSET          FONT_B_LOWER, 34 ; $A2
+    FONT_OFFSET          FONT_C_LOWER, 35 ; $A3
+    FONT_OFFSET          FONT_D_LOWER, 36 ; $A4
+    FONT_OFFSET          FONT_E_LOWER, 37 ; $A5
+    FONT_OFFSET          FONT_F_LOWER, 38 ; $A6
+    FONT_OFFSET          FONT_G_LOWER, 39 ; $A7
+    FONT_OFFSET          FONT_H_LOWER, 40 ; $A8
+    FONT_OFFSET          FONT_I_LOWER, 41 ; $A9
+    FONT_OFFSET          FONT_J_LOWER, 42 ; $AA
+    FONT_OFFSET          FONT_K_LOWER, 43 ; $AB
+    FONT_OFFSET          FONT_L_LOWER, 44 ; $AC
+    FONT_OFFSET          FONT_M_LOWER, 45 ; $AD
+    FONT_OFFSET          FONT_N_LOWER, 46 ; $AE
+    FONT_OFFSET          FONT_O_LOWER, 47 ; $AF
+    FONT_OFFSET          FONT_P_LOWER, 48 ; $B0
+    FONT_OFFSET          FONT_Q_LOWER, 49 ; $B1
+    FONT_OFFSET          FONT_R_LOWER, 50 ; $B2
+    FONT_OFFSET          FONT_S_LOWER, 51 ; $B3
+    FONT_OFFSET          FONT_T_LOWER, 52 ; $B4
+    FONT_OFFSET          FONT_U_LOWER, 53 ; $B5
+    FONT_OFFSET          FONT_V_LOWER, 54 ; $B6
+    FONT_OFFSET          FONT_W_LOWER, 55 ; $B7
+    FONT_OFFSET          FONT_X_LOWER, 56 ; $B8
+    FONT_OFFSET          FONT_Y_LOWER, 57 ; $B9
+    FONT_OFFSET          FONT_Z_LOWER, 58 ; $BA
     ; Lower case maybe umlaut Letters
-    FONT_OFFSET          FONT_a_UMLAUT, 59 ; $BB
-    FONT_OFFSET          FONT_o_UMLAUT, 60 ; $BC
-    FONT_OFFSET          FONT_u_UMLAUT, 61 ; $BD
-DEF FONT_LOWERCASE_FIRST      EQU FONT_a
-DEF FONT_LOWERCASE_LAST       EQU FONT_u_UMLAUT
+    FONT_OFFSET          FONT_A_UMLAUT_LOWER, 59 ; $BB
+    FONT_OFFSET          FONT_O_UMLAUT_LOWER, 60 ; $BC
+    FONT_OFFSET          FONT_U_UMLAUT_LOWER, 61 ; $BD
+DEF FONT_LOWERCASE_FIRST      EQU FONT_A_LOWER
+DEF FONT_LOWERCASE_LAST       EQU FONT_U_UMLAUT_LOWER
     ; Space / ?
     FONT_OFFSET          FONT_BLANKSPACE, 62 ; $BE
     FONT_OFFSET          FONT_QUESTIONMARK, 63 ; $BF
