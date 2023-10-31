@@ -60,9 +60,7 @@ DEF SYS_CHAR_F8    EQU  $37
 DEF SYS_CHAR_F9    EQU  $38
 DEF SYS_CHAR_F10   EQU  $39
 DEF SYS_CHAR_F11   EQU  $3A
-
-
-; Gap 0x3B
+; DEF SYS_CHAR_F12   EQU  $3B  ; Maybe F12, but also 4C?
 
 
 ; Delete Key
@@ -240,7 +238,7 @@ DEF SYS_CHAR_N_TILDE_LOWER              EQU  $DC
 
 
 ; TODO: Confirm
-DEF SYS_CHAR_INVALID_OR_NODATA    EQU $FF
+DEF SYS_CHAR_NO_DATA_OR_KEY    EQU $FF
 
 
 ; Aliases used by Gamepad -> Keyboard Mapping in var D025

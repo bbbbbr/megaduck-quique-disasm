@@ -2040,7 +2040,7 @@ input_read_keys__C8D_:
         jr   nz, .rx_byte_2_ok__CC8_
 
     .req_key_failed_so_send04__CB9_:
-        ld   a, SYS_CHAR_INVALID_OR_NODATA  ; $FF
+        ld   a, SYS_CHAR_NO_DATA_OR_KEY  ; $FF
         ld   [input_key_pressed__RAM_D025_], a
         ld   a, SYS_CMD_ABORT_OR_FAIL  ; $04 ; TODO: Maybe a failed/reset/cancel input system command SYS_CMD
         ld   [serial_tx_data__RAM_D023_], a
@@ -2125,18 +2125,20 @@ input_process_key_codes_and_flags__D0F_:
         jp   z, .not_a_keybaord_key__DBD_
 
         ; If it's 0xF0 or higher it's not a keyboard key
+        ; Values 0xF0 or higher will still get filtered out
         cp   (SYS_KBD_CODE_LAST_KEY + 1)  ; $F0
         jp   nc, .save_key_for_repeat__DC5_
 
         ; Strip 0x80 base offset from key code
-        ; and use it to index keycode into a LUT
+        ; Then use it as A LUT index to translate from keycode -> to system char
         res  SYS_KBD_FLAG_KEYCODE_BASE, a  ; 7, a
-        ld   hl, KEYCODE_LUT__0EBF_  ; $0EBF
+        ld   hl, KEYCODE_TO_SYS_CHAR_LUT__0EBF_  ; $0EBF
         call add_a_to_hl__486E_
         ld   a, [hl]
         ld   [input_key_pressed__RAM_D025_], a
         ld   b, a
 
+        ; Check for key repeat (again)
         ld   a, [input_key_modifier_flags__RAM_D027_]
         and  (SYS_KBD_FLAG_PRINTSCREEN_LEFT | SYS_KBD_FLAG_SHIFT | SYS_KBD_FLAG_CAPSLOCK)  ; $0E
         jr   z, .save_key_for_repeat__DC5_
@@ -2241,7 +2243,7 @@ input_process_key_codes_and_flags__D0F_:
         ret
 
     .invalid_key_or_no_data__DCF_:
-        ld   a, SYS_CHAR_INVALID_OR_NODATA  ; $FF
+        ld   a, SYS_CHAR_NO_DATA_OR_KEY  ; $FF
         ld   [input_key_pressed__RAM_D025_], a
         ret
 
@@ -2273,7 +2275,7 @@ input_process_key_codes_and_flags__D0F_:
         jr   .load_repeat_key_to_input__DF8_
 
         .repeat_blocked__DF6_:
-            ld   a, SYS_CHAR_INVALID_OR_NODATA  ; $FF
+            ld   a, SYS_CHAR_NO_DATA_OR_KEY  ; $FF
 
         .load_repeat_key_to_input__DF8_:
             ld   [input_key_pressed__RAM_D025_], a
@@ -2317,7 +2319,7 @@ _LABEL_E1C_:
     xor  b
     jr   z, _LABEL_E37_
 
-    ; TODO: Load SYS_CHAR_N_TILDE ? hmm... 
+    ; TODO: Load SYS_CHAR_N_TILDE ? hmm...
     ld   a, $D5
     ld   [input_key_pressed__RAM_D025_], a
 _LABEL_E37_:
@@ -2353,13 +2355,13 @@ _LABEL_E4C_:
     ld   a, $AA
     ld   [hl], a
 _LABEL_E6A_:
-    ld   a, SYS_CHAR_INVALID_OR_NODATA  ; $FF
+    ld   a, SYS_CHAR_NO_DATA_OR_KEY  ; $FF
     ld   [input_key_pressed__RAM_D025_], a
     ret
 
 _LABEL_E70_:
     ld   a, [input_key_pressed__RAM_D025_]
-    cp   SYS_CHAR_INVALID_OR_NODATA  ; $FF
+    cp   SYS_CHAR_NO_DATA_OR_KEY  ; $FF
     ret  z
     ld   hl, _RAM_D222_ ; _RAM_D222_ = $D222
     ld   b, [hl]
@@ -2429,96 +2431,22 @@ _LABEL_EA3_:
 _LABEL_EB8_:
 db $2B, $B5, $E1, $2B, $95, $DA, $00
 
-KEYCODE_LUT__0EBF_:
-db $30, $2A, $2D, $2F, $31, $C1, $B1, $A1, $32, $C2, $B7, $B3, $33, $C3, $A5, $A4
 
-_LABEL_ECF_:
-    inc  [hl]
-    call nz, $A6B2
-    dec  [hl]
-    push bc
-    or   h
-    and  a
-    ld   [hl], $C6
-    cp   c
-    xor  b
-    scf
-    rst  $00    ; _RSTL_0_
-    or   l
-    xor  d
-    jr   c, @ - 54
-    xor  c
-    xor  e
-    add  hl, sp
-    ret
+KEYCODE_TO_SYS_CHAR_LUT__0EBF_:
+; LUT for translating keyboard key scan codes to system character values
+include "inc/keycode_to_syschar_LUT.inc"
 
-_LABEL_EE5_:
-    xor  a
-    xor  h
-    ldd  a, [hl]
-    ret  nz
-    or   b
-    call c, _LABEL_6E3B_
-    dec  hl
-    cp   l
-    rst  $38    ; _RST_38_
-    pop  de
-; Data from EF1 to EF2 (2 bytes)
-db $D3, $DB
 
-; _LABEL_EF3_:
-;     rst  $38    ; _RST_38_
-;     inc  l
-;     ld   l, $FF
-;     cp   d
-;     cp   [hl]
-;     ld   bc, $B800
-;     ld   [hl], a
-;     inc  bc
-;     ld   [bc], a
-;     and  e
-;     ld   b, h
-;     ldd  a, [hl]
-;     inc  b
-;     or   [hl]
-;     ld   b, l
-;     ld   b, $05
-;     and  d
-;     ld   b, [hl]
-;     ld   [$AE07], sp
-;     ld   b, c
-;     ld   a, [bc]
-;     add  hl, bc
-;     xor  l
-;     ld   b, d
-;     cpl
-;     dec  bc
-;     sbc  a, [hl]
-;     ld   b, e
-;     dec  c
-;     inc  c
-;     ld   [hl], h
-;     call z, $0E0F
-;     bit  0, b
-;     cpl
-;     stop
-;     rl   d
-;     ld   de, $3ECD
-;     inc  d
-; ; Data from F26 to F2E (9 bytes)
-; db $13, $3D, $CE, $16, $15, $CA, $3F, $3A, $17
 
-; Data from EF3 to F2E
-_DATA_EF3_:
-db $FF, $2C, $2E, $FF, $BA, $BE, $01, $00, $B8, $77, $03, $02, $A3, $44, $3A, $04
-db $B6, $45, $06, $05, $A2, $46, $08, $07, $AE, $41, $0A, $09, $AD, $42, $2F, $0B
-db $9E, $43, $0D, $0C, $74, $CC, $0F, $0E, $CB, $40, $2F, $10, $3C, $CB, $12, $11
-db $CD, $3E, $14, $13, $3D, $CE, $16, $15, $CA, $3F, $3A, $17
 
 ; Data from F2F to 2FFF (8401 bytes)
 _DATA_F2F_:
-db $9E, $75, $74, $73, $CB, $A0, $DB, $D4, $D3, $6F, $C0, $6C, $6E, $BF, $D1, $D0
-db $77, $76, $41, $47, $42, $48,
+db $9E, $75, $74, $73,
+db $CB, $A0, $DB, $D4,
+db $D3, $6F, $C0, $6C,
+db $6E, $BF, $D1, $D0
+db $77, $76, $41, $47,
+db $42, $48,
 _DATA_F45_:
 db $1F, $04, $24, $08, $1F, $04, $21, $04, $1F, $04
 db $1D, $04, $1F, $04, $1C, $04, $1F, $04, $24, $08, $1F, $04, $21, $04, $1F, $04
@@ -3819,7 +3747,7 @@ maybe_input_wait_for_keys__4B84:
     call timer_wait_tick_AND_TODO__289_
     call input_read_keys__C8D_
     ld   a, [input_key_pressed__RAM_D025_]
-    cp   SYS_CHAR_INVALID_OR_NODATA  ; $FF
+    cp   SYS_CHAR_NO_DATA_OR_KEY  ; $FF
     jr   nz, maybe_input_wait_for_keys__4B84
     ret
 
