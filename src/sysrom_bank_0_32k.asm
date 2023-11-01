@@ -2096,8 +2096,7 @@ input_read_keys__C8D_:
         call _LABEL_DFC_
         ret
 
-    ; Processing of the received Key Codes below
-
+; Processing of the received Key Codes
 input_process_key_codes_and_flags__D0F_:
     ; Check if Key Repeat flag is enabled
     ld   a, [input_key_modifier_flags__RAM_D027_]
@@ -2120,110 +2119,175 @@ input_process_key_codes_and_flags__D0F_:
         and  a
         jp   z, .invalid_key_or_no_data__DCF_
 
-        ; Keyboard keys must be 0x80+
-        bit  SYS_KBD_FLAG_KEYCODE_BASE, a  ; 7, a
-        jp   z, .not_a_keybaord_key__DBD_
+        ; Keyboard keys codes must be 0x80+
+        bit  SYS_KBD_KEYCODE_BASE_BIT, a  ; 7, a
+        jp   z, .not_a_keyboard_key__DBD_
 
-        ; If it's 0xF0 or higher it's not a keyboard key
-        ; Values 0xF0 or higher will still get filtered out
+        ; If it's 0xF0 or higher don't process it
+        ; Note: 0xF0+ is filtered out from repeat after the jump
         cp   (SYS_KBD_CODE_LAST_KEY + 1)  ; $F0
-        jp   nc, .save_key_for_repeat__DC5_
+        jp   nc, .done_and_save_key_for_repeat__DC5_
 
         ; Strip 0x80 base offset from key code
-        ; Then use it as A LUT index to translate from keycode -> to system char
-        res  SYS_KBD_FLAG_KEYCODE_BASE, a  ; 7, a
+        ; Then use it as A LUT index to translate
+        ; from key code -> to system char
+        ;
+        ; B then holds translated system char
+        res  SYS_KBD_KEYCODE_BASE_BIT, a  ; 7, a
         ld   hl, KEYCODE_TO_SYS_CHAR_LUT__0EBF_  ; $0EBF
         call add_a_to_hl__486E_
         ld   a, [hl]
         ld   [input_key_pressed__RAM_D025_], a
         ld   b, a
 
-        ; Check for key repeat (again)
+        ; If SHIFT, CAPS LOCK or PRINTSCREEN are not set then processing is done
         ld   a, [input_key_modifier_flags__RAM_D027_]
         and  (SYS_KBD_FLAG_PRINTSCREEN_LEFT | SYS_KBD_FLAG_SHIFT | SYS_KBD_FLAG_CAPSLOCK)  ; $0E
-        jr   z, .save_key_for_repeat__DC5_
+        jr   z, .done_and_save_key_for_repeat__DC5_
 
+        ; Now, if SHIFT or CAPS LOCK are not set then processing is done  :)
         ld   a, [input_key_modifier_flags__RAM_D027_]
         and  (SYS_KBD_FLAG_SHIFT | SYS_KBD_FLAG_CAPSLOCK)  ; $06
-        jr   z, .save_key_for_repeat__DC5_
+        jr   z, .done_and_save_key_for_repeat__DC5_
 
+        ; Process SHIFT key if it's set
         bit  SYS_KBD_FLAG_SHIFT_BIT, a  ; 2, a
-        jr   nz, ._LABEL_D68_
+        jr   nz, .handle_shift_modifier__D68_
 
-        ; TODO: What is signaled by bit 7 of input_key_pressed__RAM_D025_ ?
+        ; At this point, CAPS LOCK must be set and SHIFT is *NOT*
+        ;
+        ; Reload translated system char code from B
+        ; Make sure it could be a Letter (0x80+)
         ld   a, b
-        bit  7, a
-        jr   z, .save_key_for_repeat__DC5_
+        bit  SYS_CHAR_LETTERS_BASE_BIT, a  ; 7, a
+        jr   z, .done_and_save_key_for_repeat__DC5_
 
-        cp   SYS_CHAR_A_LOWER  ; $A1
-        jr   c, .save_key_for_repeat__DC5_
+        ; Only apply CAPS LOCK to lower-case (a-z).
+        ; If it's anything else (upper-case A-Z, numbers, symbol, etc)
+        ; then no need to apply CAPS LOCK. Processing is done
+        cp   SYS_CHAR_LOWERCASE_FIRST  ; $A1
+        jr   c, .done_and_save_key_for_repeat__DC5_
+        cp   (SYS_CHAR_LOWERCASE_LAST + 1)  ; $BE
+        jr   nc, .done_and_save_key_for_repeat__DC5_
 
-        cp   SYS_CHAR_SPACE  ; $BE
-        jr   nc, .save_key_for_repeat__DC5_
-    ._LABEL_D61_:
-        res  5, a
+        ; Otherwise fall-through and translate to upper-case
+
+    .convert_a_to_z_to_uppercase__D61_:
+        ; A holds translated system char code (from key code)
+        ;
+        ; Translates a-z (0xA1+) to A-Z (0x81+) by clearing bit 5
+        res  SYS_CHAR_A_TO_Z_LOWER_CASE_BIT, a  ; 5, a
         ld   [input_key_pressed__RAM_D025_], a
-        jr   .save_key_for_repeat__DC5_
+        jr   .done_and_save_key_for_repeat__DC5_
 
-    ._LABEL_D68_:
-        bit  1, a
-        jr   z, ._LABEL_D86_
+    .handle_shift_modifier__D68_:
+        ; B holds translated system char code (from key code)
+        ;
+        ; If CAPS LOCK is not set then do SHIFT only processing
+        bit  SYS_KBD_FLAG_CAPSLOCK_BIT, a  ; 1, a
+        jr   z, .shift_now_check_if_sqrt_key__D86_
+
+        ; At this point it's (SHIFT + CAPS LOCK)
+        ; Skip to further processing for anything not Square Root Key
         ld   a, b
-        cp   $43
-        jr   nz, ._LABEL_D78_
-        ld   a, $70
+        cp   SYS_CHAR_SQRT  ; $43
+        jr   nz, .shift_plus_capslock_check_is_letter_and_lowercase__D78_
+
+        ; Not shown on keycap, but Square Root + SHIFT = Caret
+        ; Apply translation and processing is done
+        ld   a, SYS_CHAR_UP_CARET  ; $70
         ld   [input_key_pressed__RAM_D025_], a
-        jr   .save_key_for_repeat__DC5_
+        jr   .done_and_save_key_for_repeat__DC5_
 
-    ._LABEL_D78_:
-        bit  7, a
-        jr   z, ._LABEL_D86_
-        cp   $A1
-        jr   c, ._LABEL_D86_
-        cp   $BE
-        jr   nc, ._LABEL_D86_
-        jr   .save_key_for_repeat__DC5_
+    .shift_plus_capslock_check_is_letter_and_lowercase__D78_:
+        ; A holds translated system char code (from key code)
+        ;
+        ; If < 0x80 it's in symbols and special chars range
+        ; and so is not a Letter (lower-case a-z)
+        bit  SYS_CHAR_LETTERS_BASE_BIT, a  ; 7, a
+        jr   z, .shift_now_check_if_sqrt_key__D86_
 
-    ._LABEL_D86_:
+        ; If it's lower-case (a-z) then processing is done
+        ; since (SHIFT + CAPSLOCK) negate each other when both on
+        cp   SYS_CHAR_LOWERCASE_FIRST  ; $A1
+        jr   c, .shift_now_check_if_sqrt_key__D86_
+        cp   (SYS_CHAR_LOWERCASE_LAST + 1)  ; $BE
+        jr   nc, .shift_now_check_if_sqrt_key__D86_
+        jr   .done_and_save_key_for_repeat__DC5_
+
+    ; (Based on special handling here + elsewhere and lack of keycap label,
+    ; perhaps shift + sqrt -> caret got patched in late in
+    ; system production. Seems like it ccould have just been
+    ; added to symbol+shift LUT instead.)
+    .shift_now_check_if_sqrt_key__D86_:
+        ; B holds translated system char code (from key code)
         ld   a, b
-        cp   $43
-        jr   nz, ._LABEL_D92_
-        ld   a, $70
+        cp   SYS_CHAR_SQRT  ; $43
+        jr   nz, .shift_and_is_not_sqrt_key__D92_
+
+        ; Not shown on keycap, but Square Root + SHIFT = Caret
+        ; Apply translation and processing is done
+        ld   a, SYS_CHAR_UP_CARET  ; $70
         ld   [input_key_pressed__RAM_D025_], a
-        jr   .save_key_for_repeat__DC5_
+        jr   .done_and_save_key_for_repeat__DC5_
 
-    ._LABEL_D92_:
-        bit  7, a
-        jr   z, ._LABEL_DAF_
-        cp   $A1
-        jr   c, ._LABEL_DA0_
-        cp   $BE
-        jr   nc, ._LABEL_DA0_
-        jr   ._LABEL_D61_
+    .shift_and_is_not_sqrt_key__D92_:
+        ; A holds translated system char code (from key code)
+        ;
+        ; If < 0x80 it's in symbols and special chars range
+        bit  SYS_CHAR_LETTERS_BASE_BIT, a  ; 7, a
+        jr   z, .check_symbol_key_has_shift_alternative__DAF_
 
-    ._LABEL_DA0_:
-        cp   $C1
-        jr   c, ._LABEL_DAF_
-        cp   $CA
-        jr   nc, ._LABEL_DAF_
-        sub  $5E
+        ; If it's >= 0x80 and not lower-case (a-z)
+        ; then continue on for additional SHIFT processing.
+        cp   SYS_CHAR_LOWERCASE_FIRST  ; $A1
+        jr   c, .process_shift_for_symbols__DA0_
+        cp   (SYS_CHAR_LOWERCASE_LAST + 1)  ; $BE
+        jr   nc, .process_shift_for_symbols__DA0_
+        ; Otherwise convert (a-z) to to upper-case
+        jr   .convert_a_to_z_to_uppercase__D61_
+
+    .process_shift_for_symbols__DA0_:
+        ; A holds translated system char code (from key code)
+        ;
+        ; If (( < SYS_CHAR_1) && ( > SYS_CHAR_9)) then check for shift version
+        cp   SYS_CHAR_1  ; $C1
+        jr   c, .check_symbol_key_has_shift_alternative__DAF_
+        ;
+        cp   (SYS_CHAR_9 + 1)  ; SYS_CHAR_PLUS or higher  ; $CA
+        jr   nc, .check_symbol_key_has_shift_alternative__DAF_
+
+        ; If it's within (SYS_CHAR_1 - SYS_CHAR_9)
+        ; Then subtract to translate it to row's matching SHIFT keys
+        ; which are (SYS_CHAR_EXCLAMATION - SYS_CHAR_PAREN_RIGHT)
+        sub  SYS_CHAR_NUM_TO_SHIFT_SYM_OFFSET ; $5E
         ld   [input_key_pressed__RAM_D025_], a
-        jr   .save_key_for_repeat__DC5_
+        jr   .done_and_save_key_for_repeat__DC5_
 
-    ._LABEL_DAF_:
-        ld   c, $0B
-        ld   hl, _DATA_F2F_ ; _DATA_F2F_ = $0F2F
-    ._LABEL_DB4_:
-        ldi  a, [hl]
-        cp   b
-        jr   z, .load_at_hl_to_key_pressed__DC1_
-        inc  hl
-        dec  c
-        jr   nz, ._LABEL_DB4_
-        ret
+    ; Maps SYS_CHAR format symbol keys to their matching
+    ; SHIFT equivalent on the keyboard
+    ;
+    ; If no match is found in LUT then the key is used as-is
+    ; from the previously stored value to [input_key_pressed__RAM_D025_]
+    ; and processing is done
+    .check_symbol_key_has_shift_alternative__DAF_:
+        ; B holds Non-Shift System Char symbol to match
+        ld   c, SYS_CHAR_SYMBOLS_SHIFT_LUT__LEN  ; $0B
+        ld   hl, SYS_CHAR_SYMBOLS_SHIFT_LUT__F2F_
+        .symbol_lookup_loop__DB4_:
+            ; Check for match with SYS_CHAR in B
+            ldi  a, [hl]
+            cp   b
+            ; When there is a match it returns hl at the address 1 byte after
+            ; *after* the matching symbol. This will be the SHIFT equivalent
+            jr   z, .load_at_hl_to_key_pressed__DC1_
+            inc  hl
+            dec  c
+            jr   nz, .symbol_lookup_loop__DB4_
+            ret
 
     ; Not sure if this gets used anywhere outside processing
-    .not_a_keybaord_key__DBD_:
+    .not_a_keyboard_key__DBD_:
         ld   a, SYS_KBD_CODE_MAYBE_RX_NOT_A_KEY  ; $F6
         jr   .load_reg_a_to_key_pressed__DC2_
 
@@ -2233,7 +2297,7 @@ input_process_key_codes_and_flags__D0F_:
     .load_reg_a_to_key_pressed__DC2_:
         ld   [input_key_pressed__RAM_D025_], a
 
-    .save_key_for_repeat__DC5_:
+    .done_and_save_key_for_repeat__DC5_:
         ld   a, [input_key_pressed__RAM_D025_]
         ; If it's 0xF0 or higher it's not a keyboard key
         ; So don't save it for repeat
@@ -2246,7 +2310,6 @@ input_process_key_codes_and_flags__D0F_:
         ld   a, SYS_CHAR_NO_DATA_OR_KEY  ; $FF
         ld   [input_key_pressed__RAM_D025_], a
         ret
-
 
     ; Called when the keyboard repeat flag SYS_KBD_FLAG_KEY_REPEAT
     ; is detected in input_key_modifier_flags__RAM_D027_
@@ -2265,7 +2328,9 @@ input_process_key_codes_and_flags__D0F_:
         cp   SYS_CHAR_UP_LEFT  ; $CD
         jp   z, .load_repeat_key_to_input__DF8_
 
-        ; TODO: Is order of tests correct?
+        ; Note: Is their order of testing correct?
+        ; Block (>= Piano) should have been above this
+        ; if they wanted to block repeat for it...
         cp   SYS_CHAR_MEMORY_PLUS  ; $41
         jr   c, .load_repeat_key_to_input__DF8_
 
@@ -2274,12 +2339,12 @@ input_process_key_codes_and_flags__D0F_:
 
         jr   .load_repeat_key_to_input__DF8_
 
-        .repeat_blocked__DF6_:
-            ld   a, SYS_CHAR_NO_DATA_OR_KEY  ; $FF
+    .repeat_blocked__DF6_:
+        ld   a, SYS_CHAR_NO_DATA_OR_KEY  ; $FF
 
-        .load_repeat_key_to_input__DF8_:
-            ld   [input_key_pressed__RAM_D025_], a
-            ret
+    .load_repeat_key_to_input__DF8_:
+        ld   [input_key_pressed__RAM_D025_], a
+        ret
 
 
 
@@ -2438,15 +2503,14 @@ include "inc/keycode_to_syschar_LUT.inc"
 
 
 
-
+; Maps SYS_CHAR format symbol keys to their matching SHIFT equivalent on the keyboard
 ; Data from F2F to 2FFF (8401 bytes)
-_DATA_F2F_:
-db $9E, $75, $74, $73,
-db $CB, $A0, $DB, $D4,
-db $D3, $6F, $C0, $6C,
-db $6E, $BF, $D1, $D0
-db $77, $76, $41, $47,
-db $42, $48,
+SYS_CHAR_SYMBOLS_SHIFT_LUT__F2F_:
+include "inc/syschar_symbol_shift_LUT.inc"
+SYS_CHAR_SYMBOLS_SHIFT_LUT_AFTER_END__F45_:
+DEF SYS_CHAR_SYMBOLS_SHIFT_LUT__LEN  EQU ((SYS_CHAR_SYMBOLS_SHIFT_LUT_AFTER_END__F45_ - SYS_CHAR_SYMBOLS_SHIFT_LUT__F2F_) / 2)
+
+
 _DATA_F45_:
 db $1F, $04, $24, $08, $1F, $04, $21, $04, $1F, $04
 db $1D, $04, $1F, $04, $1C, $04, $1F, $04, $24, $08, $1F, $04, $21, $04, $1F, $04

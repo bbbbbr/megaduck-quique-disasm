@@ -53,7 +53,7 @@ DEF SYS_KBD_FLAG_PRINTSCREEN_LEFT_BIT   EQU 3
 
 ; RX Byte 3 Flags
 ; All valid keys seem to have bit 7 set (0x80+)
-DEF SYS_KBD_FLAG_KEYCODE_BASE  EQU 7
+DEF SYS_KBD_KEYCODE_BASE_BIT  EQU 7
 
 ; First 4 rows (top of keyboard)  ~ 0x80 - 0xB7
 ;
@@ -93,7 +93,7 @@ DEF SYS_KBD_CODE_7                   EQU  $9D
 DEF SYS_KBD_CODE_8                   EQU  $A1
 DEF SYS_KBD_CODE_9                   EQU  $A5
 DEF SYS_KBD_CODE_0                   EQU  $A9
-DEF SYS_KBD_CODE_COMMA_UPPER         EQU  $AD
+DEF SYS_KBD_CODE_SINGLE_QUOTE        EQU  $AD
 DEF SYS_KBD_CODE_EXCLAMATION_FLIPPED EQU  $B1
 DEF SYS_KBD_CODE_BACKSPACE           EQU  $B5
 ; See Continued Row 2 below
@@ -150,7 +150,7 @@ DEF SYS_KBD_CODE_V                   EQU  $C4
 DEF SYS_KBD_CODE_B                   EQU  $C8
 DEF SYS_KBD_CODE_N                   EQU  $CC
 DEF SYS_KBD_CODE_M                   EQU  $D0
-DEF SYS_KBD_CODE_COMMA_LOWER         EQU  $D4
+DEF SYS_KBD_CODE_COMMA               EQU  $D4
 DEF SYS_KBD_CODE_PERIOD              EQU  $D8
 DEF SYS_KBD_CODE_DASH_OR_UNDERSCORE  EQU  $DC
 ; See Continued Row 5 below

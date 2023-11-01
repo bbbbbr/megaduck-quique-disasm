@@ -8,6 +8,13 @@
 ; - Caps Lock and shift are handled during the translation, uppercase A-Z are (-0x40) vs lowercase a-z
 
 
+
+; RX Byte 3 Flags
+; All valid keys seem to have bit 7 set (0x80+)
+DEF SYS_CHAR_LETTERS_BASE_BIT       EQU 7
+DEF SYS_CHAR_A_TO_Z_LOWER_CASE_BIT  EQU 5  ; Set if lower-case, cleared if upper-case
+
+
 ; Piano Keys  0x00 - 0x17
 DEF SYS_CHAR_PIANO_DO          EQU  $00
 DEF SYS_CHAR_PIANO_DO_SHARP    EQU  $01
@@ -64,7 +71,7 @@ DEF SYS_CHAR_F11   EQU  $3A
 
 
 ; Delete Key
-DEF SYS_CHAR_BORRAR         EQU  $3C
+DEF SYS_CHAR_BORRAR   EQU  $3C
 
 
 ; Arrow Keys  0x3D - 0x40
@@ -82,8 +89,12 @@ DEF SYS_CHAR_PG_ARRIBA      EQU  $44  ; Page Up
 DEF SYS_CHAR_PG_ABAJO       EQU  $45  ; Page Down
 DEF SYS_CHAR_MEMORY_MINUS   EQU  $46
 
+; Have not found these usable in applications, but they
+; are what the system deliberately translates these
+; keys to when SHIFT is used with them
+DEF SYS_CHAR_MEMORY_PLUS_SHIFT      EQU  $47
+DEF SYS_CHAR_MEMORY_RECALL_SHIFT    EQU  $48
 
-; Gap 0x47 - 0x4B
 
 
 ; F12 Key
@@ -94,29 +105,36 @@ DEF SYS_CHAR_F12            EQU  $4C
 
 
 ; Special chars, with some gaps
-DEF SYS_CHAR_QUESTIONMARK        EQU  $63
-DEF SYS_CHAR_QUOTE               EQU  $64
-; GAP 0x65
-DEF SYS_CHAR_DOLLAR              EQU  $66
-DEF SYS_CHAR_PERCENT             EQU  $67
-DEF SYS_CHAR_AMPERSAND           EQU  $68
-DEF SYS_CHAR_FONT_SLASH_FORWARD  EQU  $69
-DEF SYS_CHAR_FONT_PAREN_LEFT     EQU  $6A
-DEF SYS_CHAR_FONT_PAREN_RIGHT    EQU  $6B
-DEF SYS_CHAR_FONT_SLASH_BACK     EQU  $6C
+DEF SYS_CHAR_EXCLAMATION    EQU  $63
+DEF SYS_CHAR_QUOTE          EQU  $64
+; Based on shift key translation code and keyboard location
+; SYS_CHAR_DOT should be $65, but for some reason that is mapped
+; to $9F just after Comma
+; DEF SYS_CHAR_DOT            EQU  $65
+DEF SYS_CHAR_DOLLAR         EQU  $66
+DEF SYS_CHAR_PERCENT        EQU  $67
+DEF SYS_CHAR_AMPERSAND      EQU  $68
+DEF SYS_CHAR_SLASH_FORWARD  EQU  $69
+DEF SYS_CHAR_PAREN_LEFT     EQU  $6A
+DEF SYS_CHAR_PAREN_RIGHT    EQU  $6B
+DEF SYS_CHAR_SLASH_BACK     EQU  $6C
 ; GAP 0x6D
-DEF SYS_CHAR_COMMA               EQU  $6E
-DEF SYS_CHAR_ASTERISK            EQU  $6F
+DEF SYS_CHAR_SINGLE_QUOTE   EQU  $6E
+DEF SYS_CHAR_ASTERISK       EQU  $6F
+; The Up Caret char is apparently the SHIFT alternate
+; for the square root key even though it isn't shown
+; on the keycap
+DEF SYS_CHAR_UP_CARET       EQU  $70
 
 
-; Gap 0x70 - 0x72
+; Gap 0x71 - 0x72
 
 
-DEF SYS_CHARCOLON                EQU  $73
-DEF SYS_CHARPERIOD               EQU  $74
-DEF SYS_CHARSEMI_COLON           EQU  $75
-DEF SYS_CHARGREATER_THAN         EQU  $76
-DEF SYS_CHARLESS_THAN            EQU  $77
+DEF SYS_CHAR_COLON                EQU  $73
+DEF SYS_CHAR_PERIOD               EQU  $74
+DEF SYS_CHAR_SEMI_COLON           EQU  $75
+DEF SYS_CHAR_GREATER_THAN         EQU  $76
+DEF SYS_CHAR_LESS_THAN            EQU  $77
 
 
 ; Gap 0x78 - 0x80
@@ -155,8 +173,8 @@ DEF SYS_CHAR_Z     EQU  $9A
 
 
 DEF SYS_CHAR_U_UMLAUT   EQU  $9D
-DEF SYS_COMMA           EQU  $9E
-DEF SYS_PERIOD          EQU  $9f
+DEF SYS_CHAR_COMMA      EQU  $9E
+DEF SYS_CHAR_DOT        EQU  $9f
 DEF SYS_CHAR_UNDERSCORE EQU  $A0
 
 
@@ -194,7 +212,11 @@ DEF SYS_CHAR_Z_LOWER     EQU  $BA
 
 DEF SYS_CHAR_U_UMLAUT_LOWER     EQU  $BD
 DEF SYS_CHAR_SPACE              EQU  $BE
-DEF SYS_CHAR_FONT_QUESTIONMARK  EQU  $BF
+DEF SYS_CHAR_QUESTIONMARK  EQU  $BF
+
+DEF SYS_CHAR_LOWERCASE_FIRST    EQU SYS_CHAR_A_LOWER
+DEF SYS_CHAR_LOWERCASE_LAST     EQU SYS_CHAR_U_UMLAUT_LOWER
+
 
 
 ; Numbers  0xC0 - 0xC9
@@ -222,8 +244,8 @@ DEF SYS_CHAR_EQUALS             EQU  $CE
 ; Gap 0xCD - 0xCF
 
 
-DEF SYS_CHAR_FONT_QUESTIONMARK_FLIPPED  EQU  $D0
-DEF SYS_CHAR_QUESTIONMARK_FLIPPED       EQU  $D1
+DEF SYS_CHAR_QUESTIONMARK_FLIPPED       EQU  $D0
+DEF SYS_CHAR_EXCLAMATION_FLIPPED        EQU  $D1
 DEF SYS_CHAR_LEFT_SQ_BRACKET            EQU  $D2
 DEF SYS_CHAR_RIGHT_SQ_BRACKET           EQU  $D3
 DEF SYS_CHAR_SHIFTED_A_OVER_LINE        EQU  $D4
@@ -253,3 +275,6 @@ DEF SYS_CHAR_DOWN_RIGHT        EQU  (SYS_CHAR_MINUS)
 DEF SYS_CHAR_DOWN_LEFT         EQU  (SYS_CHAR_MULTIPLY)
 DEF SYS_CHAR_UP_LEFT           EQU  (SYS_CHAR_DIVIDE)
 
+; For Keys 1-9 apply this offset maps them to the
+; equivalent SHIFT symbol version of the key
+DEF SYS_CHAR_NUM_TO_SHIFT_SYM_OFFSET  EQU  (SYS_CHAR_1 - SYS_CHAR_EXCLAMATION)
