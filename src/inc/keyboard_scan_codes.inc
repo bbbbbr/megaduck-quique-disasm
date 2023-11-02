@@ -33,7 +33,7 @@
 ; - They go diagonal down from upper left for the first *4* rows
 ; - The bottom 4 rows (including piano keys) are more varied
 ;
-; LEFT_PRINTSCREEN 00 + modifier 0x08 ??? RIght seems to have actual keycode
+; LEFT_PRINTSCREEN 00 + modifier 0x08 ??? Right seems to have actual keycode
 
 
 

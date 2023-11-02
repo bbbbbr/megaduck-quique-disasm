@@ -238,11 +238,19 @@ _RAM_D193_: db
 _RAM_D194_: db
 vbl_action_select__RAM_D195_: db
 _RAM_D196_: db
-_RAM_D197_: ds $5
+_RAM_D197_: db  
+_RAM_D198_: db  
+_RAM_D199_: dw  
+_RAM_D19B_: db  
 
 SECTION "wram_d19c", WRAMX[$d19c], BANK[$1]
 _RAM_D19C_: db
 _RAM_D19D_: db
+    
+; EMPTY space from 519E to 51A0 (3 bytes)   
+_RAM_D19E_: db  
+_RAM_D19F_: db  
+_RAM_D1A0_: db  
 
 SECTION "wram_d1a1", WRAMX[$d1a1], BANK[$1]
 _RAM_D1A1_: db
@@ -256,7 +264,23 @@ _RAM_D1A5_: db
 SECTION "wram_d1a7", WRAMX[$d1a7], BANK[$1]
 _RAM_D1A7_: db
 
-SECTION "wram_d20c", WRAMX[$D20C]
+; EMPTY space from 51A8 to 520B (100 bytes) 
+_RAM_D1A8_: db  
+_RAM_D1A9_: db  
+_RAM_D1AA_: db  
+_RAM_D1AB_: db  
+_RAM_D1AC_: db  
+_RAM_D1AD_: db  
+_RAM_D1AE_: db  
+_RAM_D1AF_: db  
+_RAM_D1B0_: db  
+_RAM_D1B1_: db  
+_RAM_D1B2_: ds $54  
+_RAM_D206_: db  
+_RAM_D207_: ds $4   
+_RAM_D20B_: db  
+    
+SECTION "wram_d20c", WRAMX[$d20c], BANK[$1] 
 _RAM_D20C_: db
 _RAM_D20D_: db
 

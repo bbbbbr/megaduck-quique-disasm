@@ -47,11 +47,11 @@ DEF SYS_CHAR_LAST_PIANO        EQU (SYS_CHAR_PIANO_SI_2)
 
 
 ; Command Keys  0x2A - 0x2F
-DEF SYS_CHAR_SALIDA            EQU  $2A  ; Esc
+DEF SYS_CHAR_SALIDA            EQU  $2A  ; Esc     ; Alias SYS_CHAR_GPAD_START
 ; Gap 0x2B
 DEF SYS_CHAR_BACKSPACE         EQU  $2C
 DEF SYS_CHAR_AYUDA             EQU  $2D  ; Help
-DEF SYS_CHAR_ENTRA_CR          EQU  $2E  ; Return
+DEF SYS_CHAR_ENTRA_CR          EQU  $2E  ; Return  ; Alias SYS_CHAR_GPAD_SELECT
 DEF SYS_CHAR_PRINTSCREEN       EQU  $2F
 
 
@@ -69,6 +69,7 @@ DEF SYS_CHAR_F10   EQU  $39
 DEF SYS_CHAR_F11   EQU  $3A
 ; DEF SYS_CHAR_F12   EQU  $3B  ; Maybe F12, but also 4C?
 
+DEF SYS_CHAR_FUNCTION_KEYS_START    EQU  (SYS_CHAR_F1)
 
 ; Delete Key
 DEF SYS_CHAR_BORRAR   EQU  $3C
@@ -85,8 +86,8 @@ DEF SYS_CHAR_DOWN     EQU  $40
 DEF SYS_CHAR_MEMORY_PLUS    EQU  $41
 DEF SYS_CHAR_MEMORY_RECALL  EQU  $42
 DEF SYS_CHAR_SQRT           EQU  $43
-DEF SYS_CHAR_PG_ARRIBA      EQU  $44  ; Page Up
-DEF SYS_CHAR_PG_ABAJO       EQU  $45  ; Page Down
+DEF SYS_CHAR_PG_ARRIBA      EQU  $44  ; Page Up    ; Alias SYS_CHAR_GPAD_A
+DEF SYS_CHAR_PG_ABAJO       EQU  $45  ; Page Down  ; Alias SYS_CHAR_GPAD_B
 DEF SYS_CHAR_MEMORY_MINUS   EQU  $46
 
 ; Have not found these usable in applications, but they
@@ -231,6 +232,7 @@ DEF SYS_CHAR_7     EQU  $C7
 DEF SYS_CHAR_8     EQU  $C8
 DEF SYS_CHAR_9     EQU  $C9
 
+DEF SYS_CHAR_LAST_NUM        EQU (SYS_CHAR_9)
 
 ; Math Keys  0xCa - 0xCE
 DEF SYS_CHAR_PLUS               EQU  $CA

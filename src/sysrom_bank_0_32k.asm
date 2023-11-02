@@ -852,12 +852,23 @@ joypad_and_buttons_read__4F9_:
     ld   [buttons_current__RAM_D007_], a
     ret
 
-; TODO: RESEARCH
-; Interesting...
-; TODO: ? Switch to Bank 2 and jump to an RST 30 ? ... Why the res 7, h ?
-_LABEL_522_:
+; TODO: Most Printscreen key presses ultimately call this
+;  ? ... Why the res 7, h ?
+;
+; - Switches to Bank 2
+; - Jumps to an RST 30
+; - Once in Bank 2:
+;   - _RST__30_:
+;     - call _LABEL_52B_
+;       - call _LABEL_53F_
+;         - Looks like it sends a series commands:
+;           - TX: 3 x 0x09, RX: checks non-zero
+;           ... then a lot more code
+;     - ei
+;     - jp C940 Likely: _switch_bank_return_to_saved_bank_RAM__C940_
+maybe_call_printscreen_in_32k_bank_2__522_:
     di
-    ld   hl, $0030
+    ld   hl, $0030  ; RST 30
     res  7, h
     ld   a, $02  ; Bank 2
     call _switch_bank_jump_hl_RAM__C920_
@@ -3530,22 +3541,22 @@ input_map_gamepad_buttons_to_keycodes__49C2_:
 
     ; Handle A/B/Start/Select mapping
     _handle_btn_a__49EE_:
-        ld   a, SYS_CHAR_GPAD_A  ; $44
+        ld   a, SYS_CHAR_PG_ARRIBA  ; $44
         ld   [input_key_pressed__RAM_D025_], a
         ret
 
     _handle_btn_b__49F4_:
-        ld   a, SYS_CHAR_GPAD_B  ; $45
+        ld   a, SYS_CHAR_PG_ABAJO  ; $45
         ld   [input_key_pressed__RAM_D025_], a
         ret
 
     _handle_btn_select__49FA_:
-        ld   a, SYS_CHAR_GPAD_SELECT  ; $2E
+        ld   a, SYS_CHAR_ENTRA_CR  ; $2E
         ld   [input_key_pressed__RAM_D025_], a
         ret
 
     _handle_btn_start__4A00_:
-        ld   a, SYS_CHAR_GPAD_START  ; $2A
+        ld   a, SYS_CHAR_SALIDA  ; $2A
         ld   [input_key_pressed__RAM_D025_], a
         ret
 
@@ -3751,16 +3762,16 @@ _LABEL_4B0E_:
     ld   hl, _RAM_D06D_ ; _RAM_D06D_ = $D06D
     ld   a, [input_key_pressed__RAM_D025_]
 
-    cp   SYS_CHAR_GPAD_SELECT  ; $2E
+    cp   SYS_CHAR_ENTRA_CR  ; $2E
     jp   z, _LABEL_4C83_
 
-    cp   SYS_CHAR_GPAD_START  ; $2A
+    cp   SYS_CHAR_SALIDA  ; $2A
     jp   z, _LABEL_4C76_
 
-    cp   $2F
+    cp   SYS_CHAR_PRINTSCREEN  ; $2F
     jp   z, _LABEL_4C70_
 
-    sub  $30
+    sub  $30  ; TODO: possibly SYS_CHAR_FUNCTION_KEYS_START
     jr   c, _LABEL_4B36_
     cp   [hl]
     jr   nc, _LABEL_4B36_
@@ -3919,7 +3930,7 @@ _LABEL_4C47_:
     jp   _LABEL_4B78_
 
 _LABEL_4C70_:
-    call _LABEL_522_
+    call maybe_call_printscreen_in_32k_bank_2__522_
     jp   _LABEL_4B0E_
 
 _LABEL_4C76_:
@@ -4384,7 +4395,7 @@ _LABEL_4F95_:
     call _LABEL_538C_
 _LABEL_4FAE_:
     ld   a, [input_key_pressed__RAM_D025_]
-    cp   $2F
+    cp   SYS_CHAR_PRINTSCREEN  ; $2F
     jp   nz, _LABEL_4FEE_
     ld   a, [_RAM_D074_ + 1]    ; _RAM_D074_ + 1 = $D075
     push af
@@ -4415,14 +4426,22 @@ _LABEL_4FAE_:
     jr   _LABEL_4F95_
 
 _LABEL_4FEE_:
-    cp   $2E
+    ; Alias SYS_CHAR_GPAD_SELECT
+    cp   SYS_CHAR_ENTRA_CR  ; $2E
     jp   z, _LABEL_51B0_
-    cp   $2A
+
+    ; Alias SYS_CHAR_GPAD_START
+    cp   SYS_CHAR_SALIDA  ; $2A
     jp   z, _LABEL_52B5_
-    cp   $44
+
+    ; Alias SYS_CHAR_GPAD_A
+    cp   SYS_CHAR_PG_ARRIBA  ; $44
     jp   z, _LABEL_522B_
-    cp   $45
+
+    ; Alias SYS_CHAR_GPAD_B
+    cp   SYS_CHAR_PG_ABAJO  ; $45
     jp   z, _LABEL_526F_
+
     call input_map_keycodes_to_gamepad_buttons__4D30_
     ld   a, [buttons_new_pressed__RAM_D006_]
     and  $F7
@@ -4770,7 +4789,7 @@ _LABEL_52BF_:
 _LABEL_52D7_:
     ld   a, [_RAM_D028_ + 3]    ; _RAM_D028_ + 3 = $D02B
     push af
-    call _LABEL_522_
+    call maybe_call_printscreen_in_32k_bank_2__522_
     pop  af
     ld   [_RAM_D028_ + 3], a    ; _RAM_D028_ + 3 = $D02B
     ld   a, [_RAM_D074_ + 1]    ; _RAM_D074_ + 1 = $D075
@@ -5323,17 +5342,17 @@ _LABEL_56CB_:
     ld   [_RAM_D05A_], a
     ld   [_RAM_D06B_], a
     ld   a, [input_key_pressed__RAM_D025_]
-    cp   $2E
+    cp   SYS_CHAR_ENTRA_CR  ; $2E
     jr   z, _LABEL_5740_
-    cp   $3D
+    cp   SYS_CHAR_UP  ; $3D
     jr   z, _LABEL_5704_
-    cp   $40
+    cp   SYS_CHAR_DOWN  ; $40
     jr   z, _LABEL_571F_
-    cp   $2A
+    cp   SYS_CHAR_SALIDA  ; $2A
     jp   z, _LABEL_576B_
-    cp   $2F
+    cp   SYS_CHAR_PRINTSCREEN  ; $2F
     jr   nz, _LABEL_56EE_
-    call _LABEL_522_
+    call maybe_call_printscreen_in_32k_bank_2__522_
     ret
 
 
@@ -5649,7 +5668,7 @@ _LABEL_5919_:
     xor  a
     ld   [_RAM_D06B_], a
     ld   a, [input_key_pressed__RAM_D025_]
-    cp   $3F
+    cp   SYS_CHAR_RIGHT  ; $3F
     jr   nz, _LABEL_593C_
     xor  a
     ld   [_RAM_D06C_], a    ; _RAM_D06C_ = $D06C
@@ -5665,7 +5684,7 @@ _LABEL_5931_:
     jp   _LABEL_59F1_
 
 _LABEL_593C_:
-    cp   $3E
+    cp   SYS_CHAR_LEFT  ; $3E
     jr   nz, _LABEL_5950_
     xor  a
     ld   [_RAM_D06C_], a    ; _RAM_D06C_ = $D06C
@@ -5677,9 +5696,9 @@ _LABEL_593C_:
     jr   _LABEL_5931_
 
 _LABEL_5950_:
-    cp   $C0
+    cp   SYS_CHAR_0  ; $C0
     jr   c, _LABEL_5987_
-    cp   $CA
+    cp   (SYS_CHAR_LAST_NUM + 1)  ; $CA
     jr   nc, _LABEL_5987_
     ld   b, $C0
     sub  b
@@ -5706,7 +5725,7 @@ _LABEL_5975_:
     jp   _LABEL_59F1_
 
 _LABEL_5987_:
-    cp   $2E
+    cp   SYS_CHAR_ENTRA_CR  ; $2E
     jr   nz, _LABEL_59ED_
     ld   a, [_RAM_D056_]
     swap a
@@ -5760,7 +5779,7 @@ _LABEL_59E4_:
     ret
 
 _LABEL_59ED_:
-    cp   $2A
+    cp   SYS_CHAR_SALIDA  ; $2A
     jr   z, _LABEL_59E4_
 _LABEL_59F1_:
     ret
@@ -6397,21 +6416,22 @@ _LABEL_5E9A_:
     call input_map_gamepad_buttons_to_keycodes__49C2_
     call _LABEL_6230_
     ld   a, [input_key_pressed__RAM_D025_]
-    cp   $2A
+    cp   SYS_CHAR_SALIDA  ; $2A
     jr   nz, _LABEL_5EAE_
+
     call _LABEL_6265_
     call maybe_input_wait_for_keys__4B84
     ret
 
 
 _LABEL_5EAE_:
-    cp   $2F
+    cp   SYS_CHAR_PRINTSCREEN  ; $2F
     jr   nz, _LABEL_5EB7_
-    call _LABEL_522_
+    call maybe_call_printscreen_in_32k_bank_2__522_
     jr   _LABEL_5E9A_
 
 _LABEL_5EB7_:
-    cp   $44
+    cp   SYS_CHAR_PG_ARRIBA  ; $44
     jp   nz, _LABEL_5ED1_
     ld   a, [_RAM_D20D_]
     bit  0, a
@@ -6423,7 +6443,7 @@ _LABEL_5EB7_:
     jp   _LABEL_6030_
 
 _LABEL_5ED1_:
-    cp   $45
+    cp   SYS_CHAR_PG_ABAJO  ; $45
     jr   nz, _LABEL_5EEA_
     ld   a, [_RAM_D20D_]
     bit  0, a
@@ -6435,7 +6455,7 @@ _LABEL_5ED1_:
     jp   _LABEL_6030_
 
 _LABEL_5EEA_:
-    cp   $3E
+    cp   SYS_CHAR_LEFT  ; $3E
     jr   nz, _LABEL_5F13_
     ld   a, [maybe_text_buffer__RAM_D6D0_]
     cp   FONT_BLANKSPACE  ; $BE
@@ -6454,7 +6474,7 @@ _LABEL_5F08_:
     jp   _LABEL_5E9A_
 
 _LABEL_5F13_:
-    cp   $3F
+    cp   SYS_CHAR_RIGHT  ; $3F
     jr   nz, _LABEL_5F34_
     ld   a, [maybe_text_buffer__RAM_D6D0_]
     cp   FONT_BLANKSPACE  ; $BE
@@ -6469,7 +6489,7 @@ _LABEL_5F13_:
     jp   _LABEL_5F08_
 
 _LABEL_5F34_:
-    cp   $2C
+    cp   SYS_CHAR_BACKSPACE  ; $2C
     jr   nz, _LABEL_5F50_
     ld   a, [_RAM_D03B_]
     sub  $08
@@ -6482,7 +6502,7 @@ _LABEL_5F34_:
     jp   _LABEL_5F54_
 
 _LABEL_5F50_:
-    cp   $3C
+    cp   SYS_CHAR_BORRAR  ; $3C
     jr   nz, _LABEL_5F7A_
 _LABEL_5F54_:
     ld   a, [_RAM_D03B_]
@@ -6512,9 +6532,9 @@ _LABEL_5F73_:
 
 ; TODO Is this font -> keyboard char recoding?
 _LABEL_5F7A_:
-    cp   $2E
+    cp   SYS_CHAR_ENTRA_CR  ; $2E
     jp   z, _LABEL_6022_
-    cp   $CB
+    cp   SYS_CHAR_MINUS  ; $CB  ; Maybe also aliased SYS_CHAR_DASH
     jr   nz, _LABEL_5F93_
     call maybe_input_wait_for_keys__4B84
     ld   a, [_RAM_D03B_]
@@ -7059,12 +7079,14 @@ _LABEL_6369_:
     ld   a, $58
     ld   [_tilemap_pos_x__RAM_C8CB_], a
     call _LABEL_6510_
+
 _LABEL_63A7_:
     xor  a
     ld   [_RAM_D05D_], a    ; _RAM_D05D_ = $D05D
     ld   [_RAM_D05E_], a    ; _RAM_D05E_ = $D05E
     ld   [_RAM_D05C_], a    ; _RAM_D05C_ = $D05C
     ld   [_RAM_D05B_], a    ; _RAM_D05B_ = $D05B
+_LABEL_63B4_:
     call timer_wait_tick_AND_TODO__289_
     call input_read_keys__C8D_
     ld   a, [input_key_pressed__RAM_D025_]
@@ -7073,40 +7095,166 @@ _LABEL_63A7_:
     cp   $30
     jr   nz, _LABEL_63D1_
     ld   a, [_RAM_D19C_]    ; _RAM_D19C_ = $D19C
-; Data from 63C9 to 63D0 (8 bytes)
-db $EA, $73, $D0, $CD, $A6, $67, $18, $E3
+    ld   [_RAM_D073_], a    ; _RAM_D073_ = $D073
+    call _LABEL_67A6_
+    jr   _LABEL_63B4_
 
 _LABEL_63D1_:
     cp   $31
     jr   nz, _LABEL_63E0_
     ld   a, [_RAM_D19D_]    ; _RAM_D19D_ = $D19D
-; Data from 63D8 to 63DF (8 bytes)
-db $EA, $73, $D0, $CD, $AC, $67, $18, $D4
+    ld   [_RAM_D073_], a    ; _RAM_D073_ = $D073
+    call _LABEL_67AC_
+    jr   _LABEL_63B4_
 
 _LABEL_63E0_:
-    cp   $32
-    jp   z, _LABEL_667A_
-    cp   $33
-; Data from 63E7 to 650F (297 bytes)
-db $CA, $CE, $6A, $FE, $34, $CA, $D1, $66, $FE, $2D, $C2, $02, $64, $FA, $96, $D1
-db $FE, $00, $C2, $A7, $63, $CD, $ED, $6F, $C3, $A7, $63, $FE, $2F, $20, $05, $CD
-db $22, $05, $18, $A9, $FE, $35, $20, $07, $FA, $06, $D0, $F6, $01, $18, $09, $FE
-db $36, $20, $0A, $FA, $06, $D0, $F6, $02, $EA, $06, $D0, $18, $0C, $FE, $2E, $20
-db $08, $FA, $96, $D1, $CB, $47, $C2, $F3, $68, $CD, $30, $4D, $FA, $06, $D0, $E6
-db $C0, $FE, $C0, $20, $0A, $FA, $06, $D0, $E6, $3F, $EA, $06, $D0, $18, $11, $FA
-db $06, $D0, $E6, $30, $FE, $30, $20, $08, $FA, $06, $D0, $E6, $CF, $EA, $06, $D0
-db $FA, $06, $D0, $E6, $F3, $CA, $A7, $63, $FA, $96, $D1, $A7, $C2, $9E, $64, $FA
-db $06, $D0, $CB, $47, $3E, $01, $20, $09, $FA, $06, $D0, $CB, $4F, $CA, $9E, $64
-db $AF, $21, $92, $D1, $46, $B8, $20, $06, $CD, $39, $67, $C3, $B4, $63, $77, $FA
-db $4B, $D0, $EA, $CC, $C8, $CD, $53, $09, $CD, $9B, $08, $CD, $10, $65, $CD, $84
-db $4B, $CD, $5B, $68, $C3, $A7, $63, $FA, $4B, $D0, $EA, $CC, $C8, $CD, $53, $09
-db $FA, $06, $D0, $CD, $87, $4C, $FA, $5E, $D0, $FE, $01, $CC, $29, $65, $FA, $5D
-db $D0, $FE, $01, $CC, $75, $65, $FA, $5C, $D0, $FE, $01, $CC, $CE, $65, $FA, $5B
-db $D0, $FE, $01, $CC, $27, $66, $FA, $92, $D1, $A7, $CA, $B4, $63, $CD, $97, $6F
-db $7C, $EA, $93, $D1, $7D, $EA, $94, $D1, $3E, $01, $EA, $95, $D1, $FB, $FA, $95
-db $D1, $A7, $20, $FA, $FA, $06, $D0, $E6, $CF, $EA, $06, $D0, $E6, $F0, $CA, $B4
-db $63, $3E, $01, $EA, $95, $D1, $FA, $4B, $D0, $EA, $CC, $C8, $CD, $53, $09, $FB
-db $FA, $95, $D1, $A7, $20, $FA, $C3, $B4, $63
+cp   SYS_CHAR_F3  ; $32
+jp   z, _LABEL_667A_
+cp   SYS_CHAR_F4  ; $33
+
+
+    jp   z, _LABEL_6ACE_
+    cp   $34
+    jp   z, _LABEL_66D1_
+    cp   $2D
+    jp   nz, _LABEL_6402_
+    ld   a, [_RAM_D196_]    ; _RAM_D196_ = $D196
+    cp   $00
+    jp   nz, _LABEL_63A7_
+    call drawing_app_help_menu_show__6FED_
+    jp   _LABEL_63A7_
+
+_LABEL_6402_:
+    cp   $2F
+    jr   nz, _LABEL_640B_
+    call maybe_call_printscreen_in_32k_bank_2__522_
+    jr   _LABEL_63B4_
+
+_LABEL_640B_:
+    cp   $35
+    jr   nz, _LABEL_6416_
+    ld   a, [buttons_new_pressed__RAM_D006_]    ; buttons_new_pressed__RAM_D006_ = $D006
+    or   $01
+    jr   _LABEL_641F_
+
+_LABEL_6416_:
+    cp   $36
+    jr   nz, _LABEL_6424_
+    ld   a, [buttons_new_pressed__RAM_D006_]    ; buttons_new_pressed__RAM_D006_ = $D006
+    or   $02
+_LABEL_641F_:
+    ld   [buttons_new_pressed__RAM_D006_], a    ; buttons_new_pressed__RAM_D006_ = $D006
+    jr   _LABEL_6430_
+
+_LABEL_6424_:
+    cp   $2E
+    jr   nz, _LABEL_6430_
+    ld   a, [_RAM_D196_]    ; _RAM_D196_ = $D196
+    bit  0, a
+    jp   nz, _LABEL_68F3_
+_LABEL_6430_:
+    call input_map_keycodes_to_gamepad_buttons__4D30_
+    ld   a, [buttons_new_pressed__RAM_D006_]    ; buttons_new_pressed__RAM_D006_ = $D006
+    and  $C0
+    cp   $C0
+    jr   nz, _LABEL_6446_
+    ld   a, [buttons_new_pressed__RAM_D006_]    ; buttons_new_pressed__RAM_D006_ = $D006
+    and  $3F
+    ld   [buttons_new_pressed__RAM_D006_], a    ; buttons_new_pressed__RAM_D006_ = $D006
+    jr   _LABEL_6457_
+
+_LABEL_6446_:
+    ld   a, [buttons_new_pressed__RAM_D006_]    ; buttons_new_pressed__RAM_D006_ = $D006
+    and  $30
+    cp   $30
+    jr   nz, _LABEL_6457_
+    ld   a, [buttons_new_pressed__RAM_D006_]    ; buttons_new_pressed__RAM_D006_ = $D006
+    and  $CF
+    ld   [buttons_new_pressed__RAM_D006_], a    ; buttons_new_pressed__RAM_D006_ = $D006
+_LABEL_6457_:
+    ld   a, [buttons_new_pressed__RAM_D006_]    ; buttons_new_pressed__RAM_D006_ = $D006
+    and  $F3
+    jp   z, _LABEL_63A7_
+    ld   a, [_RAM_D196_]    ; _RAM_D196_ = $D196
+    and  a
+    jp   nz, _LABEL_649E_
+    ld   a, [buttons_new_pressed__RAM_D006_]    ; buttons_new_pressed__RAM_D006_ = $D006
+    bit  0, a
+    ld   a, $01
+    jr   nz, _LABEL_6478_
+    ld   a, [buttons_new_pressed__RAM_D006_]    ; buttons_new_pressed__RAM_D006_ = $D006
+    bit  1, a
+    jp   z, _LABEL_649E_
+    xor  a
+_LABEL_6478_:
+    ld   hl, _RAM_D192_ ; _RAM_D192_ = $D192
+    ld   b, [hl]
+    cp   b
+    jr   nz, _LABEL_6485_
+    call _LABEL_6739_
+    jp   _LABEL_63B4_
+
+_LABEL_6485_:
+    ld   [hl], a
+    ld   a, [_RAM_D04B_]    ; _RAM_D04B_ = $D04B
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    call _LABEL_953_
+    call oam_free_slot_and_clear__89B_
+    call _LABEL_6510_
+    call maybe_input_wait_for_keys__4B84
+    call _LABEL_685B_
+    jp   _LABEL_63A7_
+
+_LABEL_649E_:
+    ld   a, [_RAM_D04B_]    ; _RAM_D04B_ = $D04B
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    call _LABEL_953_
+    ld   a, [buttons_new_pressed__RAM_D006_]    ; buttons_new_pressed__RAM_D006_ = $D006
+    call _LABEL_4C87_
+    ld   a, [_RAM_D05E_]    ; _RAM_D05E_ = $D05E
+    cp   $01
+    call z, _LABEL_6529_
+    ld   a, [_RAM_D05D_]    ; _RAM_D05D_ = $D05D
+    cp   $01
+    call z, _LABEL_6575_
+    ld   a, [_RAM_D05C_]    ; _RAM_D05C_ = $D05C
+    cp   $01
+    call z, _LABEL_65CE_
+    ld   a, [_RAM_D05B_]    ; _RAM_D05B_ = $D05B
+    cp   $01
+    call z, _LABEL_6627_
+    ld   a, [_RAM_D192_]    ; _RAM_D192_ = $D192
+    and  a
+    jp   z, _LABEL_63B4_
+    call _LABEL_6F97_
+    ld   a, h
+    ld   [_RAM_D193_], a    ; _RAM_D193_ = $D193
+    ld   a, l
+    ld   [_RAM_D194_], a    ; _RAM_D194_ = $D194
+    ld   a, $01
+    ld   [vbl_action_select__RAM_D195_], a  ; vbl_action_select__RAM_D195_ = $D195
+    ei
+_LABEL_64E5_:
+    ld   a, [vbl_action_select__RAM_D195_]  ; vbl_action_select__RAM_D195_ = $D195
+    and  a
+    jr   nz, _LABEL_64E5_
+    ld   a, [buttons_new_pressed__RAM_D006_]    ; buttons_new_pressed__RAM_D006_ = $D006
+    and  $CF
+    ld   [buttons_new_pressed__RAM_D006_], a    ; buttons_new_pressed__RAM_D006_ = $D006
+    and  $F0
+    jp   z, _LABEL_63B4_
+    ld   a, $01
+    ld   [vbl_action_select__RAM_D195_], a  ; vbl_action_select__RAM_D195_ = $D195
+    ld   a, [_RAM_D04B_]    ; _RAM_D04B_ = $D04B
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    call _LABEL_953_
+    ei
+_LABEL_6507_:
+    ld   a, [vbl_action_select__RAM_D195_]  ; vbl_action_select__RAM_D195_ = $D195
+    and  a
+    jr   nz, _LABEL_6507_
+    jp   _LABEL_63B4_
+
 
 
 ; TODO: (called from end of drawing app help menu)
@@ -7124,29 +7272,164 @@ _LABEL_6510_:
     ld   [_RAM_D04B_], a
     ret
 
+_LABEL_6529_:
+    xor  a
+    ld   [_RAM_D05E_], a    ; _RAM_D05E_ = $D05E
+    ld   a, [_RAM_D04B_]    ; _RAM_D04B_ = $D04B
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    call _LABEL_953_
+    ld   b, $90
+    call _LABEL_688E_
+    ld   a, [_RAM_D196_]    ; _RAM_D196_ = $D196
+    and  a
+    jr   z, _LABEL_6543_
+    ld   b, $8C
+_LABEL_6543_:
+    ld   a, [_tilemap_pos_x__RAM_C8CB_] ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    inc  a
+    cp   b
+    ret  nc
+    ld   a, $01
+    ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_RAM_D04B_]    ; _RAM_D04B_ = $D04B
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    ld   a, $00
+    ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    call _LABEL_851_
+    ld   a, [_RAM_D196_]    ; _RAM_D196_ = $D196
+    and  a
+    ret  z
+    ld   a, $01
+    ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_RAM_D197_ + 1]    ; _RAM_D197_ + 1 = $D198
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    ld   a, $00
+    ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    call _LABEL_851_
+    ret
 
-; Data from 6529 to 6672 (330 bytes)
-db $AF, $EA, $5E, $D0, $FA, $4B, $D0, $EA, $CC, $C8, $CD, $53, $09, $06, $90, $CD
-db $8E, $68, $FA, $96, $D1, $A7, $28, $02, $06, $8C, $FA, $CB, $C8, $3C, $B8, $D0
-db $3E, $01, $EA, $CB, $C8, $FA, $4B, $D0, $EA, $CC, $C8, $3E, $00, $EA, $CA, $C8
-db $CD, $51, $08, $FA, $96, $D1, $A7, $C8, $3E, $01, $EA, $CB, $C8, $FA, $98, $D1
-db $EA, $CC, $C8, $3E, $00, $EA, $CA, $C8, $CD, $51, $08, $C9, $AF, $EA, $5D, $D0
-db $FA, $4B, $D0, $EA, $CC, $C8, $CD, $53, $09, $06, $20, $FA, $96, $D1, $A7, $28
-db $02, $06, $1C, $FA, $CB, $C8, $3D, $B8, $D8, $3E, $01, $EA, $CB, $C8, $FA, $4B
-db $D0, $EA, $CC, $C8, $FA, $CB, $C8, $2F, $3C, $EA, $CB, $C8, $3E, $00, $EA, $CA
-db $C8, $CD, $51, $08, $FA, $96, $D1, $A7, $C8, $3E, $01, $EA, $CB, $C8, $FA, $98
-db $D1, $EA, $CC, $C8, $FA, $CB, $C8, $2F, $3C, $EA, $CB, $C8, $3E, $00, $EA, $CA
-db $C8, $CD, $51, $08, $C9, $AF, $EA, $5C, $D0, $FA, $4B, $D0, $EA, $CC, $C8, $CD
-db $53, $09, $06, $18, $FA, $96, $D1, $A7, $28, $02, $06, $14, $FA, $CA, $C8, $3D
-db $B8, $D8, $3E, $01, $EA, $CA, $C8, $FA, $4B, $D0, $EA, $CC, $C8, $FA, $CA, $C8
-db $2F, $3C, $EA, $CA, $C8, $3E, $00, $EA, $CB, $C8, $CD, $51, $08, $FA, $96, $D1
-db $A7, $C8, $3E, $01, $EA, $CA, $C8, $FA, $99, $D1, $EA, $CC, $C8, $FA, $CA, $C8
-db $2F, $3C, $EA, $CA, $C8, $3E, $00, $EA, $CB, $C8, $CD, $51, $08, $C9, $AF, $EA
-db $5B, $D0, $FA, $4B, $D0, $EA, $CC, $C8, $CD, $53, $09, $06, $88, $CD, $8E, $68
-db $FA, $96, $D1, $A7, $28, $02, $06, $84, $FA, $CA, $C8, $3C, $B8, $D0, $3E, $01
-db $EA, $CA, $C8, $FA, $4B, $D0, $EA, $CC, $C8, $3E, $00, $EA, $CB, $C8, $CD, $51
-db $08, $FA, $96, $D1, $A7, $C8, $3E, $01, $EA, $CA, $C8, $FA, $99, $D1, $EA, $CC
-db $C8, $3E, $00, $EA, $CB, $C8, $CD, $51, $08, $C9
+_LABEL_6575_:
+    xor  a
+    ld   [_RAM_D05D_], a    ; _RAM_D05D_ = $D05D
+    ld   a, [_RAM_D04B_]    ; _RAM_D04B_ = $D04B
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    call _LABEL_953_
+    ld   b, $20
+    ld   a, [_RAM_D196_]    ; _RAM_D196_ = $D196
+    and  a
+    jr   z, _LABEL_658C_
+    ld   b, $1C
+_LABEL_658C_:
+    ld   a, [_tilemap_pos_x__RAM_C8CB_] ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    dec  a
+    cp   b
+    ret  c
+    ld   a, $01
+    ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_RAM_D04B_]    ; _RAM_D04B_ = $D04B
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    ld   a, [_tilemap_pos_x__RAM_C8CB_] ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    cpl
+    inc  a
+    ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, $00
+    ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    call _LABEL_851_
+    ld   a, [_RAM_D196_]    ; _RAM_D196_ = $D196
+    and  a
+    ret  z
+    ld   a, $01
+    ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_RAM_D197_ + 1]    ; _RAM_D197_ + 1 = $D198
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    ld   a, [_tilemap_pos_x__RAM_C8CB_] ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    cpl
+    inc  a
+    ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, $00
+    ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    call _LABEL_851_
+    ret
+
+_LABEL_65CE_:
+    xor  a
+_LABEL_65CF_:
+    ld   [_RAM_D05C_], a    ; _RAM_D05C_ = $D05C
+    ld   a, [_RAM_D04B_]    ; _RAM_D04B_ = $D04B
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    call _LABEL_953_
+    ld   b, $18
+    ld   a, [_RAM_D196_]    ; _RAM_D196_ = $D196
+    and  a
+    jr   z, _LABEL_65E5_
+    ld   b, $14
+_LABEL_65E5_:
+    ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    dec  a
+    cp   b
+    ret  c
+    ld   a, $01
+    ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, [_RAM_D04B_]    ; _RAM_D04B_ = $D04B
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    cpl
+    inc  a
+    ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, $00
+    ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    call _LABEL_851_
+    ld   a, [_RAM_D196_]    ; _RAM_D196_ = $D196
+    and  a
+    ret  z
+    ld   a, $01
+    ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, [_RAM_D197_ + 2]    ; _RAM_D197_ + 2 = $D199
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    cpl
+    inc  a
+    ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, $00
+    ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    call _LABEL_851_
+    ret
+
+_LABEL_6627_:
+    xor  a
+    ld   [_RAM_D05B_], a    ; _RAM_D05B_ = $D05B
+    ld   a, [_RAM_D04B_]    ; _RAM_D04B_ = $D04B
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    call _LABEL_953_
+    ld   b, $88
+    call _LABEL_688E_
+    ld   a, [_RAM_D196_]    ; _RAM_D196_ = $D196
+    and  a
+    jr   z, _LABEL_6641_
+    ld   b, $84
+_LABEL_6641_:
+    ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    inc  a
+    cp   b
+    ret  nc
+    ld   a, $01
+    ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, [_RAM_D04B_]    ; _RAM_D04B_ = $D04B
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    ld   a, $00
+    ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    call _LABEL_851_
+    ld   a, [_RAM_D196_]    ; _RAM_D196_ = $D196
+    and  a
+    ret  z
+    ld   a, $01
+    ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    ld   a, [_RAM_D197_ + 2]    ; _RAM_D197_ + 2 = $D199
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    ld   a, $00
+    ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    call _LABEL_851_
+    ret
 
 _LABEL_6673_:
     ld   a, $03
@@ -7157,69 +7440,384 @@ _LABEL_667A_:
     ld   a, $02
     ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
 _LABEL_667F_:
-    ld   a, [_RAM_D196_]
+    ld   a, [_RAM_D196_]    ; _RAM_D196_ = $D196
     and  a
     jp   nz, _LABEL_694E_
-    ld   a, [_RAM_D04B_]
-    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
+    ld   a, [_RAM_D04B_]    ; _RAM_D04B_ = $D04B
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
     call _LABEL_953_
-    ld   a, [_tilemap_pos_x__RAM_C8CB_]
-    ld   [_RAM_D073_], a
-    ld   a, [_tilemap_pos_y__RAM_C8CA_]
-    ld   [_RAM_D074_], a
+    ld   a, [_tilemap_pos_x__RAM_C8CB_] ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_RAM_D073_], a    ; _RAM_D073_ = $D073
+    ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_RAM_D074_], a    ; _RAM_D074_ = $D074
     call oam_free_slot_and_clear__89B_
-    ld   hl, $0018
+    ld   hl, _RST__18_  ; _RST__18_ = $0018
     res  7, h
     ld   a, $02
-    call _switch_bank_jump_hl_RAM__C920_
+    call _switch_bank_jump_hl_RAM__C920_    ; Possibly invalid
     ei
     ld   a, [_RAM_D1A7_]    ; _RAM_D1A7_ = $D1A7
     cp   $03
     jp   nz, _LABEL_6328_
-    ld   a, [$D073]
-; Data from 66B4 to 694D (666 bytes)
-db $EA, $CB, $C8, $FA, $74, $D0, $EA, $CA, $C8, $CD, $10, $65, $11, $B2, $18, $01
-db $00, $00, $21, $40, $8C, $3E, $1E, $CD, $CD, $48, $C3, $A7, $63, $FA, $96, $D1
-db $FE, $00, $CA, $9D, $68, $FA, $4B, $D0, $EA, $CC, $C8, $CD, $53, $09, $CD, $9B
-db $08, $FA, $6D, $D0, $FE, $00, $3E, $03, $28, $0A, $FA, $6D, $D0, $FE, $03, $3E
-db $06, $28, $01, $AF, $EA, $6D, $D0, $C6, $DB, $EA, $CC, $C8, $AF, $EA, $CD, $C8
-db $CD, $23, $06, $78, $EA, $4B, $D0, $11, $97, $D1, $06, $03, $1A, $EA, $CC, $C8
-db $C5, $D5, $CD, $53, $09, $CD, $9B, $08, $21, $6D, $D0, $3E, $DB, $86, $EA, $CC
-db $C8, $CD, $23, $06, $D1, $78, $12, $13, $C1, $05, $20, $E0, $CD, $84, $4B, $CD
-db $65, $67, $C3, $B4, $63, $FA, $4B, $D0, $EA, $CC, $C8, $CD, $53, $09, $CD, $9B
-db $08, $FA, $6C, $D0, $FE, $00, $3E, $03, $28, $0A, $FA, $6C, $D0, $FE, $03, $3E
-db $06, $28, $01, $AF, $EA, $6C, $D0, $CD, $10, $65, $CD, $84, $4B, $CD, $65, $67
-db $C9, $CD, $89, $02, $FA, $06, $D0, $CB, $47, $20, $F6, $CB, $4F, $20, $F2, $C9
-db $CD, $2C, $09, $FA, $9B, $D1, $FE, $00, $21, $07, $9E, $28, $03, $21, $0D, $9E
-db $3E, $C8, $77, $C9, $CD, $2C, $09, $FA, $9B, $D1, $FE, $00, $21, $07, $9E, $FA
-db $9C, $D1, $28, $0A, $21, $0D, $9E, $FA, $9D, $D1, $C6, $CD, $18, $02, $C6, $D0
-db $77, $C9, $AF, $EA, $9B, $D1, $18, $05, $3E, $01, $EA, $9B, $D1, $FA, $96, $D1
-db $A7, $C2, $B4, $63, $FA, $3A, $D0, $3C, $EA, $3A, $D0, $E6, $0F, $20, $05, $CD
-db $74, $67, $18, $07, $EE, $08, $20, $03, $CD, $88, $67, $CD, $C2, $49, $FA, $25
-db $D0, $FE, $2A, $20, $1C, $FA, $9B, $D1, $FE, $00, $FA, $73, $D0, $28, $05, $EA
-db $9D, $D1, $18, $03, $EA, $9C, $D1, $CD, $88, $67, $CD, $5B, $68, $CD, $84, $4B
-db $C9, $FE, $2E, $28, $F2, $FE, $3D, $20, $0B, $CD, $17, $68, $CD, $88, $67, $CD
-db $84, $4B, $18, $B0, $FE, $40, $20, $AC, $CD, $3A, $68, $CD, $88, $67, $CD, $84
-db $4B, $18, $A1, $FA, $9B, $D1, $FE, $00, $FA, $9D, $D1, $20, $04, $FA, $9C, $D1
-db $3D, $FE, $03, $C8, $3C, $47, $FA, $9B, $D1, $A7, $78, $28, $04, $EA, $9D, $D1
-db $C9, $3C, $EA, $9C, $D1, $C9, $FA, $9B, $D1, $A7, $FA, $9D, $D1, $20, $04, $FA
-db $9C, $D1, $3D, $A7, $C8, $3D, $47, $FA, $9B, $D1, $A7, $78, $28, $04, $EA, $9D
-db $D1, $C9, $3C, $EA, $9C, $D1, $C9, $FA, $4B, $D0, $EA, $CC, $C8, $CD, $53, $09
-db $CD, $9B, $08, $06, $88, $CD, $8E, $68, $FA, $CA, $C8, $3C, $B8, $38, $05, $05
-db $78, $EA, $CA, $C8, $06, $90, $CD, $8E, $68, $FA, $CB, $C8, $3C, $B8, $DA, $8A
-db $68, $05, $78, $EA, $CB, $C8, $CD, $10, $65, $C9, $FA, $92, $D1, $FE, $00, $C8
-db $FA, $9C, $D1, $3D, $4F, $78, $91, $47, $C9, $FA, $96, $D1, $CB, $47, $C2, $A7
-db $63, $FA, $4B, $D0, $EA, $CC, $C8, $CD, $53, $09, $CD, $9B, $08, $FA, $CB, $C8
-db $D6, $04, $EA, $CB, $C8, $FA, $CA, $C8, $D6, $04, $EA, $CA, $C8, $21, $6D, $D0
-db $3E, $DB, $86, $EA, $CC, $C8, $21, $97, $D1, $06, $03, $C5, $E5, $CD, $23, $06
-db $E1, $78, $22, $C1, $05, $20, $F4, $CD, $23, $06, $78, $EA, $4B, $D0, $3E, $01
-db $EA, $96, $D1, $AF, $EA, $92, $D1, $3E, $03, $CD, $72, $4A, $C3, $A7, $63, $FA
-db $97, $D1, $EA, $CC, $C8, $CD, $53, $09, $FA, $CB, $C8, $C6, $04, $EA, $3A, $D0
-db $FA, $CA, $C8, $C6, $04, $EA, $3B, $D0, $FA, $4B, $D0, $EA, $CC, $C8, $CD, $53
-db $09, $21, $3A, $D0, $FA, $CB, $C8, $C6, $04, $BE, $38, $09, $EA, $A0, $D1, $7E
-db $EA, $9E, $D1, $18, $07, $EA, $9E, $D1, $7E, $EA, $A0, $D1, $21, $3B, $D0, $FA
-db $CA, $C8, $C6, $04, $BE, $38, $09, $EA, $A1, $D1, $7E, $EA, $9F, $D1, $18, $07
-db $EA, $9F, $D1, $7E, $EA, $A1, $D1, $CD, $92, $69
+    ld   a, [_RAM_D073_]    ; _RAM_D073_ = $D073
+    ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_RAM_D074_]    ; _RAM_D074_ = $D074
+    ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    call _LABEL_6510_
+    ld   de, $18B2
+    ld   bc, $0000
+    ld   hl, $8C40
+    ld   a, $1E
+    call copy_a_x_tile_patterns_from_de_add_bx16_to_hl_add_cx16__48CD_
+    jp   _LABEL_63A7_
+
+_LABEL_66D1_:
+    ld   a, [_RAM_D196_]    ; _RAM_D196_ = $D196
+    cp   $00
+    jp   z, _LABEL_689D_
+    ld   a, [_RAM_D04B_]    ; _RAM_D04B_ = $D04B
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    call _LABEL_953_
+    call oam_free_slot_and_clear__89B_
+    ld   a, [_RAM_D06D_]    ; _RAM_D06D_ = $D06D
+    cp   $00
+    ld   a, $03
+    jr   z, _LABEL_66F8_
+    ld   a, [_RAM_D06D_]    ; _RAM_D06D_ = $D06D
+    cp   $03
+    ld   a, $06
+    jr   z, _LABEL_66F8_
+    xor  a
+_LABEL_66F8_:
+    ld   [_RAM_D06D_], a    ; _RAM_D06D_ = $D06D
+    add  $DB
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    xor  a
+    ld   [_RAM_C8CD_], a    ; _RAM_C8CD_ = $C8CD
+    call _LABEL_623_
+    ld   a, b
+    ld   [_RAM_D04B_], a    ; _RAM_D04B_ = $D04B
+    ld   de, _RAM_D197_ ; _RAM_D197_ = $D197
+    ld   b, $03
+_LABEL_6710_:
+    ld   a, [de]
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    push bc
+    push de
+    call _LABEL_953_
+    call oam_free_slot_and_clear__89B_
+    ld   hl, _RAM_D06D_ ; _RAM_D06D_ = $D06D
+    ld   a, $DB
+    add  [hl]
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    call _LABEL_623_
+    pop  de
+    ld   a, b
+    ld   [de], a
+    inc  de
+    pop  bc
+    dec  b
+    jr   nz, _LABEL_6710_
+    call maybe_input_wait_for_keys__4B84
+    call _LABEL_6765_
+    jp   _LABEL_63B4_
+
+_LABEL_6739_:
+    ld   a, [_RAM_D04B_]    ; _RAM_D04B_ = $D04B
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    call _LABEL_953_
+    call oam_free_slot_and_clear__89B_
+    ld   a, [_RAM_D06C_]    ; _RAM_D06C_ = $D06C
+    cp   $00
+    ld   a, $03
+    jr   z, _LABEL_6758_
+    ld   a, [_RAM_D06C_]    ; _RAM_D06C_ = $D06C
+    cp   $03
+    ld   a, $06
+    jr   z, _LABEL_6758_
+    xor  a
+_LABEL_6758_:
+    ld   [_RAM_D06C_], a    ; _RAM_D06C_ = $D06C
+    call _LABEL_6510_
+    call maybe_input_wait_for_keys__4B84
+    call _LABEL_6765_
+    ret
+
+_LABEL_6765_:
+    call timer_wait_tick_AND_TODO__289_
+    ld   a, [buttons_new_pressed__RAM_D006_]    ; buttons_new_pressed__RAM_D006_ = $D006
+    bit  0, a
+    jr   nz, _LABEL_6765_
+    bit  1, a
+    jr   nz, _LABEL_6765_
+    ret
+
+_LABEL_6774_:
+    call wait_until_vbl__92C_
+    ld   a, [_RAM_D19B_]
+    cp   $00
+    ld   hl, $9E07
+    jr   z, _LABEL_6784_
+    ld   hl, $9E0D
+_LABEL_6784_:
+    ld   a, $C8
+    ld   [hl], a
+    ret
+
+_LABEL_6788_:
+    call wait_until_vbl__92C_
+    ld   a, [_RAM_D19B_]
+    cp   $00
+    ld   hl, $9E07
+    ld   a, [_RAM_D19C_]    ; _RAM_D19C_ = $D19C
+    jr   z, _LABEL_67A2_
+    ld   hl, $9E0D
+    ld   a, [_RAM_D19D_]    ; _RAM_D19D_ = $D19D
+    add  $CD
+    jr   _LABEL_67A4_
+
+_LABEL_67A2_:
+    add  $D0
+_LABEL_67A4_:
+    ld   [hl], a
+    ret
+
+_LABEL_67A6_:
+    xor  a
+    ld   [_RAM_D19B_], a
+    jr   _LABEL_67B1_
+
+_LABEL_67AC_:
+    ld   a, $01
+    ld   [_RAM_D19B_], a
+_LABEL_67B1_:
+    ld   a, [_RAM_D196_]    ; _RAM_D196_ = $D196
+    and  a
+    jp   nz, _LABEL_63B4_
+_LABEL_67B8_:
+    ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
+    inc  a
+    ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+    and  $0F
+    jr   nz, _LABEL_67C8_
+    call _LABEL_6774_
+    jr   _LABEL_67CF_
+
+_LABEL_67C8_:
+    xor  $08
+    jr   nz, _LABEL_67CF_
+    call _LABEL_6788_
+_LABEL_67CF_:
+    call input_map_gamepad_buttons_to_keycodes__49C2_
+    ld   a, [input_key_pressed__RAM_D025_]  ; input_key_pressed__RAM_D025_ = $D025
+    cp   $2A
+    jr   nz, _LABEL_67F5_
+    ld   a, [_RAM_D19B_]
+    cp   $00
+    ld   a, [_RAM_D073_]    ; _RAM_D073_ = $D073
+    jr   z, _LABEL_67E8_
+    ld   [_RAM_D19D_], a    ; _RAM_D19D_ = $D19D
+    jr   _LABEL_67EB_
+
+_LABEL_67E8_:
+    ld   [_RAM_D19C_], a    ; _RAM_D19C_ = $D19C
+_LABEL_67EB_:
+    call _LABEL_6788_
+    call _LABEL_685B_
+    call maybe_input_wait_for_keys__4B84
+    ret
+
+_LABEL_67F5_:
+    cp   $2E
+    jr   z, _LABEL_67EB_
+    cp   $3D
+    jr   nz, _LABEL_6808_
+    call _LABEL_6817_
+    call _LABEL_6788_
+    call maybe_input_wait_for_keys__4B84
+    jr   _LABEL_67B8_
+
+_LABEL_6808_:
+    cp   $40
+    jr   nz, _LABEL_67B8_
+    call _LABEL_683A_
+    call _LABEL_6788_
+    call maybe_input_wait_for_keys__4B84
+    jr   _LABEL_67B8_
+
+_LABEL_6817_:
+    ld   a, [_RAM_D19B_]
+    cp   $00
+    ld   a, [_RAM_D19D_]    ; _RAM_D19D_ = $D19D
+    jr   nz, _LABEL_6825_
+    ld   a, [_RAM_D19C_]    ; _RAM_D19C_ = $D19C
+    dec  a
+_LABEL_6825_:
+    cp   $03
+    ret  z
+    inc  a
+    ld   b, a
+    ld   a, [_RAM_D19B_]
+    and  a
+    ld   a, b
+    jr   z, _LABEL_6835_
+    ld   [_RAM_D19D_], a    ; _RAM_D19D_ = $D19D
+    ret
+
+_LABEL_6835_:
+    inc  a
+    ld   [_RAM_D19C_], a    ; _RAM_D19C_ = $D19C
+    ret
+
+_LABEL_683A_:
+    ld   a, [_RAM_D19B_]
+    and  a
+    ld   a, [_RAM_D19D_]    ; _RAM_D19D_ = $D19D
+    jr   nz, _LABEL_6847_
+    ld   a, [_RAM_D19C_]    ; _RAM_D19C_ = $D19C
+    dec  a
+_LABEL_6847_:
+    and  a
+    ret  z
+    dec  a
+    ld   b, a
+    ld   a, [_RAM_D19B_]
+    and  a
+    ld   a, b
+    jr   z, _LABEL_6856_
+    ld   [_RAM_D19D_], a    ; _RAM_D19D_ = $D19D
+    ret
+
+_LABEL_6856_:
+    inc  a
+    ld   [_RAM_D19C_], a    ; _RAM_D19C_ = $D19C
+    ret
+
+_LABEL_685B_:
+    ld   a, [_RAM_D04B_]    ; _RAM_D04B_ = $D04B
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    call _LABEL_953_
+    call oam_free_slot_and_clear__89B_
+    ld   b, $88
+    call _LABEL_688E_
+    ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    inc  a
+    cp   b
+    jr   c, _LABEL_6878_
+    dec  b
+    ld   a, b
+    ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+_LABEL_6878_:
+    ld   b, $90
+    call _LABEL_688E_
+    ld   a, [_tilemap_pos_x__RAM_C8CB_] ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    inc  a
+    cp   b
+    jp   c, _LABEL_688A_
+    dec  b
+    ld   a, b
+    ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+_LABEL_688A_:
+    call _LABEL_6510_
+    ret
+
+_LABEL_688E_:
+    ld   a, [_RAM_D192_]    ; _RAM_D192_ = $D192
+    cp   $00
+    ret  z
+    ld   a, [_RAM_D19C_]    ; _RAM_D19C_ = $D19C
+    dec  a
+    ld   c, a
+    ld   a, b
+    sub  c
+    ld   b, a
+    ret
+
+_LABEL_689D_:
+    ld   a, [_RAM_D196_]    ; _RAM_D196_ = $D196
+    bit  0, a
+    jp   nz, _LABEL_63A7_
+    ld   a, [_RAM_D04B_]    ; _RAM_D04B_ = $D04B
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    call _LABEL_953_
+    call oam_free_slot_and_clear__89B_
+    ld   a, [_tilemap_pos_x__RAM_C8CB_] ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    sub  $04
+    ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    sub  $04
+    ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    ld   hl, _RAM_D06D_ ; _RAM_D06D_ = $D06D
+    ld   a, $DB
+    add  [hl]
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    ld   hl, _RAM_D197_ ; _RAM_D197_ = $D197
+    ld   b, $03
+_LABEL_68CF_:
+    push bc
+    push hl
+    call _LABEL_623_
+    pop  hl
+    ld   a, b
+    ldi  [hl], a
+    pop  bc
+    dec  b
+    jr   nz, _LABEL_68CF_
+    call _LABEL_623_
+    ld   a, b
+    ld   [_RAM_D04B_], a    ; _RAM_D04B_ = $D04B
+    ld   a, $01
+    ld   [_RAM_D196_], a    ; _RAM_D196_ = $D196
+    xor  a
+    ld   [_RAM_D192_], a    ; _RAM_D192_ = $D192
+    ld   a, $03
+    call _LABEL_4A72_
+    jp   _LABEL_63A7_
+
+_LABEL_68F3_:
+    ld   a, [_RAM_D197_]    ; _RAM_D197_ = $D197
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    call _LABEL_953_
+    ld   a, [_tilemap_pos_x__RAM_C8CB_] ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    add  $04
+    ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+    ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    add  $04
+    ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
+    ld   a, [_RAM_D04B_]    ; _RAM_D04B_ = $D04B
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    call _LABEL_953_
+    ld   hl, _RAM_D03A_ ; _RAM_D03A_ = $D03A
+    ld   a, [_tilemap_pos_x__RAM_C8CB_] ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    add  $04
+    cp   [hl]
+    jr   c, _LABEL_6929_
+    ld   [_RAM_D19D_ + 3], a    ; _RAM_D19D_ + 3 = $D1A0
+    ld   a, [hl]
+    ld   [_RAM_D19D_ + 1], a    ; _RAM_D19D_ + 1 = $D19E
+    jr   _LABEL_6930_
+
+_LABEL_6929_:
+    ld   [_RAM_D19D_ + 1], a    ; _RAM_D19D_ + 1 = $D19E
+    ld   a, [hl]
+    ld   [_RAM_D19D_ + 3], a    ; _RAM_D19D_ + 3 = $D1A0
+_LABEL_6930_:
+    ld   hl, _RAM_D03B_ ; _RAM_D03B_ = $D03B
+    ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    add  $04
+    cp   [hl]
+    jr   c, _LABEL_6944_
+    ld   [_RAM_D1A1_], a    ; _RAM_D1A1_ = $D1A1
+    ld   a, [hl]
+    ld   [_RAM_D19D_ + 2], a    ; _RAM_D19D_ + 2 = $D19F
+    jr   _LABEL_694B_
+
+_LABEL_6944_:
+    ld   [_RAM_D19D_ + 2], a    ; _RAM_D19D_ + 2 = $D19F
+    ld   a, [hl]
+    ld   [_RAM_D1A1_], a    ; _RAM_D1A1_ = $D1A1
+_LABEL_694B_:
+    call _LABEL_6992_
 
 _LABEL_694E_:
     ld   a, [_RAM_D197_]
@@ -7253,17 +7851,85 @@ _LABEL_695C_:
     call _LABEL_4A72_
     jp   _LABEL_63A7_
 
-; Data from 6992 to 6A25 (148 bytes)
-    db $FA, $9E, $D1, $EA, $A2, $D1, $E6, $F8, $C6, $07, $47, $FA, $A0, $D1, $B8, $DA
-    db $C6, $69, $CA, $C6, $69, $78, $EA, $A4, $D1, $CD, $D0, $69, $FA, $A4, $D1, $3C
-    db $EA, $A2, $D1, $C6, $07, $21, $A0, $D1, $BE, $D2, $C6, $69, $EA, $A4, $D1, $CD
-    db $D0, $69, $18, $E8, $FA, $A0, $D1, $EA, $A4, $D1, $CD, $D0, $69, $C9, $FA, $9F
-    db $D1, $EA, $A3, $D1, $E6, $F8, $C6, $07, $47, $FA, $A1, $D1, $B8, $38, $32, $28
-    db $30, $78, $EA, $A5, $D1, $3E, $02, $EA, $95, $D1, $FB, $FA, $95, $D1, $A7, $20
-    db $FA, $FA, $A5, $D1, $3C, $EA, $A3, $D1, $C6, $07, $21, $A1, $D1, $BE, $30, $11
-    db $EA, $A5, $D1, $3E, $02, $EA, $95, $D1, $FB, $FA, $95, $D1, $A7, $20, $FA, $18
-    db $E0, $FA, $A1, $D1, $EA, $A5, $D1, $3E, $02, $EA, $95, $D1, $FB, $FA, $95, $D1
-    db $A7, $20, $FA, $C9
+_LABEL_6992_:
+        ld   a, [_RAM_D19D_ + 1]    ; _RAM_D19D_ + 1 = $D19E
+        ld   [_RAM_D1A2_], a    ; _RAM_D1A2_ = $D1A2
+        and  $F8
+        add  $07
+        ld   b, a
+        ld   a, [_RAM_D19D_ + 3]    ; _RAM_D19D_ + 3 = $D1A0
+        cp   b
+        jp   c, _LABEL_69C6_
+        jp   z, _LABEL_69C6_
+        ld   a, b
+        ld   [_RAM_D1A4_], a    ; _RAM_D1A4_ = $D1A4
+        call _LABEL_69D0_
+_LABEL_69AE_:
+        ld   a, [_RAM_D1A4_]    ; _RAM_D1A4_ = $D1A4
+        inc  a
+        ld   [_RAM_D1A2_], a    ; _RAM_D1A2_ = $D1A2
+        add  $07
+        ld   hl, _RAM_D19D_ + 3 ; _RAM_D19D_ + 3 = $D1A0
+        cp   [hl]
+        jp   nc, _LABEL_69C6_
+        ld   [_RAM_D1A4_], a    ; _RAM_D1A4_ = $D1A4
+        call _LABEL_69D0_
+        jr   _LABEL_69AE_
+
+_LABEL_69C6_:
+        ld   a, [_RAM_D19D_ + 3]    ; _RAM_D19D_ + 3 = $D1A0
+        ld   [_RAM_D1A4_], a    ; _RAM_D1A4_ = $D1A4
+        call _LABEL_69D0_
+        ret
+
+_LABEL_69D0_:
+        ld   a, [_RAM_D19D_ + 2]    ; _RAM_D19D_ + 2 = $D19F
+        ld   [_RAM_D1A3_], a    ; _RAM_D1A3_ = $D1A3
+        and  $F8
+        add  $07
+        ld   b, a
+        ld   a, [_RAM_D1A1_]    ; _RAM_D1A1_ = $D1A1
+        cp   b
+        jr   c, _LABEL_6A13_
+        jr   z, _LABEL_6A13_
+        ld   a, b
+        ld   [_RAM_D1A5_], a    ; _RAM_D1A5_ = $D1A5
+        ld   a, $02
+        ld   [vbl_action_select__RAM_D195_], a  ; vbl_action_select__RAM_D195_ = $D195
+        ei
+_LABEL_69ED_:
+        ld   a, [vbl_action_select__RAM_D195_]  ; vbl_action_select__RAM_D195_ = $D195
+        and  a
+        jr   nz, _LABEL_69ED_
+_LABEL_69F3_:
+        ld   a, [_RAM_D1A5_]    ; _RAM_D1A5_ = $D1A5
+        inc  a
+        ld   [_RAM_D1A3_], a    ; _RAM_D1A3_ = $D1A3
+        add  $07
+        ld   hl, _RAM_D1A1_ ; _RAM_D1A1_ = $D1A1
+        cp   [hl]
+        jr   nc, _LABEL_6A13_
+        ld   [_RAM_D1A5_], a    ; _RAM_D1A5_ = $D1A5
+        ld   a, $02
+        ld   [vbl_action_select__RAM_D195_], a  ; vbl_action_select__RAM_D195_ = $D195
+        ei
+_LABEL_6A0B_:
+        ld   a, [vbl_action_select__RAM_D195_]  ; vbl_action_select__RAM_D195_ = $D195
+        and  a
+        jr   nz, _LABEL_6A0B_
+        jr   _LABEL_69F3_
+
+_LABEL_6A13_:
+        ld   a, [_RAM_D1A1_]    ; _RAM_D1A1_ = $D1A1
+        ld   [_RAM_D1A5_], a    ; _RAM_D1A5_ = $D1A5
+        ld   a, $02
+        ld   [vbl_action_select__RAM_D195_], a  ; vbl_action_select__RAM_D195_ = $D195
+        ei
+_LABEL_6A1F_:
+        ld   a, [vbl_action_select__RAM_D195_]  ; vbl_action_select__RAM_D195_ = $D195
+        and  a
+        jr   nz, _LABEL_6A1F_
+        ret
 
 _LABEL_6A26_:
     ld   a, [_RAM_D19C_]    ; _RAM_D19C_ = $D19C
@@ -7372,40 +8038,280 @@ _LABEL_6ACC_:
     ldi  [hl], a
     ret
 
-; Data from 6ACE to 6CD6 (521 bytes)
-db $FA, $96, $D1, $FE, $00, $C2, $A7, $63, $FA, $4B, $D0, $EA, $CC, $C8, $CD, $53
-db $09, $FA, $CB, $C8, $EA, $28, $D0, $FA, $CA, $C8, $EA, $29, $D0, $CD, $9B, $08
-db $FA, $CB, $C8, $EA, $A8, $D1, $FA, $CA, $C8, $EA, $A9, $D1, $CD, $5F, $6B, $21
-db $9F, $D1, $FA, $A1, $D1, $86, $CB, $1F, $47, $FA, $A8, $D1, $3C, $EA, $A8, $D1
-db $3D, $3D, $EA, $AD, $D1, $78, $EA, $A9, $D1, $EA, $AE, $D1, $AF, $EA, $AA, $D1
-db $3C, $EA, $AF, $D1, $FA, $9F, $D1, $EA, $AB, $D1, $EA, $B0, $D1, $FA, $A1, $D1
-db $EA, $AC, $D1, $EA, $B1, $D1, $06, $5A, $AF, $21, $B2, $D1, $22, $05, $20, $FC
-db $FA, $A8, $D1, $A7, $28, $05, $CD, $92, $6B, $18, $F5, $FA, $28, $D0, $EA, $CB
-db $C8, $FA, $29, $D0, $EA, $CA, $C8, $AF, $EA, $92, $D1, $CD, $10, $65, $C3, $A7
-db $63, $FA, $A8, $D1, $EA, $CB, $C8, $FA, $A9, $D1, $EA, $CA, $C8, $EA, $A7, $D1
-db $AF, $EA, $3B, $D0, $CD, $AF, $6C, $FA, $9F, $D1, $47, $FA, $A7, $D1, $B8, $EA
-db $A1, $D1, $C8, $FA, $A8, $D1, $EA, $CB, $C8, $FA, $A9, $D1, $3C, $EA, $CA, $C8
-db $CD, $8E, $6D, $C9, $FA, $AB, $D1, $EA, $9F, $D1, $FA, $AC, $D1, $EA, $A1, $D1
-db $CD, $D0, $6B, $A7, $C0, $FA, $9F, $D1, $EA, $A3, $D1, $FA, $A1, $D1, $EA, $A5
-db $D1, $CD, $5F, $6B, $FA, $9F, $D1, $47, $FA, $A1, $D1, $B8, $C8, $CD, $52, $6E
-db $FA, $AA, $D1, $A7, $FA, $A8, $D1, $20, $03, $3C, $18, $01, $3D, $EA, $A8, $D1
-db $18, $CE, $FA, $A8, $D1, $EA, $CB, $C8, $CB, $7F, $20, $06, $FE, $20, $38, $62
-db $18, $04, $FE, $90, $30, $5C, $FA, $A9, $D1, $EA, $CA, $C8, $CB, $7F, $20, $06
-db $FE, $18, $38, $4E, $18, $04, $FE, $88, $30, $48, $3E, $01, $EA, $3B, $D0, $CD
-db $AF, $6C, $FA, $A8, $D1, $EA, $CB, $C8, $FA, $A9, $D1, $EA, $CA, $C8, $CD, $8E
-db $6D, $21, $A3, $D1, $FA, $A5, $D1, $BE, $3E, $00, $C8, $FA, $9F, $D1, $21, $A3
-db $D1, $96, $30, $02, $18, $22, $FA, $A5, $D1, $21, $A1, $D1, $96, $30, $13, $FA
-db $A5, $D1, $3D, $86, $CB, $1F, $EA, $A9, $D1, $FA, $A5, $D1, $3D, $EA, $AB, $D1
-db $AF, $C9, $CD, $9C, $6C, $3E, $01, $C9, $FA, $9F, $D1, $86, $3C, $CB, $1F, $EA
-db $A9, $D1, $FA, $A3, $D1, $3C, $EA, $AC, $D1, $CD, $87, $6C, $FA, $AD, $D1, $EA
-db $A8, $D1, $FA, $A5, $D1, $21, $A1, $D1, $96, $30, $19, $FA, $A5, $D1, $3D, $86
-db $CB, $1F, $EA, $A9, $D1, $FA, $A5, $D1, $3D, $EA, $AB, $D1, $FA, $A1, $D1, $EA
-db $AC, $D1, $AF, $C9, $CD, $9C, $6C, $AF, $C9, $E5, $21, $0B, $D2, $11, $06, $D2
-db $06, $5F, $1A, $32, $1B, $05, $20, $FA, $AF, $EA, $A8, $D1, $E1, $C9, $21, $A8
-db $D1, $11, $AD, $D1, $06, $5F, $1A, $22, $13, $05, $20, $FA, $AF, $EA, $07, $D2
-db $C9, $CD, $A0, $6F, $FA, $CB, $C8, $E6, $07, $47, $16, $80, $A7, $28, $05, $CB
-db $3A, $05, $20, $FB, $AF, $EA, $0C, $D2, $FA, $CA, $C8, $E6, $07, $4F, $0C, $CB
-db $27, $CD, $6E, $48, $23, $CD, $1E, $6D, $C9
+_LABEL_6ACE_:
+    ld   a, [_RAM_D196_]    ; _RAM_D196_ = $D196
+    cp   $00
+    jp   nz, _LABEL_63A7_
+    ld   a, [_RAM_D04B_]    ; _RAM_D04B_ = $D04B
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    call _LABEL_953_
+    ld   a, [_tilemap_pos_x__RAM_C8CB_] ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_RAM_D028_], a    ; _RAM_D028_ = $D028
+    ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_RAM_D029_], a    ; _RAM_D029_ = $D029
+    call oam_free_slot_and_clear__89B_
+    ld   a, [_tilemap_pos_x__RAM_C8CB_] ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    ld   [_RAM_D1A7_ + 1], a    ; _RAM_D1A7_ + 1 = $D1A8
+    ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_RAM_D1A7_ + 2], a    ; _RAM_D1A7_ + 2 = $D1A9
+    call _LABEL_6B5F_
+    ld   hl, _RAM_D19D_ + 2 ; _RAM_D19D_ + 2 = $D19F
+    ld   a, [_RAM_D1A1_]    ; _RAM_D1A1_ = $D1A1
+    add  [hl]
+    rr   a
+    ld   b, a
+    ld   a, [_RAM_D1A7_ + 1]    ; _RAM_D1A7_ + 1 = $D1A8
+    inc  a
+    ld   [_RAM_D1A7_ + 1], a    ; _RAM_D1A7_ + 1 = $D1A8
+    dec  a
+    dec  a
+    ld   [_RAM_D1AD_], a
+    ld   a, b
+    ld   [_RAM_D1A7_ + 2], a    ; _RAM_D1A7_ + 2 = $D1A9
+    ld   [_RAM_D1AE_], a
+    xor  a
+    ld   [_RAM_D1A7_ + 3], a    ; _RAM_D1A7_ + 3 = $D1AA
+    inc  a
+    ld   [_RAM_D1AF_], a
+    ld   a, [_RAM_D19D_ + 2]    ; _RAM_D19D_ + 2 = $D19F
+    ld   [_RAM_D1AB_], a
+    ld   [_RAM_D1B0_], a
+    ld   a, [_RAM_D1A1_]    ; _RAM_D1A1_ = $D1A1
+    ld   [_RAM_D1AC_], a
+    ld   [_RAM_D1B1_], a
+    ld   b, $5A
+    xor  a
+    ld   hl, _RAM_D1B2_
+_LABEL_6B3A_:
+    ldi  [hl], a
+    dec  b
+    jr   nz, _LABEL_6B3A_
+_LABEL_6B3E_:
+    ld   a, [_RAM_D1A7_ + 1]    ; _RAM_D1A7_ + 1 = $D1A8
+    and  a
+    jr   z, _LABEL_6B49_
+    call _LABEL_6B92_
+    jr   _LABEL_6B3E_
+
+_LABEL_6B49_:
+    ld   a, [_RAM_D028_]    ; _RAM_D028_ = $D028
+    ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_RAM_D029_]    ; _RAM_D029_ = $D029
+    ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    xor  a
+    ld   [_RAM_D192_], a    ; _RAM_D192_ = $D192
+    call _LABEL_6510_
+    jp   _LABEL_63A7_
+
+_LABEL_6B5F_:
+    ld   a, [_RAM_D1A7_ + 1]    ; _RAM_D1A7_ + 1 = $D1A8
+    ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_RAM_D1A7_ + 2]    ; _RAM_D1A7_ + 2 = $D1A9
+    ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
+    xor  a
+    ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
+    call _LABEL_6CAF_
+    ld   a, [_RAM_D19D_ + 2]    ; _RAM_D19D_ + 2 = $D19F
+    ld   b, a
+    ld   a, [_RAM_D1A7_]    ; _RAM_D1A7_ = $D1A7
+    cp   b
+    ld   [_RAM_D1A1_], a    ; _RAM_D1A1_ = $D1A1
+    ret  z
+    ld   a, [_RAM_D1A7_ + 1]    ; _RAM_D1A7_ + 1 = $D1A8
+    ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_RAM_D1A7_ + 2]    ; _RAM_D1A7_ + 2 = $D1A9
+    inc  a
+    ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    call _LABEL_6D8E_
+    ret
+
+_LABEL_6B92_:
+    ld   a, [_RAM_D1AB_]
+    ld   [_RAM_D19D_ + 2], a    ; _RAM_D19D_ + 2 = $D19F
+    ld   a, [_RAM_D1AC_]
+    ld   [_RAM_D1A1_], a    ; _RAM_D1A1_ = $D1A1
+_LABEL_6B9E_:
+    call _LABEL_6BD0_
+    and  a
+    ret  nz
+    ld   a, [_RAM_D19D_ + 2]    ; _RAM_D19D_ + 2 = $D19F
+    ld   [_RAM_D1A3_], a    ; _RAM_D1A3_ = $D1A3
+    ld   a, [_RAM_D1A1_]    ; _RAM_D1A1_ = $D1A1
+    ld   [_RAM_D1A5_], a    ; _RAM_D1A5_ = $D1A5
+    call _LABEL_6B5F_
+    ld   a, [_RAM_D19D_ + 2]    ; _RAM_D19D_ + 2 = $D19F
+    ld   b, a
+    ld   a, [_RAM_D1A1_]    ; _RAM_D1A1_ = $D1A1
+    cp   b
+    ret  z
+    call _LABEL_6E52_
+    ld   a, [_RAM_D1A7_ + 3]    ; _RAM_D1A7_ + 3 = $D1AA
+    and  a
+    ld   a, [_RAM_D1A7_ + 1]    ; _RAM_D1A7_ + 1 = $D1A8
+    jr   nz, _LABEL_6BCA_
+    inc  a
+    jr   _LABEL_6BCB_
+
+_LABEL_6BCA_:
+    dec  a
+_LABEL_6BCB_:
+    ld   [_RAM_D1A7_ + 1], a    ; _RAM_D1A7_ + 1 = $D1A8
+    jr   _LABEL_6B9E_
+
+_LABEL_6BD0_:
+    ld   a, [_RAM_D1A7_ + 1]    ; _RAM_D1A7_ + 1 = $D1A8
+    ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    bit  7, a
+    jr   nz, _LABEL_6BE0_
+    cp   $20
+    jr   c, _LABEL_6C40_
+    jr   _LABEL_6BE4_
+
+_LABEL_6BE0_:
+    cp   $90
+    jr   nc, _LABEL_6C40_
+_LABEL_6BE4_:
+    ld   a, [_RAM_D1A7_ + 2]    ; _RAM_D1A7_ + 2 = $D1A9
+    ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    bit  7, a
+    jr   nz, _LABEL_6BF4_
+    cp   $18
+    jr   c, _LABEL_6C40_
+    jr   _LABEL_6BF8_
+
+_LABEL_6BF4_:
+    cp   $88
+    jr   nc, _LABEL_6C40_
+_LABEL_6BF8_:
+    ld   a, $01
+    ld   [_RAM_D03B_], a    ; _RAM_D03B_ = $D03B
+    call _LABEL_6CAF_
+    ld   a, [_RAM_D1A7_ + 1]    ; _RAM_D1A7_ + 1 = $D1A8
+    ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    ld   a, [_RAM_D1A7_ + 2]    ; _RAM_D1A7_ + 2 = $D1A9
+    ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    call _LABEL_6D8E_
+    ld   hl, _RAM_D1A3_ ; _RAM_D1A3_ = $D1A3
+    ld   a, [_RAM_D1A5_]    ; _RAM_D1A5_ = $D1A5
+    cp   [hl]
+    ld   a, $00
+    ret  z
+    ld   a, [_RAM_D19D_ + 2]    ; _RAM_D19D_ + 2 = $D19F
+    ld   hl, _RAM_D1A3_ ; _RAM_D1A3_ = $D1A3
+    sub  [hl]
+    jr   nc, _LABEL_6C24_
+    jr   _LABEL_6C46_
+
+_LABEL_6C24_:
+    ld   a, [_RAM_D1A5_]    ; _RAM_D1A5_ = $D1A5
+    ld   hl, _RAM_D1A1_ ; _RAM_D1A1_ = $D1A1
+    sub  [hl]
+    jr   nc, _LABEL_6C40_
+    ld   a, [_RAM_D1A5_]    ; _RAM_D1A5_ = $D1A5
+    dec  a
+    add  [hl]
+    rr   a
+    ld   [_RAM_D1A7_ + 2], a    ; _RAM_D1A7_ + 2 = $D1A9
+    ld   a, [_RAM_D1A5_]    ; _RAM_D1A5_ = $D1A5
+    dec  a
+    ld   [_RAM_D1AB_], a
+    xor  a
+    ret
+
+_LABEL_6C40_:
+    call _LABEL_6C9C_
+    ld   a, $01
+    ret
+
+_LABEL_6C46_:
+    ld   a, [_RAM_D19D_ + 2]    ; _RAM_D19D_ + 2 = $D19F
+    add  [hl]
+    inc  a
+    rr   a
+    ld   [_RAM_D1A7_ + 2], a    ; _RAM_D1A7_ + 2 = $D1A9
+    ld   a, [_RAM_D1A3_]    ; _RAM_D1A3_ = $D1A3
+    inc  a
+    ld   [_RAM_D1AC_], a
+    call _LABEL_6C87_
+    ld   a, [_RAM_D1AD_]
+    ld   [_RAM_D1A7_ + 1], a    ; _RAM_D1A7_ + 1 = $D1A8
+    ld   a, [_RAM_D1A5_]    ; _RAM_D1A5_ = $D1A5
+    ld   hl, _RAM_D1A1_ ; _RAM_D1A1_ = $D1A1
+    sub  [hl]
+    jr   nc, _LABEL_6C82_
+    ld   a, [_RAM_D1A5_]    ; _RAM_D1A5_ = $D1A5
+    dec  a
+    add  [hl]
+    rr   a
+    ld   [_RAM_D1A7_ + 2], a    ; _RAM_D1A7_ + 2 = $D1A9
+    ld   a, [_RAM_D1A5_]    ; _RAM_D1A5_ = $D1A5
+    dec  a
+    ld   [_RAM_D1AB_], a
+    ld   a, [_RAM_D1A1_]    ; _RAM_D1A1_ = $D1A1
+    ld   [_RAM_D1AC_], a
+    xor  a
+    ret
+
+_LABEL_6C82_:
+    call _LABEL_6C9C_
+    xor  a
+    ret
+
+_LABEL_6C87_:
+    push hl
+    ld   hl, _RAM_D20B_
+    ld   de, _RAM_D206_
+    ld   b, $5F
+_LABEL_6C90_:
+    ld   a, [de]
+    ldd  [hl], a
+    dec  de
+    dec  b
+    jr   nz, _LABEL_6C90_
+    xor  a
+    ld   [_RAM_D1A7_ + 1], a    ; _RAM_D1A7_ + 1 = $D1A8
+    pop  hl
+    ret
+
+_LABEL_6C9C_:
+    ld   hl, _RAM_D1A7_ + 1 ; _RAM_D1A7_ + 1 = $D1A8
+    ld   de, _RAM_D1AD_
+    ld   b, $5F
+_LABEL_6CA4_:
+    ld   a, [de]
+    ldi  [hl], a
+    inc  de
+    dec  b
+    jr   nz, _LABEL_6CA4_
+    xor  a
+    ld   [_RAM_D207_], a
+    ret
+
+_LABEL_6CAF_:
+    call maybe_calc_pixelxy_tile_pattern_addr_something__6FA0_
+    ld   a, [_tilemap_pos_x__RAM_C8CB_] ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+    and  $07
+    ld   b, a
+    ld   d, $80
+    and  a
+    jr   z, _LABEL_6CC2_
+_LABEL_6CBD_:
+    srl  d
+    dec  b
+    jr   nz, _LABEL_6CBD_
+_LABEL_6CC2_:
+    xor  a
+    ld   [_RAM_D20C_], a    ; _RAM_D20C_ = $D20C
+    ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    and  $07
+    ld   c, a
+    inc  c
+    sla  a
+    call add_a_to_hl__486E_
+    inc  hl
+    call _LABEL_6D1E_
+    ret
 
 _LABEL_6CD7_:
     ld   a, [_RAM_D03B_]
@@ -7468,16 +8374,92 @@ _LABEL_6D19_:
     ld   [_RAM_D03A_], a
     ret
 
-; Data from 6D1E to 6DAA (141 bytes)
-db $7C, $EA, $93, $D1, $7D, $EA, $94, $D1, $3E, $05, $EA, $95, $D1, $FB, $FA, $95
-db $D1, $A7, $20, $FA, $FA, $3A, $D0, $A7, $20, $2B, $3E, $01, $EA, $0C, $D2, $FA
-db $CA, $C8, $E6, $F8, $3D, $EA, $CA, $C8, $CB, $7F, $20, $0B, $FE, $18, $30, $07
-db $3E, $08, $EA, $3A, $D0, $18, $0E, $D5, $CD, $A0, $6F, $D1, $3E, $0F, $CD, $6E
-db $48, $0E, $08, $18, $BB, $FA, $0C, $D2, $A7, $FA, $3A, $D0, $4F, $28, $06, $3E
-db $08, $91, $4F, $18, $08, $FA, $CA, $C8, $E6, $07, $3C, $91, $4F, $FA, $3B, $D0
-db $A7, $FA, $CA, $C8, $20, $05, $91, $EA, $9F, $D1, $C9, $91, $EA, $A3, $D1, $C9
-db $D5, $CD, $A0, $6F, $D1, $AF, $EA, $0C, $D2, $FA, $CA, $C8, $E6, $07, $5F, $3E
-db $08, $93, $4F, $7B, $CB, $27, $CD, $6E, $48, $CD, $F2, $6D, $C9
+_LABEL_6D1E_:
+    ld   a, h
+    ld   [_RAM_D193_], a    ; _RAM_D193_ = $D193
+    ld   a, l
+    ld   [_RAM_D194_], a    ; _RAM_D194_ = $D194
+    ld   a, $05
+    ld   [vbl_action_select__RAM_D195_], a  ; vbl_action_select__RAM_D195_ = $D195
+    ei
+_LABEL_6D2C_:
+    ld   a, [vbl_action_select__RAM_D195_]  ; vbl_action_select__RAM_D195_ = $D195
+    and  a
+    jr   nz, _LABEL_6D2C_
+    ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
+    and  a
+    jr   nz, _LABEL_6D63_
+    ld   a, $01
+    ld   [_RAM_D20C_], a    ; _RAM_D20C_ = $D20C
+    ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    and  $F8
+    dec  a
+    ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    bit  7, a
+    jr   nz, _LABEL_6D55_
+    cp   $18
+    jr   nc, _LABEL_6D55_
+    ld   a, $08
+    ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+    jr   _LABEL_6D63_
+
+_LABEL_6D55_:
+    push de
+    call maybe_calc_pixelxy_tile_pattern_addr_something__6FA0_
+    pop  de
+    ld   a, $0F
+    call add_a_to_hl__486E_
+    ld   c, $08
+    jr   _LABEL_6D1E_
+
+_LABEL_6D63_:
+    ld   a, [_RAM_D20C_]    ; _RAM_D20C_ = $D20C
+    and  a
+    ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
+    ld   c, a
+    jr   z, _LABEL_6D73_
+    ld   a, $08
+    sub  c
+    ld   c, a
+    jr   _LABEL_6D7B_
+
+_LABEL_6D73_:
+    ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    and  $07
+    inc  a
+    sub  c
+    ld   c, a
+_LABEL_6D7B_:
+    ld   a, [_RAM_D03B_]    ; _RAM_D03B_ = $D03B
+    and  a
+    ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    jr   nz, _LABEL_6D89_
+    sub  c
+    ld   [_RAM_D19D_ + 2], a    ; _RAM_D19D_ + 2 = $D19F
+    ret
+
+_LABEL_6D89_:
+    sub  c
+    ld   [_RAM_D1A3_], a    ; _RAM_D1A3_ = $D1A3
+    ret
+
+_LABEL_6D8E_:
+    push de
+    call maybe_calc_pixelxy_tile_pattern_addr_something__6FA0_
+    pop  de
+    xor  a
+    ld   [_RAM_D20C_], a    ; _RAM_D20C_ = $D20C
+    ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    and  $07
+    ld   e, a
+    ld   a, $08
+    sub  e
+    ld   c, a
+    ld   a, e
+    sla  a
+    call add_a_to_hl__486E_
+    call _LABEL_6DF2_
+    ret
 
 _LABEL_6DAB_:
     ld   a, [_RAM_D03B_]
@@ -7540,34 +8522,183 @@ _LABEL_6DED_:
     ld   [_RAM_D03A_], a
     ret
 
-; Data from 6DF2 to 6E3A (73 bytes)
-db $7C, $EA, $93, $D1, $7D, $EA, $94, $D1, $3E, $06, $EA, $95, $D1, $FB, $FA, $95
-db $D1, $A7, $20, $FA, $FA, $3A, $D0, $A7, $20, $22, $3E, $01, $EA, $0C, $D2, $FA
-db $CA, $C8, $E6, $F8, $C6, $08, $EA, $CA, $C8, $CB, $7F, $28, $06, $FE, $88, $3E
-db $08, $28, $09, $D5, $CD, $A0, $6F, $D1, $0E, $08, $18, $C4, $4F, $FA, $0C, $D2
-db $A7, $20, $06, $3E, $08, $93, $91, $18, $03
+_LABEL_6DF2_:
+    ld   a, h
+    ld   [_RAM_D193_], a    ; _RAM_D193_ = $D193
+    ld   a, l
+    ld   [_RAM_D194_], a    ; _RAM_D194_ = $D194
+    ld   a, $06
+    ld   [vbl_action_select__RAM_D195_], a  ; vbl_action_select__RAM_D195_ = $D195
+    ei
+_LABEL_6E00_:
+    ld   a, [vbl_action_select__RAM_D195_]  ; vbl_action_select__RAM_D195_ = $D195
+    and  a
+    jr   nz, _LABEL_6E00_
+    ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
+    and  a
+    jr   nz, _LABEL_6E2E_
+    ld   a, $01
+    ld   [_RAM_D20C_], a    ; _RAM_D20C_ = $D20C
+    ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    and  $F8
+    add  $08
+    ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    bit  7, a
+    jr   z, _LABEL_6E25_
+    cp   $88
+    ld   a, $08
+    jr   z, _LABEL_6E2E_
+_LABEL_6E25_:
+    push de
+    call maybe_calc_pixelxy_tile_pattern_addr_something__6FA0_
+    pop  de
+    ld   c, $08
+    jr   _LABEL_6DF2_
+
+_LABEL_6E2E_:
+    ld   c, a
+    ld   a, [_RAM_D20C_]    ; _RAM_D20C_ = $D20C
+    and  a
+    jr   nz, _LABEL_6E3B_
+    ld   a, $08
+    sub  e
+    sub  c
+    jr   _LABEL_6E3E_
 
 _LABEL_6E3B_:
     ld   a, $08
     sub  c
-; Data from 6E3E to 6F3F (258 bytes)
-db $5F, $FA, $3B, $D0, $A7, $FA, $CA, $C8, $20, $05, $83, $EA, $A1, $D1, $C9, $83
-db $EA, $A5, $D1, $C9, $FA, $AA, $D1, $57, $21, $9F, $D1, $FA, $A3, $D1, $96, $C6
-db $01, $FE, $03, $38, $60, $CD, $87, $6C, $FA, $AD, $D1, $EA, $A8, $D1, $FA, $A3
-db $D1, $BE, $30, $1D, $86, $CB, $1F, $EA, $AE, $D1, $FA, $A3, $D1, $EA, $B0, $D1
-db $FA, $9F, $D1, $EA, $B1, $D1, $EA, $AB, $D1, $FA, $A1, $D1, $EA, $AC, $D1, $18
-db $34, $86, $CB, $1F, $EA, $AE, $D1, $FA, $AF, $D1, $CB, $47, $20, $06, $FA, $AD
-db $D1, $3D, $20, $04, $FA, $AD, $D1, $3C, $EA, $AD, $D1, $FA, $AF, $D1, $06, $01
-db $A8, $EA, $AF, $D1, $FA, $9F, $D1, $EA, $B0, $D1, $FA, $A3, $D1, $EA, $B1, $D1
-db $FA, $9F, $D1, $18, $C1, $21, $A1, $D1, $FA, $A5, $D1, $96, $C6, $01, $FE, $03
-db $38, $57, $CD, $87, $6C, $FA, $AD, $D1, $EA, $A8, $D1, $21, $A1, $D1, $FA, $A5
-db $D1, $BE, $38, $14, $86, $CB, $1F, $EA, $AE, $D1, $FA, $A1, $D1, $EA, $B0, $D1
-db $FA, $A5, $D1, $EA, $B1, $D1, $18, $3D, $86, $CB, $1F, $EA, $AE, $D1, $FA, $AF
-db $D1, $CB, $47, $20, $06, $FA, $AD, $D1, $3D, $18, $04, $FA, $AD, $D1, $3C, $EA
-db $AD, $D1, $FA, $AF, $D1, $06, $01, $A8, $EA, $AF, $D1, $FA, $A5, $D1, $EA, $B0
-db $D1, $FA, $A1, $D1, $EA, $B1, $D1, $18, $0C, $FA, $9F, $D1, $21, $A1, $D1, $86
-db $CB, $1F, $EA, $A9, $D1, $FA, $9F, $D1, $EA, $AB, $D1, $FA, $A1, $D1, $EA, $AC
-db $D1, $C9
+_LABEL_6E3E_:
+    ld   e, a
+    ld   a, [_RAM_D03B_]    ; _RAM_D03B_ = $D03B
+    and  a
+    ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+    jr   nz, _LABEL_6E4D_
+    add  e
+    ld   [_RAM_D1A1_], a    ; _RAM_D1A1_ = $D1A1
+    ret
+
+_LABEL_6E4D_:
+    add  e
+    ld   [_RAM_D1A5_], a    ; _RAM_D1A5_ = $D1A5
+    ret
+
+_LABEL_6E52_:
+    ld   a, [_RAM_D1A7_ + 3]    ; _RAM_D1A7_ + 3 = $D1AA
+    ld   d, a
+    ld   hl, _RAM_D19D_ + 2 ; _RAM_D19D_ + 2 = $D19F
+    ld   a, [_RAM_D1A3_]    ; _RAM_D1A3_ = $D1A3
+    sub  [hl]
+    add  $01
+    cp   $03
+    jr   c, _LABEL_6EC3_
+    call _LABEL_6C87_
+    ld   a, [_RAM_D1AD_]
+    ld   [_RAM_D1A7_ + 1], a    ; _RAM_D1A7_ + 1 = $D1A8
+    ld   a, [_RAM_D1A3_]    ; _RAM_D1A3_ = $D1A3
+    cp   [hl]
+    jr   nc, _LABEL_6E8F_
+    add  [hl]
+    rr   a
+    ld   [_RAM_D1AE_], a
+    ld   a, [_RAM_D1A3_]    ; _RAM_D1A3_ = $D1A3
+    ld   [_RAM_D1B0_], a
+    ld   a, [_RAM_D19D_ + 2]    ; _RAM_D19D_ + 2 = $D19F
+    ld   [_RAM_D1B1_], a
+_LABEL_6E84_:
+    ld   [_RAM_D1AB_], a
+    ld   a, [_RAM_D1A1_]    ; _RAM_D1A1_ = $D1A1
+    ld   [_RAM_D1AC_], a
+    jr   _LABEL_6EC3_
+
+_LABEL_6E8F_:
+    add  [hl]
+    rr   a
+    ld   [_RAM_D1AE_], a
+    ld   a, [_RAM_D1AF_]
+    bit  0, a
+    jr   nz, _LABEL_6EA2_
+    ld   a, [_RAM_D1AD_]
+    dec  a
+    jr   nz, _LABEL_6EA6_
+_LABEL_6EA2_:
+    ld   a, [_RAM_D1AD_]
+    inc  a
+_LABEL_6EA6_:
+    ld   [_RAM_D1AD_], a
+    ld   a, [_RAM_D1AF_]
+    ld   b, $01
+    xor  b
+    ld   [_RAM_D1AF_], a
+    ld   a, [_RAM_D19D_ + 2]    ; _RAM_D19D_ + 2 = $D19F
+    ld   [_RAM_D1B0_], a
+    ld   a, [_RAM_D1A3_]    ; _RAM_D1A3_ = $D1A3
+    ld   [_RAM_D1B1_], a
+    ld   a, [_RAM_D19D_ + 2]    ; _RAM_D19D_ + 2 = $D19F
+    jr   _LABEL_6E84_
+
+_LABEL_6EC3_:
+    ld   hl, _RAM_D1A1_ ; _RAM_D1A1_ = $D1A1
+    ld   a, [_RAM_D1A5_]    ; _RAM_D1A5_ = $D1A5
+    sub  [hl]
+    add  $01
+    cp   $03
+    jr   c, _LABEL_6F27_
+    call _LABEL_6C87_
+    ld   a, [_RAM_D1AD_]
+    ld   [_RAM_D1A7_ + 1], a    ; _RAM_D1A7_ + 1 = $D1A8
+    ld   hl, _RAM_D1A1_ ; _RAM_D1A1_ = $D1A1
+    ld   a, [_RAM_D1A5_]    ; _RAM_D1A5_ = $D1A5
+    cp   [hl]
+    jr   c, _LABEL_6EF6_
+    add  [hl]
+    rr   a
+    ld   [_RAM_D1AE_], a
+    ld   a, [_RAM_D1A1_]    ; _RAM_D1A1_ = $D1A1
+    ld   [_RAM_D1B0_], a
+    ld   a, [_RAM_D1A5_]    ; _RAM_D1A5_ = $D1A5
+    ld   [_RAM_D1B1_], a
+    jr   _LABEL_6F33_
+
+_LABEL_6EF6_:
+    add  [hl]
+    rr   a
+    ld   [_RAM_D1AE_], a
+    ld   a, [_RAM_D1AF_]
+    bit  0, a
+    jr   nz, _LABEL_6F09_
+    ld   a, [_RAM_D1AD_]
+    dec  a
+    jr   _LABEL_6F0D_
+
+_LABEL_6F09_:
+    ld   a, [_RAM_D1AD_]
+    inc  a
+_LABEL_6F0D_:
+    ld   [_RAM_D1AD_], a
+    ld   a, [_RAM_D1AF_]
+    ld   b, $01
+    xor  b
+    ld   [_RAM_D1AF_], a
+    ld   a, [_RAM_D1A5_]    ; _RAM_D1A5_ = $D1A5
+    ld   [_RAM_D1B0_], a
+    ld   a, [_RAM_D1A1_]    ; _RAM_D1A1_ = $D1A1
+    ld   [_RAM_D1B1_], a
+    jr   _LABEL_6F33_
+
+_LABEL_6F27_:
+    ld   a, [_RAM_D19D_ + 2]    ; _RAM_D19D_ + 2 = $D19F
+    ld   hl, _RAM_D1A1_ ; _RAM_D1A1_ = $D1A1
+    add  [hl]
+    rr   a
+    ld   [_RAM_D1A7_ + 2], a    ; _RAM_D1A7_ + 2 = $D1A9
+_LABEL_6F33_:
+    ld   a, [_RAM_D19D_ + 2]    ; _RAM_D19D_ + 2 = $D19F
+    ld   [_RAM_D1AB_], a
+    ld   a, [_RAM_D1A1_]    ; _RAM_D1A1_ = $D1A1
+    ld   [_RAM_D1AC_], a
+    ret
+
 
 ; TODO: Called from VBL, calculates an Tile Pattern VRAM address and loops doing something
 _LABEL_6F40_:
@@ -7625,7 +8756,10 @@ _LABEL_6F87_:
     ret
 
 ; Data from 6F97 to 6F9F (9 bytes)
-db $FA, $4B, $D0, $EA, $CC, $C8, $CD, $53, $09
+_LABEL_6F97_:
+    ld   a, [_RAM_D04B_]    ; _RAM_D04B_ = $D04B
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    call _LABEL_953_
 
 ; TODO - might be for a special direct pixel drawing mode
 ;
@@ -7921,11 +9055,11 @@ _LABEL_71BB_:
         call timer_wait_tick_AND_TODO__289_
         call input_read_keys__C8D_
         ld   a, [input_key_pressed__RAM_D025_]
-        cp   $2A
+        cp   SYS_CHAR_SALIDA  ; $2A
         jr   z, _LABEL_7207_
-        cp   $2F
+        cp   SYS_CHAR_PRINTSCREEN  ; $2F
         jr   nz, _LABEL_71D1_
-        call _LABEL_522_
+        call maybe_call_printscreen_in_32k_bank_2__522_
         jr   _LABEL_71BB_
 
 _LABEL_71D1_:
@@ -8039,14 +9173,14 @@ _LABEL_72A0_:
         call timer_wait_tick_AND_TODO__289_
         call input_read_keys__C8D_
         ld   a, [input_key_pressed__RAM_D025_]
-        cp   $2A
+        cp   SYS_CHAR_SALIDA  ; $2A
         jr   nz, _LABEL_72B5_
         xor  a
         ld   [_RAM_D03A_], a
         ret
 
 _LABEL_72B5_:
-        cp   $2E
+        cp   SYS_CHAR_ENTRA_CR  ; $2E
         jr   nz, _LABEL_72C0_
         ld   a, [_RAM_D03A_]
         and  a
@@ -8054,14 +9188,14 @@ _LABEL_72B5_:
         ret
 
 _LABEL_72C0_:
-        cp   $2F
+        cp   SYS_CHAR_PRINTSCREEN  ; $2F
         jr   nz, _LABEL_72D9_
         ld   a, $0E
         ld   [_RAM_D03B_], a
         call _LABEL_72F0_
         ld   a, [_RAM_D03A_]
         push af
-        call _LABEL_522_
+        call maybe_call_printscreen_in_32k_bank_2__522_
         pop  af
         ld   [_RAM_D03A_], a
         jr   _LABEL_72A0_
@@ -8181,11 +9315,11 @@ _LABEL_738C_:
         call timer_wait_tick_AND_TODO__289_
         call input_read_keys__C8D_
         ld   a, [input_key_pressed__RAM_D025_]
-        cp   $2A
+        cp   SYS_CHAR_SALIDA  ; $2A
         jp   z, _LABEL_7417_
-        cp   $2F
+        cp   SYS_CHAR_PRINTSCREEN ; $2F
         jr   nz, _LABEL_73A4_
-        call _LABEL_522_
+        call maybe_call_printscreen_in_32k_bank_2__522_
         jp   _LABEL_738C_
 
 _LABEL_73A4_:
@@ -8341,9 +9475,9 @@ _LABEL_74BD_:
         call _LABEL_7704_
 _LABEL_74CB_:
         ld   a, [input_key_pressed__RAM_D025_]
-        cp   $2F
+        cp   SYS_CHAR_PRINTSCREEN  ; $2F
         jp   nz, _LABEL_7467_
-        call _LABEL_522_
+        call maybe_call_printscreen_in_32k_bank_2__522_
         jp   _LABEL_7465_
 
 _LABEL_74D9_:
@@ -8662,8 +9796,8 @@ _LABEL_7721_:
         call input_map_gamepad_buttons_to_keycodes__49C2_
         ld   a, [input_key_pressed__RAM_D025_]
         push af
-        cp   $2F
-        call z, _LABEL_522_
+        cp   SYS_CHAR_PRINTSCREEN  ; $2F
+        call z, maybe_call_printscreen_in_32k_bank_2__522_
         pop  af
         cp   $FF
         jr   z, _LABEL_7721_
