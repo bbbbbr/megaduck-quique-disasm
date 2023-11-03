@@ -57,7 +57,8 @@ DEF SYS_CMD_DONE_OR_OK            EQU $01  ; TODO: What does this do and why?
 DEF SYS_CMD_ABORT_OR_FAIL         EQU $04  ; TODO: What does this do and why?
 DEF SYS_CMD_RUN_CART_IN_SLOT      EQU $08
 DEF SYS_CMD_INIT_UNKNOWN_0x09     EQU $09
-DEF SYS_CMD_INIT_UNKNOWN_0x0B     EQU $0B  ; Used in multi-byte buffer send
+DEF SYS_CMD_INIT_UNKNOWN_0x0B     EQU $0B  ; Used in multi-byte buffer send/TX
+DEF SYS_CMD_INIT_UNKNOWN_0x0C     EQU $0C  ; Used in multi-byte buffer receive/RX
 
 DEF SYS_REPLY_MULTI_BYTE_SEND_AND_CHECKSUM_OK             EQU $01
 DEF SYS_REPLY_BOOT_OK             EQU $01  ; Reply on startup that allows rest of code to proceed
@@ -65,7 +66,9 @@ DEF SYS_REPLY_READ_FAIL_MAYBE     EQU $00
 DEF SYS_REPLY_READ_CONTINUE_MAYBE EQU $00
 DEF SYS_REPLY__BIT_BOOT_FAIL      EQU 0
 DEF SYS_REPLY_NO_CART_IN_SLOT     EQU $06  ; TODO: Maybe also some failure during serial IO multi-byte buffer send
-DEF SYS_REPLY_MAYBE_KBD_START     EQU $0E  ; Maybe 0x0E... why 0x04 when logged? Reply at start of a 4 byte keyboard reply packet 
+
+DEF SYS_REPLY_MAYBE_KBD_START     EQU $0E  ; Maybe 0x0E ... why 0x04 when logged? Reply at start of a 4 byte keyboard reply packet 
+; Maybe this is wrong... DEF SYS_REPLY_PERIPHERAL_DATA_INCOMING    EQU $0E  ; See above - This may be a general prologue/header for any sequence of data about to be sent by the peripheral hardware to the SM83 CPU over Serial IO
 
 
 DEF VBL_CMD_COPY_16_BYTES_FROM_COPY_BUF_TO_HL   EQU $3
@@ -160,13 +163,13 @@ input_key_pressed__RAM_D025_: db         ; Byte 3/4 in Keyboard reply seq. Gamep
 serial_io_checksum_calc__RAM_D026_: db      ; Byte 4/4 in Keyboard reply seq. Should == 2's Complement of (Byte 1 + Byte 2 + Byte 3_
 input_key_modifier_flags__RAM_D027_: db  ; Byte 2/4 in Keyboard reply seq. input_kbd_rx_2_modifiers__RAM_D027_ Stores Modifier flag keys
 
-_buffer__RAM_D028_: db                   ; At least 8 bytes in size, but often direct access to values inside it's range
+buffer__RAM_D028_: db                   ; At least 8 bytes in size, but often direct access to values inside it's range
 _RAM_D029_: db
 _RAM_D02A_: ds $3
 _RAM_D02D_: ds $7
 serial_transfer_length__RAM_D034_: db
 serial_cmd_to_send__RAM_D035_: db
-_RAM_D036_: db
+serial_rx_cmd_to_send__RAM_D036_: db
 _RAM_D037_: ds $3
 
 SECTION "wram_d03a", WRAMX[$d03a], BANK[$1]

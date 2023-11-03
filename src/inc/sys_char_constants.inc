@@ -261,9 +261,13 @@ DEF SYS_CHAR_O_OVER_LINE                EQU  $DB
 DEF SYS_CHAR_N_TILDE_LOWER              EQU  $DC
 
 
-; TODO: Confirm
-DEF SYS_CHAR_CMD_SUCCESS_MAYBE          EQU $FC
-DEF SYS_CHAR_CMD_FAIL_MAYBE             EQU $FD
+; These seem to be System Messages that get loaded
+; into the shared system key pressed variable (D025)
+; to be used as return codes for some functions
+DEF SYS_CHAR_SERIAL_RX_SUCCESS          EQU $F9
+DEF SYS_CHAR_SERIAL_RX_FAIL             EQU $FA
+DEF SYS_CHAR_SERIAL_TX_SUCCESS          EQU $FC
+DEF SYS_CHAR_SERIAL_TX_FAIL             EQU $FD
 DEF SYS_CHAR_NO_DATA_OR_KEY             EQU $FF
 
 
