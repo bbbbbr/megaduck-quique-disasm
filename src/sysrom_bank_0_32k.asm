@@ -231,16 +231,16 @@ _GB_ENTRY_POINT_100_:
     ld   hl, init_key_slot_1__RAM_DBFC_
     ldi  a, [hl]
     cp   INIT_KEY_1  ; $AA
-    jr   nz, init_keys_check_failed__0134_
+    jr   nz, .init_keys_check_failed__0134_
     ldi  a, [hl]
     cp   INIT_KEY_2  ; $E4
-    jr   nz, init_keys_check_failed__0134_
+    jr   nz, .init_keys_check_failed__0134_
     ldi  a, [hl]
     cp   INIT_KEY_3  ; $55
-    jr   nz, init_keys_check_failed__0134_
-    jr   init_keys_check_passed__014E_
+    jr   nz, .init_keys_check_failed__0134_
+    jr   .init_keys_check_passed__014E_
 
-    init_keys_check_failed__0134_:
+    .init_keys_check_failed__0134_:
         xor  a
         ld   [_RAM_DBFB_], a    ; _RAM_DBFB_ = $DBFB
         ld   a, INIT_KEY_1  ; $AA
@@ -251,25 +251,17 @@ _GB_ENTRY_POINT_100_:
         ld   [init_key_slot_3__RAM_DBFE_], a
         ld   a, INIT_KEYS_DIDNT_MATCH_IN_RAM  ; $AA  ; TODO: needs more specific name
         ld   [_RAM_D400_], a
-        jr   init_keys_check_done__152_
+        jr   .init_keys_check_done_now_init__152_
 
-    init_keys_check_passed__014E_:
+    .init_keys_check_passed__014E_:
         xor  a
         ld   [_RAM_D400_], a
 
-    init_keys_check_done__152_:
+    .init_keys_check_done_now_init__152_:
         di
         ld   sp, $C400
-        ; TODO: Eventually for GB may want to skip over a bunch of hardware init
-        ; Might be related to the synthesized speech on first power + maybe keyboard, etc
-        ; if ((!def(TARGET_MEGADUCK)) && def(GB_DEBUG))
-        ;    nop
-        ;    nop
-        ;    nop
-        ;else
-            call _LABEL_97A_
-        ;endc
-        call _vram_init__752_
+        call general_init__97A_
+        call vram_init__752_
 
     _LABEL_15C_:
         ; Check result of previous init sequence test
@@ -436,11 +428,12 @@ _LABEL_25E_:
     ldi  [hl], a
     ldi  [hl], a
     ldi  [hl], a
-    ; TODO: This is very similar to code at _LABEL_59D5_
+    ; TODO: This is very similar to code around _LABEL_59D5_
     ld   a, SYS_CMD_INIT_UNKNOWN_0x0B ; $0B
     ld   [serial_cmd_to_send__RAM_D035_], a
     ld   a, $08
     ld   [serial_maybe_control_var__RAM_D034_], a
+
     .loop_wait_maybe_some_key__27B_:
         call _LABEL_A34_
         ld   a, [input_key_pressed__RAM_D025_]
@@ -734,7 +727,7 @@ _LABEL_44A_:
     ld   a, [_RAM_CC28_]    ; _RAM_CC28_ = $CC28
     ldh  [rAUD1LOW], a
     ; TODO: Is this where it interacts with the speech synthesizer chip?
-    ld   a, (AUDVOL_VIN_LEFT | AUDVOL_VIN_RIGHT | %01110111)  ; $FF  ; Set rAUDVOL to both VIN = ON, Max Left/Right volume
+    ld   a, (AUDVOL_VIN_LEFT | AUDVOL_VIN_RIGHT | AUDVOL_LEFT_MAX | AUDVOL_RIGHT_MAX)  ; $FF  ; Set rAUDVOL to both VIN = ON, Max Left/Right volume
     ldh  [rAUDVOL], a
     ld   a, [_RAM_CC2F_]    ; _RAM_CC2F_ = $CC2F
     ld   a, [_RAM_CC27_]    ; _RAM_CC27_ = $CC27
@@ -1036,7 +1029,7 @@ wait_vbl_write_byte_tilemap0_preset_xy_and_data__612_:
         push de
         push hl
         call wait_until_vbl__92C_
-        ld   a, TILEMAP_0  ; $00
+        ld   a, SELECT_TILEMAP_0  ; $00
         call write_tilemap_in_a_preset_xy_and_data_8FB_
         pop  hl
         pop  de
@@ -1112,7 +1105,7 @@ db $86, $89, $83, $88, $81, $F1, $86, $89, $83, $88, $85, $92, $8F, $00,
 db $8E, $8F, $BE, $85, $8E, $83, $8F, $8E, $93, $92, $81, $84, $8F, $93, $00
 db $C9
 
-_vram_init__752_:
+vram_init__752_:
     ld   a, $00
     ld   [_rombank_currrent__C8D7_], a
     ldh  [rLCDC], a  ; clear all LCDC bits
@@ -1350,7 +1343,7 @@ oam_free_slot_and_clear__89B_:
     ; Index into the Shadow OAM by 4 x maybe_vram_data_to_write__RAM_C8CC_
     ld   a, [maybe_vram_data_to_write__RAM_C8CC_]  ; TODO: Maybe var needs more general name
     cp   $00
-    jr   z,     done_return__8C3_
+    jr   z,     .done_return__8C3_
     dec  a
     sla  a
     sla  a
@@ -1378,34 +1371,46 @@ oam_free_slot_and_clear__89B_:
     dec  a
     ld   [_RAM_C8C8_], a    ; _RAM_C8C8_ = $C8C8
 
-    done_return__8C3_:
+    .done_return__8C3_:
     ret
 
 
-_LABEL_8C4_:
-    ld   b, $12
-    ld   hl, _TILEMAP0; $9800
+; Load a 20x18 Tile Map from DE into the start of Map VRAM
+;
+; - Expects to be called with Screen OFF
+;
+; - Tilemap Select in       : A (0 = _TILEMAP0, 1 = _TILEMAP1)
+; - Source Tile Map Data in : DE
+write_tilemap_20x18_from_de_mapselect_in_a__8c4_:
+    ld   b, _TILEMAP_SCREEN_HEIGHT  ; $12
+    ld   hl, _TILEMAP0  ; $9800
     cp   $00
-    jr   z, _LABEL_8D0_
-    ld   hl, $9C00
-_LABEL_8D0_:
-    ld   c, $14
-_LABEL_8D2_:
-    ld   a, [de]
-    ldi  [hl], a
-    inc  de
-    dec  c
-    jr   nz, _LABEL_8D2_
-    ld   a, $0C
-    add  l
-    ld   l, a
-    ld   a, $00
-    adc  h
-    ld   h, a
-    dec  b
-    jr   nz, _LABEL_8D0_
+    jr   z, .loop_screen_top_to_bottom__8D0_
+    ld   hl, _TILEMAP1  ; $9C00
+
+    .loop_screen_top_to_bottom__8D0_:
+        ld   c, _TILEMAP_SCREEN_WIDTH  ; $14
+
+        .loop_screen_row_load__8D2_:
+            ld   a, [de]
+            ldi  [hl], a
+            inc  de
+            dec  c
+            jr   nz, .loop_screen_row_load__8D2_
+
+        ; Skip remainder of current Tile Map row down to next line
+        ld   a, (_TILEMAP_WIDTH - _TILEMAP_SCREEN_WIDTH); $0C
+        add  l
+        ld   l, a
+        ld   a, $00
+        adc  h
+        ld   h, a
+
+        dec  b
+        jr   nz, .loop_screen_top_to_bottom__8D0_
+
     ldh  a, [rLCDC]
-    or   $80
+    or   LCDCF_ON  ; $80
     ldh  [rLCDC], a
     ret
 
@@ -1421,7 +1426,7 @@ write_tilemap0_byte_in_a_preset_xy__8EA_:
     push de
     push hl
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-    ld   a, TILEMAP_0  ; $00
+    ld   a, SELECT_TILEMAP_0  ; $00
     call write_tilemap_in_a_preset_xy_and_data_8FB_
     pop  hl
     pop  de
@@ -1545,8 +1550,8 @@ _LABEL_979_:
     ret
 
 
-; TODO: some kind of startup init
-_LABEL_97A_:
+; Startup Init (ISR, audio, palettes, display)
+general_init__97A_:
     ; Timer and Enable VBlank interrupts
     ld   a, (IEF_TIMER | IEF_VBLANK)  ; $05
     ldh  [rIF], a
@@ -1556,6 +1561,7 @@ _LABEL_97A_:
     ldh  [rSB], a
     ldh  [rSC], a
     ldh  [rAUDENA], a
+
     ; Turn on Screen
     ldh  [rLCDC], a
     ld   a, LCDCF_ON  ; $80
@@ -1566,13 +1572,14 @@ _LABEL_97A_:
     ldh  [rOBP0], a
     ld   a, COLS_0BLK_1DGRY_2LGRY_3WHT  ; $1B
     ldh  [rOBP1], a
-    ; Set up Audio Wave channel
+
+    ; Set up Audio Wave channel and fill half of it with 0x55
     xor  a
     ldh  [rAUD3ENA], a
     ld   a, $FF
     ldh  [rAUD3LEN], a
     ld   a, $55
-    ld   bc, $0800 | LOW(_AUD3WAVERAM_LAST) ; | _PORT_3F_
+    ld   bc, ($08 << 8) | LOW(_AUD3WAVERAM_LAST) ; | _PORT_3F_
     .loop_fill_ch3_wave_ram_LABEL__9A3_:
         ldh  [c], a
         dec  c
@@ -1580,12 +1587,12 @@ _LABEL_97A_:
         jr   nz, .loop_fill_ch3_wave_ram_LABEL__9A3_
     ld   hl, rAUDENA
     ld   a, AUDENA_ON  ; $80
-    ldd  [hl], a
-    ; TODO: Fix incorrect address on Game Boy (should be rAUDVOL, *not* rAUDTERM)
+    ld  [hl-], a
+    ; Note: This will have incorrect address on Game Boy (should be rAUDVOL, *not* rAUDTERM)
     ; Unless patched, GB now points to the wrong audio register due to address reshuffling and the LD HL-
     ; On MegaDuck: HL now points to rAUDVOL (0xFF44)
     ; On GB      : HL *incorrectly* points to rAUDTERM (0xFF25)
-    ld   [hl], %01110111  ; $77  ; Set rAUDVOL to Max Left/Right volume, with VIN off for left and right
+    ld   [hl], (AUDVOL_LEFT_MAX | AUDVOL_RIGHT_MAX)  ; $77  ; Set rAUDVOL to Max Left/Right volume, with VIN off for left and right
     nop
     nop
     nop
@@ -1594,9 +1601,10 @@ _LABEL_97A_:
     ld   [_RAM_CC02_], a    ; _RAM_CC02_ = $CC02
     ld   [_RAM_CC00_], a    ; _RAM_CC00_ = $CC00
     ld   [_RAM_CC01_], a    ; _RAM_CC01_ = $CC01
-    ld   a, $28
+    ld   a, (AUDLEN_DUTY_12_5 | $28)  ; $28  ; Initial timer length of 40
     ldh  [rAUD1LEN], a
     ldh  [rAUD2LEN], a
+
     ; Timer init
     ; Start timer and use default 4KHz freq
     ;
@@ -1717,10 +1725,10 @@ _LABEL_A34_:
 
     ld   a, [serial_maybe_control_var__RAM_D034_]  ; Some kind of control or counter
     cp   $0D
-    jr   c, _LABEL_A46_
-    jr   maybe_fail_and_return_value_FD___A5B_
+    jr   c, ._LABEL_A46_
+    jr   .maybe_fail_and_return_value_FD___A5B_
 
-    _LABEL_A46_:
+    ._LABEL_A46_:
         ld   a, [serial_cmd_to_send__RAM_D035_]
         ld   [serial_tx_data__RAM_D023_], a
         call serial_io_send_byte__B64_
@@ -1728,20 +1736,20 @@ _LABEL_A34_:
         call delay_quarter_msec__BD6_
         call serial_io_wait_receive_w_timeout_50msec__B8F_
         and  a
-        jr   nz, _LABEL_A63_
+        jr   nz, ._LABEL_A63_
 
     ; TODO: seems like some kind of failure handler
-    maybe_fail_and_return_value_FD___A5B_:
+    .maybe_fail_and_return_value_FD___A5B_:
         ld   a, $FD
         ld   [input_key_pressed__RAM_D025_], a
-        jp   done__AE9_
+        jp   .done__AE9_
 
-    _LABEL_A63_:
+    ._LABEL_A63_:
         ld   a, [serial_rx_data__RAM_D021_]
         cp   $06
-        jp   z, _LABEL_AE4_
+        jp   z, ._LABEL_AE4_
         cp   $03
-        jp   nz, maybe_fail_and_return_value_FD___A5B_
+        jp   nz, .maybe_fail_and_return_value_FD___A5B_
         ld   a, [serial_maybe_control_var__RAM_D034_]
         ld   b, a
         add  $02
@@ -1763,26 +1771,26 @@ _LABEL_A34_:
             call serial_io_wait_receive_w_timeout_50msec__B8F_
             ;
             and  a
-            jr   z, maybe_fail_and_return_value_FD___A5B_
+            jr   z, .maybe_fail_and_return_value_FD___A5B_
             ;
             ld   a, [serial_rx_data__RAM_D021_]
             cp   $06
-            jp   z, _LABEL_AE4_
+            jp   z, ._LABEL_AE4_
             ;
             cp   $03
-            jp   nz, maybe_fail_and_return_value_FD___A5B_
+            jp   nz, .maybe_fail_and_return_value_FD___A5B_
             call serial_io_send_byte__B64_
             dec  b
             jr   nz, .loop_continue_sending__A8B_
 
         call serial_io_wait_receive_w_timeout_50msec__B8F_
         and  a
-        jr   z, maybe_fail_and_return_value_FD___A5B_
+        jr   z, .maybe_fail_and_return_value_FD___A5B_
         ld   a, [serial_rx_data__RAM_D021_]
         cp   $06
-        jp   z, _LABEL_AE4_
+        jp   z, ._LABEL_AE4_
         cp   $03
-        jp   nz, maybe_fail_and_return_value_FD___A5B_
+        jp   nz, .maybe_fail_and_return_value_FD___A5B_
         ld   hl, serial_rx_check_calc__RAM_D026_
         xor  a
         sub  [hl]
@@ -1790,19 +1798,19 @@ _LABEL_A34_:
         call serial_io_send_byte__B64_
         call serial_io_wait_receive_w_timeout_50msec__B8F_
         and  a
-        jp   z, maybe_fail_and_return_value_FD___A5B_
+        jp   z, .maybe_fail_and_return_value_FD___A5B_
         ld   a, [serial_rx_data__RAM_D021_]
         cp   $01
-        jp   nz, maybe_fail_and_return_value_FD___A5B_
+        jp   nz, .maybe_fail_and_return_value_FD___A5B_
         call serial_io_wait_receive_w_timeout_50msec__B8F_
         ld   a, $FC
-        jr   _LABEL_AE6_
+        jr   ._LABEL_AE6_
 
-    _LABEL_AE4_:
+    ._LABEL_AE4_:
         ld   a, $FB
-    _LABEL_AE6_:
+    ._LABEL_AE6_:
         ld   [input_key_pressed__RAM_D025_], a
-    done__AE9_:
+    .done__AE9_:
         ; Restore previous interrupt enable state
         ld   a, [_rIE_saved_serial__RAM_D078_]
         ldh  [rIE], a
@@ -4938,7 +4946,7 @@ _LABEL_53CC_:
     push de
     push hl
     call wait_until_vbl__92C_
-    ld   a, TILEMAP_0  ; $00
+    ld   a, SELECT_TILEMAP_0  ; $00
     call write_tilemap_in_a_preset_xy_and_data_8FB_
     pop  hl
     pop  de
@@ -4952,7 +4960,7 @@ _LABEL_53CC_:
     push de
     push hl
     call wait_until_vbl__92C_
-    ld   a, TILEMAP_0  ; $00
+    ld   a, SELECT_TILEMAP_0  ; $00
     call write_tilemap_in_a_preset_xy_and_data_8FB_
     pop  hl
     pop  de
@@ -5090,21 +5098,24 @@ _LABEL_54BC_:
     call display_screen_off__94C_
     ld   de, $1FFA
     ld   bc, $0000
-    ld   hl, $9000
+    ld   hl, _TILEDATA9000  ; $9000
     ld   a, $80
     call copy_a_x_tile_patterns_from_de_add_bx16_to_hl_add_cx16__48CD_
+
     ld   de, $1BFA
     ld   bc, $0000
-    ld   hl, $8000
+    ld   hl, _TILEDATA8000  ; $8000
     ld   a, $80
     call copy_a_x_tile_patterns_from_de_add_bx16_to_hl_add_cx16__48CD_
     call wait_until_vbl__92C_
     call display_screen_off__94C_
-    ld   a, $00
+
+    ld   a, SELECT_TILEMAP_0  ; $00
     ld   de, _DATA_266A_
-    call _LABEL_8C4_
+    call write_tilemap_20x18_from_de_mapselect_in_a__8c4_
     call wait_until_vbl__92C_
     call display_screen_off__94C_
+
     ld   hl, $9980
 _LABEL_54F9_:
     xor  a
@@ -5762,7 +5773,7 @@ _LABEL_59B7_:
     ld   hl, _RAM_D051_
     ld   de, _RAM_D028_
     call memcopy_b_bytes_from_hl_to_de__482B_
-    ld   a, $0B
+    ld   a, SYS_CMD_INIT_UNKNOWN_0x0B  ; $0B
     ld   [serial_cmd_to_send__RAM_D035_], a
 _LABEL_59D5_:
     call _LABEL_A34_
@@ -7062,11 +7073,13 @@ _LABEL_6369_:
     call copy_a_x_tile_patterns_from_de_add_bx16_to_hl_add_cx16__48CD_
     call wait_until_vbl__92C_
     call display_screen_off__94C_
-    ld   a, $FF
+
+    ld   a, SELECT_TILEMAP_1  ; $FF
     ld   de, _DATA_1A92_
-    call _LABEL_8C4_
+    call write_tilemap_20x18_from_de_mapselect_in_a__8c4_
+
     ldh  a, [rLCDC]
-    or   $A1
+    or   (LCDCF_ON | LCDCF_WINON | LCDCF_OBJON)  ; $A1
     ldh  [rLCDC], a
     xor  a
     ld   [_RAM_D192_], a
@@ -7086,6 +7099,7 @@ _LABEL_63A7_:
     ld   [_RAM_D05E_], a    ; _RAM_D05E_ = $D05E
     ld   [_RAM_D05C_], a    ; _RAM_D05C_ = $D05C
     ld   [_RAM_D05B_], a    ; _RAM_D05B_ = $D05B
+
 _LABEL_63B4_:
     call timer_wait_tick_AND_TODO__289_
     call input_read_keys__C8D_
@@ -8039,22 +8053,25 @@ _LABEL_6ACC_:
     ret
 
 _LABEL_6ACE_:
-    ld   a, [_RAM_D196_]    ; _RAM_D196_ = $D196
+    ld   a, [_RAM_D196_]
     cp   $00
     jp   nz, _LABEL_63A7_
-    ld   a, [_RAM_D04B_]    ; _RAM_D04B_ = $D04B
-    ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+    ld   a, [_RAM_D04B_]
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
-    ld   a, [_tilemap_pos_x__RAM_C8CB_] ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
-    ld   [_RAM_D028_], a    ; _RAM_D028_ = $D028
-    ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
-    ld   [_RAM_D029_], a    ; _RAM_D029_ = $D029
+
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
+    ld   [_RAM_D028_], a
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
+    ld   [_RAM_D029_], a
     call oam_free_slot_and_clear__89B_
-    ld   a, [_tilemap_pos_x__RAM_C8CB_] ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
-    ld   [_RAM_D1A7_ + 1], a    ; _RAM_D1A7_ + 1 = $D1A8
-    ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
-    ld   [_RAM_D1A7_ + 2], a    ; _RAM_D1A7_ + 2 = $D1A9
+
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
+    ld   [_RAM_D1A7_ + 1], a
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
+    ld   [_RAM_D1A7_ + 2], a
     call _LABEL_6B5F_
+
     ld   hl, _RAM_D19D_ + 2 ; _RAM_D19D_ + 2 = $D19F
     ld   a, [_RAM_D1A1_]    ; _RAM_D1A1_ = $D1A1
     add  [hl]
@@ -9974,7 +9991,7 @@ _LABEL_785E_:
         jr   nz, _LABEL_785E_
         ld   a, AUDENA_ON  ; $80
         ldh  [rAUDENA], a
-        ld   a, %01110111  ; $77  ; Set rAUDVOL to Max Left/Right volume, with VIN off for left and right
+        ld   a, (AUDVOL_LEFT_MAX | AUDVOL_RIGHT_MAX)  ; $77  ; Set rAUDVOL to Max Left/Right volume, with VIN off for left and right
         ldh  [rAUDVOL], a
         xor  a
         ldh  [rAUD3ENA], a
@@ -9991,7 +10008,7 @@ _LABEL_787C_:
         ldh  [rAUDENA], a
         ld   a, AUDENA_ON  ; $80
         ldh  [rAUDENA], a
-        ld   a, %01110111  ; $77  ; Set rAUDVOL to Max Left/Right volume, with VIN off for left and right
+        ld   a, (AUDVOL_LEFT_MAX | AUDVOL_RIGHT_MAX)  ; $77  ; Set rAUDVOL to Max Left/Right volume, with VIN off for left and right
         ldh  [rAUDVOL], a
         ret
 

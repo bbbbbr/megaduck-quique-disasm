@@ -31,8 +31,8 @@ DEF LY_LAST_SCREEN_LINE           EQU 143
 DEF LY_VBL_FIRST_LINE             EQU (LY_LAST_SCREEN_LINE + 1)
 DEF LY_VBL_SECOND_LINE            EQU (LY_LAST_SCREEN_LINE + 2)
 
-DEF TILEMAP_0                     EQU $00 ; $9800
-; DEF TILEMAP_1                     EQU $01 ; $9C00  ; Theoretical, doesn't ever seem to get used so far...?
+DEF SELECT_TILEMAP_0              EQU $00 ; $9800
+DEF SELECT_TILEMAP_1              EQU $FF ; $9C00
 
 DEF TIMER_DIV_TO_20HZ             EQU ($100 - 201) 
 
