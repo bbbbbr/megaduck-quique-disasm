@@ -80,3 +80,44 @@ There is some cross-mapping of the GamePad and Keyboard data to allow input with
 
 - Keyboard -> Game Pad
   - ? TODO: Should be reverse of above, but need to check
+
+## Sending a Buffer over Serial IO  
+  - Max Length: 12 (?)
+  - Turn off all interrupts except serial
+  - Send Initial Command (Ex: 0x0B)
+  - Wait 1/2 msec (?)
+  - Wait for response up to 50 msec
+    `Check_Send_Byte_OK`
+      - If OK prep for sending buffer data:
+        - Wait 1/4 msec
+        - Send (length + 0x02)
+          - The +2 sizing seems to be for:
+            - Initial Length Byte
+            - Trailing Checksum Byte
+        - Wait 1/2 msec
+        - Send Buffer data Loop
+          - Wait for response up to 50 msec
+            `Check_Send_Byte_OK`
+            - If OK send next Buffer Byte
+        - Done sending buffer bytes
+        - Wait for reply to last buffer byte sent
+          - Wait for response up to 50 msec
+            `Check_Send_Byte_OK`
+              - If OK calculate checksum (truncated to 8 bits) and send it
+                - two's complement of (Sum of all bytes sent)
+                  - I.E: (((Length + 2) + sum of buffer bytes) xor 0xFF) + 1
+              - Wait for response up to 50 msec
+                - If no Reply then Failed
+                - If Reply was:
+                   - 0x01: Then return SUCCESS
+                   - If OK return failure
+
+ - `Check_Send_Byte_OK` is as follows:
+    - If no Reply then Failed
+    - If Reply was:
+      - 0x06: Some kind of abort or not ready?
+      - 0x03: Then Failed
+
+
+## Receiving a Buffer over Serial IO
+

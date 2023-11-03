@@ -262,7 +262,9 @@ DEF SYS_CHAR_N_TILDE_LOWER              EQU  $DC
 
 
 ; TODO: Confirm
-DEF SYS_CHAR_NO_DATA_OR_KEY    EQU $FF
+DEF SYS_CHAR_CMD_SUCCESS_MAYBE          EQU $FC
+DEF SYS_CHAR_CMD_FAIL_MAYBE             EQU $FD
+DEF SYS_CHAR_NO_DATA_OR_KEY             EQU $FF
 
 
 ; Aliases used by Gamepad -> Keyboard Mapping in var D025

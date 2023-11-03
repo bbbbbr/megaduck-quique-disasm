@@ -19,7 +19,7 @@ _RST__08_:
 
 _RST__10_:
     ei
-    call _LABEL_A34_
+    call serial_io_send_command_and_buffer__A34_
     di
     jp   _switch_bank_return_to_saved_bank_RAM__C940_
 
@@ -404,16 +404,18 @@ _LABEL_249_:
     call _LABEL_5E55_
     jp   _LABEL_15C_
 
+
 ; TODO : Maybe the "Run Cart from slot" Main menu item?
 _LABEL_253_:
-    cp   $0B ; TODO: Add constant for this SYS command
+    cp   $0B ; TODO: Add constant for this Main Menu Item (11) MAIN_MENU_CMD_RUNCART
     jp   nz, _LABEL_15C_
     call maybe_try_run_cart_from_slot__5E1_
-    jp   _LABEL_15C_
+    jp   _LABEL_15C_  ; TODO: Return to main_menu_init?
+
 
 _LABEL_25E_:
-    ; Uses RAM starting at this var for a multi-send buffer
-    ; in _LABEL_A34_ -> loop_continue_sending__A8B_
+    ; Uses RAM starting at _buffer__RAM_D028_ for a multi-send serial buffer
+    ; Sends 8 Bytes: 0x94, 0x01, 0x01, 0x06, 0x00, 0x00, 0x00, 0x00
     ld   hl, _buffer__RAM_D028_
     ld   a, $94
     ldi  [hl], a
@@ -428,19 +430,24 @@ _LABEL_25E_:
     ldi  [hl], a
     ldi  [hl], a
     ldi  [hl], a
-    ; TODO: This is very similar to code around _LABEL_59D5_
+    ; TODO: This is very similar to code around _LABEL_59B7_
     ld   a, SYS_CMD_INIT_UNKNOWN_0x0B ; $0B
     ld   [serial_cmd_to_send__RAM_D035_], a
-    ld   a, $08
-    ld   [serial_maybe_control_var__RAM_D034_], a
+    ld   a, $08  ; Send 8 bytes
+    ld   [serial_transfer_length__RAM_D034_], a
 
-    .loop_wait_maybe_some_key__27B_:
-        call _LABEL_A34_
+    ; Wait for system message passed via the 0xF0+ reserved
+    ; Sys Char value range in serial rx key press var
+    .loop_wait_valid_reply_0xFC__27B_:
+        ; Try to send buffer
+        ; Check result from sending
+        ; If no success then wait a tick + ? and retry
+        call serial_io_send_command_and_buffer__A34_
         ld   a, [input_key_pressed__RAM_D025_]
-        cp   $FC
+        cp   SYS_CHAR_CMD_SUCCESS_MAYBE  ; $FC
         ret  z
         call timer_wait_tick_AND_TODO__289_
-        jr   .loop_wait_maybe_some_key__27B_
+        jr   .loop_wait_valid_reply_0xFC__27B_
 
 
 ; Turn on interrupts and wait for a Timer tick
@@ -1715,100 +1722,136 @@ serial_int_disable__A2B_:
     ret
 
 
-; TODO: Requests something over serial and handles responses
-; - Turns on Serial IO interrupt
-_LABEL_A34_:
+; Sends a command and a trailing multi-byte buffer over Serial IO
+;
+; - Also see: _LABEL_AEF_
+;
+; - Serial command to send before the buffer: serial_cmd_to_send__RAM_D035_
+; - Send buffer: _buffer__RAM_D028_
+; - Of length serial_transfer_length__RAM_D034_
+serial_io_send_command_and_buffer__A34_:
+    ; Save interrupt enables and then set only Serial to ON
     ldh  a, [rIE]
     ld   [_rIE_saved_serial__RAM_D078_], a
     ld   a, IEF_SERIAL ; $08
     ldh  [rIE], a
 
-    ld   a, [serial_maybe_control_var__RAM_D034_]  ; Some kind of control or counter
-    cp   $0D
-    jr   c, ._LABEL_A46_
-    jr   .maybe_fail_and_return_value_FD___A5B_
+    ; Check if Serial Transfer Length is ok
+    ld   a, [serial_transfer_length__RAM_D034_]
+    cp   $0D                                      ; TODO: (Maybe there is a max transfer length of 12 bytes?)
+    jr   c, .send_command_with_timeout__A46_
+    jr   .command_failed___A5B_
 
-    ._LABEL_A46_:
+    .send_command_with_timeout__A46_:
         ld   a, [serial_cmd_to_send__RAM_D035_]
         ld   [serial_tx_data__RAM_D023_], a
         call serial_io_send_byte__B64_
         call delay_quarter_msec__BD6_
         call delay_quarter_msec__BD6_
         call serial_io_wait_receive_w_timeout_50msec__B8F_
+        ; If reply arrived then process it, otherwise
+        ; it timed out, so fall through to failure handler
         and  a
-        jr   nz, ._LABEL_A63_
+        jr   nz, .handle_reply__A63_
 
-    ; TODO: seems like some kind of failure handler
-    .maybe_fail_and_return_value_FD___A5B_:
-        ld   a, $FD
+    .command_failed___A5B_:
+        ld   a, SYS_CHAR_CMD_FAIL_MAYBE  ; $FD
         ld   [input_key_pressed__RAM_D025_], a
         jp   .done__AE9_
 
-    ._LABEL_A63_:
+    .handle_reply__A63_:
+        ; Check reply byte
         ld   a, [serial_rx_data__RAM_D021_]
-        cp   $06
-        jp   z, ._LABEL_AE4_
-        cp   $03
-        jp   nz, .maybe_fail_and_return_value_FD___A5B_
-        ld   a, [serial_maybe_control_var__RAM_D034_]
+        cp   $06                                          ; TODO: Does this signify "Not Ready" or some other unwanted status?
+        jp   z, .done_unsure_good_or_bad_reply_0xFB__AE4_
+        cp   $03                                          ; TODO: Apparently 0x03 is a failure status as well
+        jp   nz, .command_failed___A5B_
+
+        ; OK to send buffer over Serial IO
+        ; Set Length to (Buffer Size + 2) and send that
+        ; Initialize checksum to length (Buffer Size + 2)
+        ;
+        ; The +2 sizing seems to be for:
+        ; - Initial Length Byte
+        ; - Trailing Checksum Byte
+        ld   a, [serial_transfer_length__RAM_D034_]
         ld   b, a
         add  $02
         ld   [serial_tx_data__RAM_D023_], a
-        ld   [serial_rx_check_calc__RAM_D026_], a
+        ld   [serial_io_checksum_calc__RAM_D026_], a
         call delay_quarter_msec__BD6_
         call serial_io_send_byte__B64_
         call delay_quarter_msec__BD6_
         call delay_quarter_msec__BD6_
 
+        ; Send the contents of RAM Buffer
+        ; Number of bytes to send in: B
         ld   hl, _buffer__RAM_D028_
-        .loop_continue_sending__A8B_:
+        .serial_send_buffer_loop__A8B_:
+            ; Prep next data to send, update checksum
+            ; then wait for reply from previous send with timeout
             ldi  a, [hl]
             ld   [serial_tx_data__RAM_D023_], a
             ld   c, a
-            ld   a, [serial_rx_check_calc__RAM_D026_]
+            ld   a, [serial_io_checksum_calc__RAM_D026_]
             add  c
-            ld   [serial_rx_check_calc__RAM_D026_], a
+            ld   [serial_io_checksum_calc__RAM_D026_], a
             call serial_io_wait_receive_w_timeout_50msec__B8F_
-            ;
+
+            ; Fail if timed out
             and  a
-            jr   z, .maybe_fail_and_return_value_FD___A5B_
-            ;
+            jr   z, .command_failed___A5B_
+            ; Check reply byte
             ld   a, [serial_rx_data__RAM_D021_]
-            cp   $06
-            jp   z, ._LABEL_AE4_
-            ;
-            cp   $03
-            jp   nz, .maybe_fail_and_return_value_FD___A5B_
+            cp   $06                                          ; TODO: Does this signify "Not Ready" or some other unwanted status?
+            jp   z, .done_unsure_good_or_bad_reply_0xFB__AE4_
+            cp   $03                                          ; TODO: Apparently 0x03 is a failure status as well
+            jp   nz, .command_failed___A5B_
+
+            ; Send next buffer byte
             call serial_io_send_byte__B64_
             dec  b
-            jr   nz, .loop_continue_sending__A8B_
+            jr   nz, .serial_send_buffer_loop__A8B_
 
+        ; Done sending buffer bytes, wait for reply to last byte sent
         call serial_io_wait_receive_w_timeout_50msec__B8F_
+        ; Fail if timed out
         and  a
-        jr   z, .maybe_fail_and_return_value_FD___A5B_
+        jr   z, .command_failed___A5B_
         ld   a, [serial_rx_data__RAM_D021_]
-        cp   $06
-        jp   z, ._LABEL_AE4_
-        cp   $03
-        jp   nz, .maybe_fail_and_return_value_FD___A5B_
-        ld   hl, serial_rx_check_calc__RAM_D026_
+         ; Check reply byte
+        cp   $06                                          ; TODO: Does this signify "Not Ready" or some other unwanted status?
+        jp   z, .done_unsure_good_or_bad_reply_0xFB__AE4_
+        cp   $03                                          ; TODO: Apparently 0x03 is a failure status as well
+        jp   nz, .command_failed___A5B_
+
+        ; Send trailing Checksum Byte
+        ;
+        ; Apply two's complement to finish calc of checksum data (sum of all bytes sent)
+        ; Then send it and wait for reply byte
+        ld   hl, serial_io_checksum_calc__RAM_D026_
         xor  a
         sub  [hl]
         ld   [serial_tx_data__RAM_D023_], a
         call serial_io_send_byte__B64_
         call serial_io_wait_receive_w_timeout_50msec__B8F_
-        and  a
-        jp   z, .maybe_fail_and_return_value_FD___A5B_
-        ld   a, [serial_rx_data__RAM_D021_]
-        cp   $01
-        jp   nz, .maybe_fail_and_return_value_FD___A5B_
-        call serial_io_wait_receive_w_timeout_50msec__B8F_
-        ld   a, $FC
-        jr   ._LABEL_AE6_
 
-    ._LABEL_AE4_:
+        ; Fail if timed out
+        and  a
+        jp   z, .command_failed___A5B_
+        ; Check reply byte
+        ; If it was 0x01 then the transfer command succeeded
+        ld   a, [serial_rx_data__RAM_D021_]
+        cp   SYS_REPLY_MULTI_BYTE_SEND_AND_CHECKSUM_OK  ; $01
+        jp   nz, .command_failed___A5B_
+
+        call serial_io_wait_receive_w_timeout_50msec__B8F_
+        ld   a, SYS_CHAR_CMD_SUCCESS_MAYBE  ; $FC
+        jr   .done_save_result__AE6_
+
+    .done_unsure_good_or_bad_reply_0xFB__AE4_:
         ld   a, $FB
-    ._LABEL_AE6_:
+    .done_save_result__AE6_:
         ld   [input_key_pressed__RAM_D025_], a
     .done__AE9_:
         ; Restore previous interrupt enable state
@@ -1817,6 +1860,7 @@ _LABEL_A34_:
         ret
 
 
+; TODO: Looks like serial buffer Multi-byte RX
 _LABEL_AEF_:
     ldh  a, [rIE]
     ld   [_rIE_saved_serial__RAM_D078_], a
@@ -1840,32 +1884,34 @@ _LABEL_B13_:
     jr   _LABEL_B58_
 
 _LABEL_B1C_:
-    ld   [serial_rx_check_calc__RAM_D026_], a
+    ld   [serial_io_checksum_calc__RAM_D026_], a
     dec  a
     dec  a
-    ld   [serial_maybe_control_var__RAM_D034_], a
+    ld   [serial_transfer_length__RAM_D034_], a
     ld   b, a
     ld   hl, _buffer__RAM_D028_
-_LABEL_B28_:
-    push hl
-    call serial_io_wait_receive_with_timeout__B8F_
-    and  a
-    pop  hl
-    jr   z, _LABEL_B13_
-    ld   a, [serial_rx_data__RAM_D021_]
-    ldi  [hl], a
-    ld   c, a
-    ld   a, [serial_rx_check_calc__RAM_D026_]
-    add  c
-    ld   [serial_rx_check_calc__RAM_D026_], a
-    dec  b
-    jr   nz, _LABEL_B28_
+    _LABEL_B28_:
+        push hl
+        call serial_io_wait_receive_with_timeout__B8F_
+        and  a
+        pop  hl
+        jr   z, _LABEL_B13_
+
+        ld   a, [serial_rx_data__RAM_D021_]
+        ldi  [hl], a
+        ld   c, a
+        ld   a, [serial_io_checksum_calc__RAM_D026_]
+        add  c
+        ld   [serial_io_checksum_calc__RAM_D026_], a
+        dec  b
+        jr   nz, _LABEL_B28_
+
     call serial_io_wait_receive_with_timeout__B8F_
     and  a
     jr   z, _LABEL_B13_
     call delay_quarter_msec__BD6_
     ld   a, [serial_rx_data__RAM_D021_]
-    ld   hl, serial_rx_check_calc__RAM_D026_
+    ld   hl, serial_io_checksum_calc__RAM_D026_
     add  [hl]
     jr   nz, _LABEL_B13_
     ld   a, $F9
@@ -2053,7 +2099,7 @@ input_read_keys__C8D_:
 
     ; Save 1st RX byte and wait for 2nd RX Byte
     .rx_byte_1_ok__CB0_:
-        ld   [serial_rx_check_calc__RAM_D026_], a
+        ld   [serial_io_checksum_calc__RAM_D026_], a
         call serial_io_wait_receive_with_timeout__B8F_
         and  a
         jr   nz, .rx_byte_2_ok__CC8_
@@ -2071,7 +2117,7 @@ input_read_keys__C8D_:
         ; Save RX input byte #2 and add it to checksum
         ld   a, [serial_rx_data__RAM_D021_]
         ld   [input_key_modifier_flags__RAM_D027_], a
-        ld   hl, serial_rx_check_calc__RAM_D026_
+        ld   hl, serial_io_checksum_calc__RAM_D026_
         add  [hl]
         ld   [hl], a
 
@@ -2082,13 +2128,13 @@ input_read_keys__C8D_:
         jr   z, .req_key_failed_so_send04__CB9_
         ld   a, [serial_rx_data__RAM_D021_]
         ld   [input_key_pressed__RAM_D025_], a
-        ld   hl, serial_rx_check_calc__RAM_D026_
+        ld   hl, serial_io_checksum_calc__RAM_D026_
         add  [hl]
-        ld   [serial_rx_check_calc__RAM_D026_], a
+        ld   [serial_io_checksum_calc__RAM_D026_], a
 
         ; Wait for RX input byte #4
         ; If successful then verify it against the
-        ; calculated checksum in serial_rx_check_calc__RAM_D026_
+        ; calculated checksum in serial_io_checksum_calc__RAM_D026_
         ;
         ; Make sure RX byte #4 == (((#1 + #2 + #3) XOR 0xFF) + 1) [two's complement]
         ; I.E: (#4 + #1 + #2 + #3) == 0x100 -> unsigned overflow -> 0x00
@@ -2096,7 +2142,7 @@ input_read_keys__C8D_:
         and  a
         jr   z, .req_key_failed_so_send04__CB9_
         ld   a, [serial_rx_data__RAM_D021_]
-        ld   hl, serial_rx_check_calc__RAM_D026_
+        ld   hl, serial_io_checksum_calc__RAM_D026_
         add  [hl]
         jr   nz, .req_key_failed_so_send04__CB9_
 
@@ -5754,38 +5800,42 @@ _LABEL_5987_:
     xor  a
     jr   _LABEL_59B7_
 
-_LABEL_59A4_:
-    sub  $0C
-    ld   d, $00
-    ld   e, a
-    ld   h, $0A
-    call _LABEL_4832_
-    ld   a, c
-    swap a
-    or   l
-    ld   [_RAM_D056_], a
-    ld   a, $01
-_LABEL_59B7_:
-    ld   [_RAM_D055_], a
-    call _LABEL_5A2B_
-    ld   a, [_RAM_D06A_]
-    and  a
-    jp   z, _LABEL_5B12_
-    di
-    ld   b, $08
-    ld   hl, _buffer__RAM_D051_
-    ld   de, _buffer__RAM_D028_
-    call memcopy_b_bytes_from_hl_to_de__482B_
-    ld   a, SYS_CMD_INIT_UNKNOWN_0x0B  ; $0B
-    ld   [serial_cmd_to_send__RAM_D035_], a
+    _LABEL_59A4_:
+        sub  $0C
+        ld   d, $00
+        ld   e, a
+        ld   h, $0A
+        call _LABEL_4832_
+        ld   a, c
+        swap a
+        or   l
+        ld   [_RAM_D056_], a
+        ld   a, $01
 
-_LABEL_59D5_:
-    call _LABEL_A34_
-    ld   a, [input_key_pressed__RAM_D025_]
-    cp   $FC
-    jr   z, _LABEL_59E4_
-    call timer_wait_tick_AND_TODO__289_
-    jr   _LABEL_59D5_
+    _LABEL_59B7_:
+        ld   [_RAM_D055_], a
+        call _LABEL_5A2B_
+        ld   a, [_RAM_D06A_]
+        and  a
+        jp   z, _LABEL_5B12_
+        di
+        ld   b, $08
+        ld   hl, _buffer__RAM_D051_
+        ld   de, _buffer__RAM_D028_
+        call memcopy_b_bytes_from_hl_to_de__482B_
+        ld   a, SYS_CMD_INIT_UNKNOWN_0x0B  ; $0B
+        ld   [serial_cmd_to_send__RAM_D035_], a
+
+    .loop_wait_valid_reply__59D5_:
+        ; ?? Where does it set the buffer TX length
+        ; in serial_cmd_to_send__RAM_D035_ required by the call below?
+        call serial_io_send_command_and_buffer__A34_
+        ld   a, [input_key_pressed__RAM_D025_]
+        cp   $FC
+        jr   z, _LABEL_59E4_
+        call timer_wait_tick_AND_TODO__289_
+        jr   .loop_wait_valid_reply__59D5_
+
 
 _LABEL_59E4_:
     ld   a, $01

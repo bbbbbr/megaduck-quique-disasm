@@ -57,13 +57,14 @@ DEF SYS_CMD_DONE_OR_OK            EQU $01  ; TODO: What does this do and why?
 DEF SYS_CMD_ABORT_OR_FAIL         EQU $04  ; TODO: What does this do and why?
 DEF SYS_CMD_RUN_CART_IN_SLOT      EQU $08
 DEF SYS_CMD_INIT_UNKNOWN_0x09     EQU $09
-DEF SYS_CMD_INIT_UNKNOWN_0x0B     EQU $0B
+DEF SYS_CMD_INIT_UNKNOWN_0x0B     EQU $0B  ; Used in multi-byte buffer send
 
+DEF SYS_REPLY_MULTI_BYTE_SEND_AND_CHECKSUM_OK             EQU $01
 DEF SYS_REPLY_BOOT_OK             EQU $01  ; Reply on startup that allows rest of code to proceed
 DEF SYS_REPLY_READ_FAIL_MAYBE     EQU $00
 DEF SYS_REPLY_READ_CONTINUE_MAYBE EQU $00
 DEF SYS_REPLY__BIT_BOOT_FAIL      EQU 0
-DEF SYS_REPLY_NO_CART_IN_SLOT     EQU $06
+DEF SYS_REPLY_NO_CART_IN_SLOT     EQU $06  ; TODO: Maybe also some failure during serial IO multi-byte buffer send
 DEF SYS_REPLY_MAYBE_KBD_START     EQU $0E  ; Maybe 0x0E... why 0x04 when logged? Reply at start of a 4 byte keyboard reply packet 
 
 
@@ -156,14 +157,14 @@ serial_status__RAM_D022_: db
 serial_tx_data__RAM_D023_: db
 serial_system_status__RAM_D024_: db
 input_key_pressed__RAM_D025_: db         ; Byte 3/4 in Keyboard reply seq. Gamepad/"mouse" input gets mapped to this too
-serial_rx_check_calc__RAM_D026_: db      ; Byte 4/4 in Keyboard reply seq. Should == 2's Complement of (Byte 1 + Byte 2 + Byte 3_
+serial_io_checksum_calc__RAM_D026_: db      ; Byte 4/4 in Keyboard reply seq. Should == 2's Complement of (Byte 1 + Byte 2 + Byte 3_
 input_key_modifier_flags__RAM_D027_: db  ; Byte 2/4 in Keyboard reply seq. input_kbd_rx_2_modifiers__RAM_D027_ Stores Modifier flag keys
 
 _buffer__RAM_D028_: db                   ; At least 8 bytes in size, but often direct access to values inside it's range
 _RAM_D029_: db
 _RAM_D02A_: ds $3
 _RAM_D02D_: ds $7
-serial_maybe_control_var__RAM_D034_: db
+serial_transfer_length__RAM_D034_: db
 serial_cmd_to_send__RAM_D035_: db
 _RAM_D036_: db
 _RAM_D037_: ds $3
