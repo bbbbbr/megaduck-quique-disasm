@@ -155,10 +155,11 @@ serial_rx_data__RAM_D021_: db
 serial_status__RAM_D022_: db
 serial_tx_data__RAM_D023_: db
 serial_system_status__RAM_D024_: db
-input_key_pressed__RAM_D025_: db           ; Byte 3/4 in Keyboard reply seq. Gamepad/"mouse" input gets mapped to this too
-serial_rx_check_calc__RAM_D026_: db        ; Byte 4/4 in Keyboard reply seq. Should == 2's Complement of (Byte 1 + Byte 2 + Byte 3_
+input_key_pressed__RAM_D025_: db         ; Byte 3/4 in Keyboard reply seq. Gamepad/"mouse" input gets mapped to this too
+serial_rx_check_calc__RAM_D026_: db      ; Byte 4/4 in Keyboard reply seq. Should == 2's Complement of (Byte 1 + Byte 2 + Byte 3_
 input_key_modifier_flags__RAM_D027_: db  ; Byte 2/4 in Keyboard reply seq. input_kbd_rx_2_modifiers__RAM_D027_ Stores Modifier flag keys
-_RAM_D028_: db
+
+_buffer__RAM_D028_: db                   ; At least 8 bytes in size, but often direct access to values inside it's range
 _RAM_D029_: db
 _RAM_D02A_: ds $3
 _RAM_D02D_: ds $7
@@ -178,7 +179,7 @@ _RAM_D048_: db
 _RAM_D049_: db
 _RAM_D04A_: db
 _RAM_D04B_: ds $6
-_RAM_D051_: db
+_buffer__RAM_D051_: db     ; At least 8 bytes in size, but often direct access to values inside it's range
 _RAM_D052_: db
 _RAM_D053_: db
 _RAM_D054_: db

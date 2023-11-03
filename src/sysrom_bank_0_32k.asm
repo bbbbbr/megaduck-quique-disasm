@@ -414,7 +414,7 @@ _LABEL_253_:
 _LABEL_25E_:
     ; Uses RAM starting at this var for a multi-send buffer
     ; in _LABEL_A34_ -> loop_continue_sending__A8B_
-    ld   hl, _RAM_D028_
+    ld   hl, _buffer__RAM_D028_
     ld   a, $94
     ldi  [hl], a
     ld   a, $01
@@ -1760,7 +1760,7 @@ _LABEL_A34_:
         call delay_quarter_msec__BD6_
         call delay_quarter_msec__BD6_
 
-        ld   hl, _RAM_D028_
+        ld   hl, _buffer__RAM_D028_
         .loop_continue_sending__A8B_:
             ldi  a, [hl]
             ld   [serial_tx_data__RAM_D023_], a
@@ -1845,7 +1845,7 @@ _LABEL_B1C_:
     dec  a
     ld   [serial_maybe_control_var__RAM_D034_], a
     ld   b, a
-    ld   hl, _RAM_D028_
+    ld   hl, _buffer__RAM_D028_
 _LABEL_B28_:
     push hl
     call serial_io_wait_receive_with_timeout__B8F_
@@ -3138,6 +3138,9 @@ memcopy_b_bytes_from_de_to_hl__481F_:
 memcopy_16_bytes_from_hl_to_copy_buffer__RAM_DCF0__4826_:
     ld   de, copy_buffer__RAM_DCF0_
     ld   b, $10  ; 16 bytes
+; Size in  : B
+; Dest in  : DE
+; Source in: HL
 memcopy_b_bytes_from_hl_to_de__482B_:
     ldi  a, [hl]
     ld   [de], a
@@ -4156,7 +4159,7 @@ _LABEL_4D94_:
     ld   bc, (128 * TILE_SZ_BYTES)                        ; Copy size: 128 tiles (2048 bytes)
     call _memcopy_in_RAM__C900_
 
-    ld   hl, _RAM_D028_
+    ld   hl, _buffer__RAM_D028_
     ld   de, _RAM_D074_ + 1 ; _RAM_D074_ + 1 = $D075
     ld   b, $03
     call memcopy_b_bytes_from_hl_to_de__482B_
@@ -4212,7 +4215,7 @@ _LABEL_4E10_:
     dec  b
     jr   nz, _LABEL_4E10_
     ld   hl, $9830
-    ld   a, [_RAM_D028_]
+    ld   a, [_buffer__RAM_D028_]
     and  $F0
     cp   $90
     jr   nz, _LABEL_4E3E_
@@ -4236,7 +4239,7 @@ _LABEL_4E48_:
     ld   a, $02
     ld   [_tilemap_pos_y__RAM_C8CA_], a
     ld   c, $01
-    ld   hl, _RAM_D028_
+    ld   hl, _buffer__RAM_D028_
     call _LABEL_5401_
     ld   hl, $9880
     ld   b, $07
@@ -4252,8 +4255,8 @@ _LABEL_4E69_:
     inc  hl
     dec  b
     jr   nz, _LABEL_4E69_
-    ld   a, [_RAM_D028_]
-    ld   [_RAM_D051_], a    ; _RAM_D051_ = $D051
+    ld   a, [_buffer__RAM_D028_]
+    ld   [_buffer__RAM_D051_], a    ; _buffer__RAM_D051_ = $D051
     ld   a, [_RAM_D029_]    ; _RAM_D029_ = $D029
     ld   [_RAM_D052_], a    ; _RAM_D052_ = $D052
     ld   a, $01
@@ -4393,7 +4396,7 @@ _LABEL_4F95_:
     call timer_wait_tick_AND_TODO__289_
     call input_read_keys__C8D_
     ld   a, [_RAM_D074_ + 1]    ; _RAM_D074_ + 1 = $D075
-    ld   hl, _RAM_D028_
+    ld   hl, _buffer__RAM_D028_
     cp   [hl]
     jr   nz, _LABEL_4FAE_
     ld   a, [_RAM_D074_ + 2]    ; _RAM_D074_ + 2 = $D076
@@ -4411,20 +4414,20 @@ _LABEL_4FAE_:
     push af
     ld   a, [_RAM_D074_ + 3]    ; _RAM_D074_ + 3 = $D077
     push af
-    ld   a, [_RAM_D028_]
+    ld   a, [_buffer__RAM_D028_]
     push af
     ld   a, [_RAM_D029_]    ; _RAM_D029_ = $D029
     push af
-    ld   a, [_RAM_D028_ + 2]    ; _RAM_D028_ + 2 = $D02A
+    ld   a, [_buffer__RAM_D028_ + 2]    ; _buffer__RAM_D028_ + 2 = $D02A
     push af
     call _LABEL_52BF_
     call maybe_input_wait_for_keys__4B84
     pop  af
-    ld   [_RAM_D028_ + 2], a    ; _RAM_D028_ + 2 = $D02A
+    ld   [_buffer__RAM_D028_ + 2], a    ; _buffer__RAM_D028_ + 2 = $D02A
     pop  af
     ld   [_RAM_D029_], a    ; _RAM_D029_ = $D029
     pop  af
-    ld   [_RAM_D028_], a
+    ld   [_buffer__RAM_D028_], a
     pop  af
     ld   [_RAM_D074_ + 3], a    ; _RAM_D074_ + 3 = $D077
     pop  af
@@ -4699,7 +4702,7 @@ _LABEL_5206_:
     jp   nc, _LABEL_4F95_
     inc  a
     ld   [_RAM_DBFF_], a    ; _RAM_DBFF_ = $DBFF
-    ld   de, _RAM_D051_ ; _RAM_D051_ = $D051
+    ld   de, _buffer__RAM_D051_ ; _buffer__RAM_D051_ = $D051
     ld   b, $03
 _LABEL_5217_:
     ld   a, [de]
@@ -4718,7 +4721,7 @@ _LABEL_522B_:
     call _LABEL_5B03_
     dec  a
     jr   nz, _LABEL_525D_
-    ld   hl, _RAM_D028_
+    ld   hl, _buffer__RAM_D028_
     call _LABEL_5B03_
     cp   $0C
     jr   nc, _LABEL_5240_
@@ -4728,7 +4731,7 @@ _LABEL_5240_:
     cp   $5C
     jp   c, _LABEL_4F95_
     call _LABEL_5379_
-    ld   [_RAM_D028_], a
+    ld   [_buffer__RAM_D028_], a
     ld   a, $12
     ld   [_RAM_D029_], a    ; _RAM_D029_ = $D029
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
@@ -4750,7 +4753,7 @@ _LABEL_526F_:
     inc  a
     cp   $0D
     jr   c, _LABEL_52A3_
-    ld   hl, _RAM_D028_
+    ld   hl, _buffer__RAM_D028_
     call _LABEL_5B03_
     cp   $0C
     jr   nc, _LABEL_5286_
@@ -4760,7 +4763,7 @@ _LABEL_5286_:
     cp   $70
     jp   z, _LABEL_4F95_
     call _LABEL_5379_
-    ld   [_RAM_D028_], a
+    ld   [_buffer__RAM_D028_], a
     ld   a, $01
     ld   [_RAM_D029_], a    ; _RAM_D029_ = $D029
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
@@ -4784,7 +4787,7 @@ _LABEL_52B5_:
 
 _LABEL_52BF_:
     ld   a, [_RAM_D074_ + 1]    ; _RAM_D074_ + 1 = $D075
-    ld   hl, _RAM_D028_
+    ld   hl, _buffer__RAM_D028_
     cp   [hl]
     jr   nz, _LABEL_52D7_
     ld   a, [_RAM_D074_ + 2]    ; _RAM_D074_ + 2 = $D076
@@ -4795,17 +4798,17 @@ _LABEL_52BF_:
     ld   [_RAM_D04A_], a    ; _RAM_D04A_ = $D04A
     call _LABEL_538C_
 _LABEL_52D7_:
-    ld   a, [_RAM_D028_ + 3]    ; _RAM_D028_ + 3 = $D02B
+    ld   a, [_buffer__RAM_D028_ + 3]    ; _buffer__RAM_D028_ + 3 = $D02B
     push af
     call maybe_call_printscreen_in_32k_bank_2__522_
     pop  af
-    ld   [_RAM_D028_ + 3], a    ; _RAM_D028_ + 3 = $D02B
+    ld   [_buffer__RAM_D028_ + 3], a    ; _buffer__RAM_D028_ + 3 = $D02B
     ld   a, [_RAM_D074_ + 1]    ; _RAM_D074_ + 1 = $D075
-    ld   [_RAM_D028_], a
+    ld   [_buffer__RAM_D028_], a
     ld   a, [_RAM_D074_ + 2]    ; _RAM_D074_ + 2 = $D076
     ld   [_RAM_D029_], a    ; _RAM_D029_ = $D029
     ld   a, [_RAM_D074_ + 3]    ; _RAM_D074_ + 3 = $D077
-    ld   [_RAM_D028_ + 2], a    ; _RAM_D028_ + 2 = $D02A
+    ld   [_buffer__RAM_D028_ + 2], a    ; _buffer__RAM_D028_ + 2 = $D02A
     ret
 
 _LABEL_52F5_:
@@ -4848,7 +4851,7 @@ _LABEL_532F_:
     jr   z, _LABEL_5357_
     ld   b, a
 _LABEL_5340_:
-    ld   de, _RAM_D051_ ; _RAM_D051_ = $D051
+    ld   de, _buffer__RAM_D051_ ; _buffer__RAM_D051_ = $D051
     ld   c, $03
 _LABEL_5345_:
     ld   a, [de]
@@ -4914,15 +4917,15 @@ _LABEL_538C_:
     jr   z, _LABEL_53CC_
     cp   $08
     jr   nz, _LABEL_53CB_
-    ld   a, [_RAM_D028_ + 2]    ; _RAM_D028_ + 2 = $D02A
+    ld   a, [_buffer__RAM_D028_ + 2]    ; _buffer__RAM_D028_ + 2 = $D02A
     ld   [_RAM_D053_], a    ; _RAM_D053_ = $D053
-    ld   a, [_RAM_D028_ + 3]    ; _RAM_D028_ + 3 = $D02B
+    ld   a, [_buffer__RAM_D028_ + 3]    ; _buffer__RAM_D028_ + 3 = $D02B
     dec  a
     ld   [_RAM_D054_], a    ; _RAM_D054_ = $D054
     cp   $06
     jr   z, _LABEL_53C1_
     call _LABEL_532F_
-    ld   hl, _RAM_D028_ + 2 ; _RAM_D028_ + 2 = $D02A
+    ld   hl, _buffer__RAM_D028_ + 2 ; _buffer__RAM_D028_ + 2 = $D02A
     and  a
     jr   z, _LABEL_53C6_
 _LABEL_53C1_:
@@ -5149,7 +5152,7 @@ _LABEL_5532_:
     ldi  [hl], a
     dec  b
     jr   nz, _LABEL_5532_
-    call _LABEL_5D50_
+    call memcopy_8_bytes_from_buffer__RAM_D028__to_copy_buffer__RAM_D051__5D50_
     call _LABEL_5B5F_
     call _LABEL_55A0_
     xor  a
@@ -5174,7 +5177,7 @@ _LABEL_5549_:
     ld   a, [_RAM_D03A_]
     and  a
     jr   z, _LABEL_5579_
-    call _LABEL_5D50_
+    call memcopy_8_bytes_from_buffer__RAM_D028__to_copy_buffer__RAM_D051__5D50_
     call _LABEL_5B5F_
     call _LABEL_55A0_
 _LABEL_5579_:
@@ -5309,7 +5312,7 @@ _LABEL_5600_:
     ld   a, $BE
     ld   [_RAM_D40B_], a
     ld   [_RAM_D40C_], a
-    ld   a, [_RAM_D051_]
+    ld   a, [_buffer__RAM_D051_]
     bit  7, a
     jr   nz, _LABEL_5697_
     ld   a, $C2
@@ -5323,7 +5326,7 @@ _LABEL_5697_:
     ld   a, $C9
 _LABEL_569E_:
     ld   [_RAM_D40E_], a
-    ld   de, _RAM_D051_
+    ld   de, _buffer__RAM_D051_
     ld   hl, _RAM_D40F_
     call _LABEL_56BC_
     xor  a
@@ -5602,7 +5605,7 @@ _LABEL_5841_:
     ld   [_RAM_D408_], a
     ld   a, $9E
     ld   [_RAM_D407_], a
-    ld   de, _RAM_D051_
+    ld   de, _buffer__RAM_D051_
     ld   hl, _RAM_D409_
     call _LABEL_56BC_
     xor  a
@@ -5718,7 +5721,7 @@ _LABEL_5950_:
     ld   hl, _DATA_5DA1_
     call add_a_to_hl__486E_
     ld   a, [hl]
-    ld   hl, _RAM_D051_
+    ld   hl, _buffer__RAM_D051_
     call add_a_to_hl__486E_
     ld   a, [_RAM_D06C_]    ; _RAM_D06C_ = $D06C
     cp   $00
@@ -5770,11 +5773,12 @@ _LABEL_59B7_:
     jp   z, _LABEL_5B12_
     di
     ld   b, $08
-    ld   hl, _RAM_D051_
-    ld   de, _RAM_D028_
+    ld   hl, _buffer__RAM_D051_
+    ld   de, _buffer__RAM_D028_
     call memcopy_b_bytes_from_hl_to_de__482B_
     ld   a, SYS_CMD_INIT_UNKNOWN_0x0B  ; $0B
     ld   [serial_cmd_to_send__RAM_D035_], a
+
 _LABEL_59D5_:
     call _LABEL_A34_
     ld   a, [input_key_pressed__RAM_D025_]
@@ -5827,7 +5831,7 @@ _DATA_5A21_:
 db $02, $07, $07, $07, $02, $0B, $06, $0B, $0B, $0B
 
 _LABEL_5A2B_:
-    ld   hl, _RAM_D051_
+    ld   hl, _buffer__RAM_D051_
     call _LABEL_5B03_
     cp   $0C
     jr   c, _LABEL_5A3B_
@@ -5899,7 +5903,7 @@ _LABEL_5A9B_:
     ret
 
 _LABEL_5A9F_:
-    ld   hl, _RAM_D051_
+    ld   hl, _buffer__RAM_D051_
     call _LABEL_5B03_
     ld   e, a
     cp   $5C
@@ -6295,35 +6299,42 @@ _LABEL_5D3E_:
     ld   [_RAM_D02D_], a
     ret
 
-_LABEL_5D50_:
+memcopy_8_bytes_from_buffer__RAM_D028__to_copy_buffer__RAM_D051__5D50_:
     call _LABEL_5D3E_
     ld   b, $08
-    ld   hl, _RAM_D028_
-    ld   de, _RAM_D051_
+    ld   hl, _buffer__RAM_D028_
+    ld   de, _buffer__RAM_D051_
     call memcopy_b_bytes_from_hl_to_de__482B_
     ret
 
+; TODO: compares buffers at _buffer__RAM_D028_ and _buffer__RAM_D051_
+; - Wherever they don't match:
+;   -  ..D028 is copied into ...D051
+;   - _RAM_D03A_ is set to 0x01
 _LABEL_5D5F_:
     call _LABEL_5D3E_
     xor  a
     ld   [_RAM_D03A_], a
     ld   b, $08
-    ld   hl, _RAM_D028_
-    ld   de, _RAM_D051_
-_LABEL_5D6E_:
-    ld   a, [de]
-    cp   [hl]
-    jr   z, _LABEL_5D79_
-    ld   a, [hl]
-    ld   [de], a
-    ld   a, $01
-    ld   [_RAM_D03A_], a
-_LABEL_5D79_:
-    inc  de
-    inc  hl
-    dec  b
-    jr   nz, _LABEL_5D6E_
-    ret
+    ld   hl, _buffer__RAM_D028_
+    ld   de, _buffer__RAM_D051_
+
+    .loop_compare_buffers__5D6E_:
+        ld   a, [de]
+        cp   [hl]
+        jr   z, .match_ok__5D79_
+
+        ld   a, [hl]
+        ld   [de], a
+        ld   a, $01
+        ld   [_RAM_D03A_], a
+
+    .match_ok__5D79_:
+        inc  de
+        inc  hl
+        dec  b
+        jr   nz, .loop_compare_buffers__5D6E_
+        ret
 
 ; Data from 5D7F to 5D9E (32 bytes)
 _DATA_5D7F_:
@@ -8061,7 +8072,7 @@ _LABEL_6ACE_:
     call _LABEL_953_
 
     ld   a, [_tilemap_pos_x__RAM_C8CB_]
-    ld   [_RAM_D028_], a
+    ld   [_buffer__RAM_D028_], a
     ld   a, [_tilemap_pos_y__RAM_C8CA_]
     ld   [_RAM_D029_], a
     call oam_free_slot_and_clear__89B_
@@ -8111,7 +8122,7 @@ _LABEL_6B3E_:
     jr   _LABEL_6B3E_
 
 _LABEL_6B49_:
-    ld   a, [_RAM_D028_]    ; _RAM_D028_ = $D028
+    ld   a, [_buffer__RAM_D028_]    ; _buffer__RAM_D028_ = $D028
     ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
     ld   a, [_RAM_D029_]    ; _RAM_D029_ = $D029
     ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
