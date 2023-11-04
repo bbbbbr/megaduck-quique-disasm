@@ -4248,7 +4248,7 @@ _LABEL_4D7F_:
     call _memcopy_in_RAM__C900_
 
     ld   hl, buffer__RAM_D028_
-    ld   de, _RAM_D074_ + 1 ; _RAM_D074_ + 1 = $D075
+    ld   de, _RAM_D074_ + 1
     ld   b, $03
     call memcopy_b_bytes_from_hl_to_de__482B_
 _LABEL_4DCD_:
@@ -4378,13 +4378,13 @@ _LABEL_4EAB_:
     and  a
     jr   nz, _LABEL_4ED4_
     ld   a, [_RAM_D053_]    ; _RAM_D053_ = $D053
-    ld   hl, _RAM_D074_ + 3 ; _RAM_D074_ + 3 = $D077
+    ld   hl, _RAM_D074_ + 3
     cp   [hl]
     jr   nz, _LABEL_4ED4_
     ld   a, [_tilemap_pos_x__RAM_C8CB_]
     ld   [_RAM_D073_], a    ; _RAM_D073_ = $D073
     ld   a, [_tilemap_pos_y__RAM_C8CA_]
-    ld   [_RAM_D074_], a    ; _RAM_D074_ = $D074
+    ld   [_RAM_D074_], a
 _LABEL_4ED4_:
     ld   a, [_RAM_D053_]    ; _RAM_D053_ = $D053
     cp   $01
@@ -4483,11 +4483,11 @@ _LABEL_4F72_:
 _LABEL_4F95_:
     call timer_wait_tick_AND_TODO__289_
     call input_read_keys__C8D_
-    ld   a, [_RAM_D074_ + 1]    ; _RAM_D074_ + 1 = $D075
+    ld   a, [_RAM_D074_ + 1]
     ld   hl, buffer__RAM_D028_
     cp   [hl]
     jr   nz, _LABEL_4FAE_
-    ld   a, [_RAM_D074_ + 2]    ; _RAM_D074_ + 2 = $D076
+    ld   a, [_RAM_D074_ + 2]
     inc  hl
     cp   [hl]
     jr   nz, _LABEL_4FAE_
@@ -4496,11 +4496,11 @@ _LABEL_4FAE_:
     ld   a, [input_key_pressed__RAM_D025_]
     cp   SYS_CHAR_PRINTSCREEN  ; $2F
     jp   nz, _LABEL_4FEE_
-    ld   a, [_RAM_D074_ + 1]    ; _RAM_D074_ + 1 = $D075
+    ld   a, [_RAM_D074_ + 1]
     push af
-    ld   a, [_RAM_D074_ + 2]    ; _RAM_D074_ + 2 = $D076
+    ld   a, [_RAM_D074_ + 2]
     push af
-    ld   a, [_RAM_D074_ + 3]    ; _RAM_D074_ + 3 = $D077
+    ld   a, [_RAM_D074_ + 3]
     push af
     ld   a, [buffer__RAM_D028_]
     push af
@@ -4517,11 +4517,11 @@ _LABEL_4FAE_:
     pop  af
     ld   [buffer__RAM_D028_], a
     pop  af
-    ld   [_RAM_D074_ + 3], a    ; _RAM_D074_ + 3 = $D077
+    ld   [_RAM_D074_ + 3], a
     pop  af
-    ld   [_RAM_D074_ + 2], a    ; _RAM_D074_ + 2 = $D076
+    ld   [_RAM_D074_ + 2], a
     pop  af
-    ld   [_RAM_D074_ + 1], a    ; _RAM_D074_ + 1 = $D075
+    ld   [_RAM_D074_ + 1], a
     jr   _LABEL_4F95_
 
 _LABEL_4FEE_:
@@ -4874,11 +4874,11 @@ _LABEL_52B5_:
     ret
 
 _LABEL_52BF_:
-    ld   a, [_RAM_D074_ + 1]    ; _RAM_D074_ + 1 = $D075
+    ld   a, [_RAM_D074_ + 1]
     ld   hl, buffer__RAM_D028_
     cp   [hl]
     jr   nz, _LABEL_52D7_
-    ld   a, [_RAM_D074_ + 2]    ; _RAM_D074_ + 2 = $D076
+    ld   a, [_RAM_D074_ + 2]
     inc  hl
     cp   [hl]
     jr   nz, _LABEL_52D7_
@@ -4891,11 +4891,11 @@ _LABEL_52D7_:
     call maybe_call_printscreen_in_32k_bank_2__522_
     pop  af
     ld   [buffer__RAM_D028_ + 3], a    ; buffer__RAM_D028_ + 3 = $D02B
-    ld   a, [_RAM_D074_ + 1]    ; _RAM_D074_ + 1 = $D075
+    ld   a, [_RAM_D074_ + 1]
     ld   [buffer__RAM_D028_], a
-    ld   a, [_RAM_D074_ + 2]    ; _RAM_D074_ + 2 = $D076
+    ld   a, [_RAM_D074_ + 2]
     ld   [_RAM_D029_], a    ; _RAM_D029_ = $D029
-    ld   a, [_RAM_D074_ + 3]    ; _RAM_D074_ + 3 = $D077
+    ld   a, [_RAM_D074_ + 3]
     ld   [buffer__RAM_D028_ + 2], a    ; buffer__RAM_D028_ + 2 = $D02A
     ret
 
@@ -4996,7 +4996,7 @@ _LABEL_5388_:
 _LABEL_538C_:
     ld   a, [_RAM_D073_]    ; _RAM_D073_ = $D073
     ld   [_tilemap_pos_x__RAM_C8CB_], a
-    ld   a, [_RAM_D074_]    ; _RAM_D074_ = $D074
+    ld   a, [_RAM_D074_]
     ld   [_tilemap_pos_y__RAM_C8CA_], a
     ld   a, [_RAM_D04A_]    ; _RAM_D04A_ = $D04A
     inc  a
@@ -7570,7 +7570,7 @@ _LABEL_667F_:
     ld   a, [_tilemap_pos_x__RAM_C8CB_] ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
     ld   [_RAM_D073_], a    ; _RAM_D073_ = $D073
     ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
-    ld   [_RAM_D074_], a    ; _RAM_D074_ = $D074
+    ld   [_RAM_D074_], a
     call oam_free_slot_and_clear__89B_
     ld   hl, _RST__18_  ; _RST__18_ = $0018
     res  7, h
@@ -7582,7 +7582,7 @@ _LABEL_667F_:
     jp   nz, _LABEL_6328_
     ld   a, [_RAM_D073_]    ; _RAM_D073_ = $D073
     ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
-    ld   a, [_RAM_D074_]    ; _RAM_D074_ = $D074
+    ld   a, [_RAM_D074_]
     ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
     call _LABEL_6510_
     ld   de, $18B2
@@ -9059,7 +9059,7 @@ drawing_app_help_menu_show__6FED_:
 
         ld   a, [_RAM_D073_]    ; _RAM_D073_ = $D073
         ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
-        ld   a, [_RAM_D074_]    ; _RAM_D074_ = $D074
+        ld   a, [_RAM_D074_]
         ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
         call _LABEL_6510_
         ret
