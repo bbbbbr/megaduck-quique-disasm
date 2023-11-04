@@ -57,7 +57,7 @@ DEF SYS_CMD_DONE_OR_OK            EQU $01  ; TODO: What does this do and why?
 DEF SYS_CMD_ABORT_OR_FAIL         EQU $04  ; TODO: What does this do and why?
 DEF SYS_CMD_RUN_CART_IN_SLOT      EQU $08
 DEF SYS_CMD_INIT_UNKNOWN_0x09     EQU $09
-DEF SYS_CMD_INIT_UNKNOWN_0x0B     EQU $0B  ; Used in multi-byte buffer send/TX
+DEF SYS_CMD_RTC_SET_DATE_AND_TIME EQU $0B  ; Sets Hardware RTC Date and Time using multi-byte buffer send/TX
 DEF SYS_CMD_INIT_UNKNOWN_0x0C     EQU $0C  ; Used in multi-byte buffer receive/RX
 
 DEF SYS_REPLY_MULTI_BYTE_SEND_AND_CHECKSUM_OK             EQU $01
@@ -70,6 +70,12 @@ DEF SYS_REPLY_NO_CART_IN_SLOT     EQU $06  ; TODO: Maybe also some failure durin
 DEF SYS_REPLY_MAYBE_KBD_START     EQU $0E  ; Maybe 0x0E ... why 0x04 when logged? Reply at start of a 4 byte keyboard reply packet 
 ; Maybe this is wrong... DEF SYS_REPLY_PERIPHERAL_DATA_INCOMING    EQU $0E  ; See above - This may be a general prologue/header for any sequence of data about to be sent by the peripheral hardware to the SM83 CPU over Serial IO
 
+DEF SYS_RTC_SET_DATE_AND_TIME_LEN EQU  8 ; 8 Bytes
+DEF _TIME_HOUR_12                 EQU  12
+DEF _TIME_AM                      EQU  $00
+DEF _TIME_PM                      EQU  $01
+DEF _DATE_MAX_YEAR_2011_          EQU  12
+DEF _DATE_MIN_YEAR_1992_          EQU  92
 
 DEF VBL_CMD_COPY_16_BYTES_FROM_COPY_BUF_TO_HL   EQU $3
 DEF VBL_CMD_COPY_16_BYTES_FROM_HL_TO_COPY_BUF   EQU $4
@@ -91,8 +97,10 @@ DEF TEXTBOX_OFFSET_TO_MIDDLE_TILES EQU $3 ; Top, middle and bottom of textbox ar
 DEF TEXTBOX_OFFSET_TO_BOTTOM_TILES EQU $6 ; Top, middle and bottom of textbox are each comprised of 3 tiles (left/middle/right)
 
 
+
+
 SECTION "wram_c800__shadow_oam_", WRAM0[$C800]
-_RAM_SHADOW_OAM_BASE__C800_: ds SHADOW_OAM_SZ ; 160
+shadow_oam_base__RAM_C800_: ds SHADOW_OAM_SZ ; 160
 
 SECTION "wram_c8a0", WRAM0[$c8a0]
 oam_slot_usage__RAM_C8A0_: ds OAM_USAGE_SZ ; db  
@@ -183,14 +191,19 @@ _RAM_D048_: db
 _RAM_D049_: db
 _RAM_D04A_: db
 _RAM_D04B_: ds $6
-_buffer__RAM_D051_: db     ; At least 8 bytes in size, but often direct access to values inside it's range
-_RAM_D052_: db
-_RAM_D053_: db
-_RAM_D054_: db
-_RAM_D055_: db
-_RAM_D056_: db
-_RAM_D057_: db
-_RAM_D058_: db
+
+SECTION "wram_D051__maybe_shadow_rtc", WRAMX[$d051], BANK[$1]
+; Maybe System Shadow RTC
+; - 8 Bytes (D051 -> At least 8 bytes in size, but often direct access to values inside it's range
+shadow_rtc_buf_start_and_year__RAM_D051_: db     ; Maybe System Shadow RTC At least 8 bytes in size, but often direct access to values inside it's range
+shadow_rtc_month__RAM_D052_: db
+shadow_rtc_day__RAM_D053_: db
+shadow_rtc_dayofweek__RAM_D054_: db
+shadow_rtc_am_pm__RAM_D055_: db
+shadow_rtc_hour__RAM_D056_: db
+shadow_rtc_minute__RAM_D057_: db
+shadow_rtc_maybe_seconds__RAM_D058_: db
+
 _RAM_D059_: db
 _RAM_D05A_: db
 
@@ -204,7 +217,7 @@ _RAM_D05F_: db
 SECTION "wram_d068", WRAMX[$D068]
 _RAM_D068_: db
 _RAM_D069_: db
-_RAM_D06A_: db
+rtc_validate_result__RAM_D06A_: db
 _RAM_D06B_: db
 
 SECTION "wram_d06c", WRAMX[$d06c], BANK[$1]

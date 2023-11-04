@@ -263,11 +263,14 @@ _GB_ENTRY_POINT_100_:
         call general_init__97A_
         call vram_init__752_
 
+    ; TODO: Maybe main menu loop?
     _LABEL_15C_:
         ; Check result of previous init sequence test
         ld   a, [_RAM_D400_]
         cp   INIT_KEYS_DIDNT_MATCH_IN_RAM  ; $AA
-        call z, _LABEL_25E_
+        ; Note: To force an RTC update to configured defaults use this instead (no Z test)
+        ; call rtc_set_default_time_and_date__25E_
+        call z, rtc_set_default_time_and_date__25E_
 
         ; Load Tile Data for the main menu launcher (Icons, Cursor)
         call wait_until_vbl__92C_
@@ -413,27 +416,33 @@ _LABEL_253_:
     jp   _LABEL_15C_  ; TODO: Return to main_menu_init?
 
 
-_LABEL_25E_:
+; Sets the RTC to Power-Up default Date and Time via Serial IO
+;
+; -  Saturday,  January 1, 1994 12:00am
+;
+; - Dates after Y2K Are not supported by the default System ROM
+rtc_set_default_time_and_date__25E_:
     ; Uses RAM starting at buffer__RAM_D028_ for a multi-send serial buffer
     ; Sends 8 Bytes: 0x94, 0x01, 0x01, 0x06, 0x00, 0x00, 0x00, 0x00
     ld   hl, buffer__RAM_D028_
     ld   a, $94
-    ldi  [hl], a
-    ld   a, $01
-    ldi  [hl], a
-    ldi  [hl], a
+    ldi  [hl], a    ; 00: Year   : 94 (Year = 1900 + Date Byte in BCD 0x94) `Quique Sys Range: 0x92 - 0x11` (1992 - 2011)
+    ld   a, $1
+    ldi  [hl], a    ; 01: Month  : 01 (January / Enero) `TODO: Range: 0x01 - 0x12`
+    ldi  [hl], a    ; 02: Day    : 01 (1st)
     ld   a, $06
-    ldi  [hl], a
+    ldi  [hl], a    ; 03: DoW    : 06 (6th day of week: Saturday / Sabado) `TODO: Range: 0x01 -0x07`
     xor  a
-    ldi  [hl], a
+    ldi  [hl], a    ; 04: AM/PM  : 00 (AM) `0=AM, 1=PM`- TODO: Verify
     xor  a
-    ldi  [hl], a
-    ldi  [hl], a
-    ldi  [hl], a
-    ; TODO: This is very similar to code around _LABEL_59B7_
-    ld   a, SYS_CMD_INIT_UNKNOWN_0x0B ; $0B
+    ldi  [hl], a    ; 05: Hour   : 00 (With above it's: 12 am) `TODO: Range 0-11`
+    ldi  [hl], a    ; 06: Minute : 00
+    ldi  [hl], a    ; 07: Second?: 00
+
+    ld   a, SYS_CMD_RTC_SET_DATE_AND_TIME ; $0B
     ld   [serial_cmd_to_send__RAM_D035_], a
-    ld   a, $08  ; Send 8 bytes
+
+    ld   a, SYS_RTC_SET_DATE_AND_TIME_LEN  ; $08  ; Send 8 bytes
     ld   [serial_transfer_length__RAM_D034_], a
 
     ; Wait for system message passed via the 0xF0+ reserved
@@ -1134,8 +1143,8 @@ vram_init__752_:
         cp   HIGH(_TILEMAP1) ; $9C
         jr   nz, _loop_fill_tile_map0__763_
 
-    ; Fill RAM from _RAM_SHADOW_OAM_BASE__C800_ -> _RAM_C8BF_ ($A0 / 160 bytes)
-        ld   hl, _RAM_SHADOW_OAM_BASE__C800_
+    ; Fill RAM from shadow_oam_base__RAM_C800_ -> _RAM_C8BF_ ($A0 / 160 bytes)
+        ld   hl, shadow_oam_base__RAM_C800_
         ld   b, SHADOW_OAM_SZ ; $A0
     _LABEL_770_:
         xor  a  ; This doesn't need to be re-zeroed each loop iteration...
@@ -1252,7 +1261,7 @@ _memcopy__7D3_:
 ; Gets copied to and run from _oam_dma_routine_in_HRAM__FF80_
 _oam_dma_routine_in_ROM__7E3_:
     di
-    ld   a, HIGH(_RAM_SHADOW_OAM_BASE__C800_)  ; $C8
+    ld   a, HIGH(shadow_oam_base__RAM_C800_)  ; $C8
     ldh  [rDMA], a
     ld   a, $28  ; Wait 160 nanosec
     _oam_dma_copy_wait_loop_7EA_:
@@ -1355,7 +1364,7 @@ oam_free_slot_and_clear__89B_:
     sla  a
     sla  a
     ld   l, a
-    ld   h, HIGH(_RAM_SHADOW_OAM_BASE__C800_)  ; $C8
+    ld   h, HIGH(shadow_oam_base__RAM_C800_)  ; $C8
 
     ; Clear out the Shadow OAM entry
     ld   a, $00
@@ -3236,7 +3245,14 @@ memcopy_b_bytes_from_hl_to_de__482B_:
     jr   nz, memcopy_b_bytes_from_hl_to_de__482B_
     ret
 
-_LABEL_4832_:
+
+; Divides DE / H and provides result + Remainder
+;
+; - Result TRUNC(DE / H) in: BC
+; - Result DE % H in       : L
+;
+; Destroys A, BC, DE, L
+maybe_divide_de_by_h_result_in_bc_remainder_in_l__4832_:
     ld   bc, $0000
     ld   l, $00
     ld   a, h
@@ -4313,6 +4329,7 @@ _LABEL_4E10_:
     ld   a, $12
     jr   _LABEL_4E48_
 
+; TODO: Maybe some date and time clock tick / increment
 _LABEL_4E3E_:
     ld   a, $04
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
@@ -4344,21 +4361,26 @@ _LABEL_4E69_:
     dec  b
     jr   nz, _LABEL_4E69_
     ld   a, [buffer__RAM_D028_]
-    ld   [_buffer__RAM_D051_], a    ; _buffer__RAM_D051_ = $D051
-    ld   a, [_RAM_D029_]    ; _RAM_D029_ = $D029
-    ld   [_RAM_D052_], a    ; _RAM_D052_ = $D052
+    ld   [shadow_rtc_buf_start_and_year__RAM_D051_], a
+
+    ld   a, [_RAM_D029_]
+    ld   [shadow_rtc_month__RAM_D052_], a
+
     ld   a, $01
-    ld   [_RAM_D053_], a    ; _RAM_D053_ = $D053
+    ld   [shadow_rtc_day__RAM_D053_], a
+
     call _LABEL_5A9F_
-    ld   a, [_RAM_D054_]    ; _RAM_D054_ = $D054
+    ld   a, [shadow_rtc_dayofweek__RAM_D054_]
     dec  a
-    ld   [_RAM_D054_], a    ; _RAM_D054_ = $D054
+    ld   [shadow_rtc_dayofweek__RAM_D054_], a
+
     ld   a, [de]
-    ld   [_RAM_D06D_], a    ; _RAM_D06D_ = $D06D
+    ld   [_RAM_D06D_], a
+
     ld   e, a
     ld   d, $00
     ld   h, $0A
-    call _LABEL_4832_
+    call maybe_divide_de_by_h_result_in_bc_remainder_in_l__4832_
     ld   a, c
     swap a
     or   l
@@ -4368,7 +4390,7 @@ _LABEL_4E69_:
     ld   a, $07
     ld   [_tilemap_pos_y__RAM_C8CA_], a
 _LABEL_4EAB_:
-    ld   a, [_RAM_D054_]    ; _RAM_D054_ = $D054
+    ld   a, [shadow_rtc_dayofweek__RAM_D054_]
     ld   b, $03
     call multiply_a_x_b__result_in_de__4853_
     ld   a, e
@@ -4377,7 +4399,7 @@ _LABEL_4EAB_:
     ld   a, [_RAM_D03B_]
     and  a
     jr   nz, _LABEL_4ED4_
-    ld   a, [_RAM_D053_]    ; _RAM_D053_ = $D053
+    ld   a, [shadow_rtc_day__RAM_D053_]    ; shadow_rtc_day__RAM_D053_ = $D053
     ld   hl, _RAM_D074_ + 3
     cp   [hl]
     jr   nz, _LABEL_4ED4_
@@ -4386,7 +4408,7 @@ _LABEL_4EAB_:
     ld   a, [_tilemap_pos_y__RAM_C8CA_]
     ld   [_RAM_D074_], a
 _LABEL_4ED4_:
-    ld   a, [_RAM_D053_]    ; _RAM_D053_ = $D053
+    ld   a, [shadow_rtc_day__RAM_D053_]    ; shadow_rtc_day__RAM_D053_ = $D053
     cp   $01
     jr   nz, _LABEL_4F29_
     ld   a, [_tilemap_pos_y__RAM_C8CA_]
@@ -4426,7 +4448,7 @@ _LABEL_4F29_:
     call _LABEL_532F_
     cp   $00
     jr   nz, _LABEL_4F3A_
-    ld   hl, _RAM_D053_ ; _RAM_D053_ = $D053
+    ld   hl, shadow_rtc_day__RAM_D053_ ; shadow_rtc_day__RAM_D053_ = $D053
     ld   c, $02
     call _LABEL_5401_
     jr   _LABEL_4F3D_
@@ -4434,11 +4456,11 @@ _LABEL_4F29_:
 _LABEL_4F3A_:
     call _LABEL_52F5_
 _LABEL_4F3D_:
-    ld   a, [_RAM_D053_]    ; _RAM_D053_ = $D053
+    ld   a, [shadow_rtc_day__RAM_D053_]    ; shadow_rtc_day__RAM_D053_ = $D053
     and  $0F
     inc  a
     cp   $0A
-    ld   a, [_RAM_D053_]    ; _RAM_D053_ = $D053
+    ld   a, [shadow_rtc_day__RAM_D053_]    ; shadow_rtc_day__RAM_D053_ = $D053
     jr   z, _LABEL_4F4D_
     inc  a
     jr   _LABEL_4F51_
@@ -4447,12 +4469,12 @@ _LABEL_4F4D_:
     and  $F0
     add  $10
 _LABEL_4F51_:
-    ld   [_RAM_D053_], a    ; _RAM_D053_ = $D053
+    ld   [shadow_rtc_day__RAM_D053_], a    ; shadow_rtc_day__RAM_D053_ = $D053
     ld   b, a
     ld   a, [_RAM_D03A_]
     cp   b
     jr   c, _LABEL_4F72_
-    ld   a, [_RAM_D054_]    ; _RAM_D054_ = $D054
+    ld   a, [shadow_rtc_dayofweek__RAM_D054_]    ; shadow_rtc_dayofweek__RAM_D054_ = $D054
     inc  a
     cp   $07
     jr   nz, _LABEL_4F6C_
@@ -4461,7 +4483,7 @@ _LABEL_4F51_:
     ld   [_tilemap_pos_y__RAM_C8CA_], a
     xor  a
 _LABEL_4F6C_:
-    ld   [_RAM_D054_], a    ; _RAM_D054_ = $D054
+    ld   [shadow_rtc_dayofweek__RAM_D054_], a    ; shadow_rtc_dayofweek__RAM_D054_ = $D054
     jp   _LABEL_4EAB_
 
 _LABEL_4F72_:
@@ -4691,7 +4713,7 @@ _LABEL_5148_:
     ld   e, a
     ld   d, $00
     ld   h, $07
-    call _LABEL_4832_
+    call maybe_divide_de_by_h_result_in_bc_remainder_in_l__4832_
     ld   a, c
     ld   b, $10
     call multiply_a_x_b__result_in_de__4853_
@@ -4751,13 +4773,13 @@ _LABEL_51B0_:
     ld   e, a
     ld   d, $00
     ld   h, $0A
-    call _LABEL_4832_
+    call maybe_divide_de_by_h_result_in_bc_remainder_in_l__4832_
     ld   a, c
     swap a
     or   l
-    ld   [_RAM_D053_], a    ; _RAM_D053_ = $D053
+    ld   [shadow_rtc_day__RAM_D053_], a    ; shadow_rtc_day__RAM_D053_ = $D053
     ld   a, $01
-    ld   [_RAM_D054_], a    ; _RAM_D054_ = $D054
+    ld   [shadow_rtc_dayofweek__RAM_D054_], a    ; shadow_rtc_dayofweek__RAM_D054_ = $D054
     call _LABEL_532F_
     and  a
     jr   z, _LABEL_5206_
@@ -4777,7 +4799,7 @@ _LABEL_51E4_:
     dec  a
     ld   [_RAM_DBFF_], a    ; _RAM_DBFF_ = $DBFF
     call _LABEL_535C_
-    ld   hl, _RAM_D053_ ; _RAM_D053_ = $D053
+    ld   hl, shadow_rtc_day__RAM_D053_ ; shadow_rtc_day__RAM_D053_ = $D053
     ld   c, $02
     call _LABEL_5401_
     ld   a, $03
@@ -4790,7 +4812,7 @@ _LABEL_5206_:
     jp   nc, _LABEL_4F95_
     inc  a
     ld   [_RAM_DBFF_], a    ; _RAM_DBFF_ = $DBFF
-    ld   de, _buffer__RAM_D051_ ; _buffer__RAM_D051_ = $D051
+    ld   de, shadow_rtc_buf_start_and_year__RAM_D051_ ; shadow_rtc_buf_start_and_year__RAM_D051_ = $D051
     ld   b, $03
 _LABEL_5217_:
     ld   a, [de]
@@ -4806,11 +4828,11 @@ _LABEL_5217_:
 
 _LABEL_522B_:
     ld   hl, _RAM_D029_ ; _RAM_D029_ = $D029
-    call _LABEL_5B03_
+    call convert_bcd2dec_at_hl_result_in_a__5B03_
     dec  a
     jr   nz, _LABEL_525D_
     ld   hl, buffer__RAM_D028_
-    call _LABEL_5B03_
+    call convert_bcd2dec_at_hl_result_in_a__5B03_
     cp   $0C
     jr   nc, _LABEL_5240_
     add  $64
@@ -4837,12 +4859,12 @@ _LABEL_525D_:
 
 _LABEL_526F_:
     ld   hl, _RAM_D029_ ; _RAM_D029_ = $D029
-    call _LABEL_5B03_
+    call convert_bcd2dec_at_hl_result_in_a__5B03_
     inc  a
     cp   $0D
     jr   c, _LABEL_52A3_
     ld   hl, buffer__RAM_D028_
-    call _LABEL_5B03_
+    call convert_bcd2dec_at_hl_result_in_a__5B03_
     cp   $0C
     jr   nc, _LABEL_5286_
     add  $64
@@ -4905,7 +4927,7 @@ _LABEL_52F5_:
     ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   hl, _TILEMAP0; $9800
     call calc_vram_addr_of_tile_xy_base_in_hl__4932_
-    ld   a, [_RAM_D053_]    ; _RAM_D053_ = $D053
+    ld   a, [shadow_rtc_day__RAM_D053_]    ; shadow_rtc_day__RAM_D053_ = $D053
     swap a
     and  $0F
     jr   z, _LABEL_5310_
@@ -4922,7 +4944,7 @@ _LABEL_5312_:
     ld   a, [_tilemap_pos_x__RAM_C8CB_]
     inc  a
     ld   [_tilemap_pos_x__RAM_C8CB_], a
-    ld   a, [_RAM_D053_]    ; _RAM_D053_ = $D053
+    ld   a, [shadow_rtc_day__RAM_D053_]    ; shadow_rtc_day__RAM_D053_ = $D053
     and  $0F
     add  $F1
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
@@ -4931,7 +4953,7 @@ _LABEL_5312_:
 
 _LABEL_532F_:
     ld   hl, $DBA0
-    ld   a, [_RAM_D054_]    ; _RAM_D054_ = $D054
+    ld   a, [shadow_rtc_dayofweek__RAM_D054_]    ; shadow_rtc_dayofweek__RAM_D054_ = $D054
     cp   $06
     jr   z, _LABEL_5359_
     ld   a, [_RAM_DBFF_]    ; _RAM_DBFF_ = $DBFF
@@ -4939,7 +4961,7 @@ _LABEL_532F_:
     jr   z, _LABEL_5357_
     ld   b, a
 _LABEL_5340_:
-    ld   de, _buffer__RAM_D051_ ; _buffer__RAM_D051_ = $D051
+    ld   de, shadow_rtc_buf_start_and_year__RAM_D051_ ; shadow_rtc_buf_start_and_year__RAM_D051_ = $D051
     ld   c, $03
 _LABEL_5345_:
     ld   a, [de]
@@ -4983,7 +5005,7 @@ _LABEL_5379_:
     ld   e, a
     ld   d, $00
     ld   h, $0A
-    call _LABEL_4832_
+    call maybe_divide_de_by_h_result_in_bc_remainder_in_l__4832_
     ld   a, c
     cp   $0A
     jr   c, _LABEL_5388_
@@ -5006,10 +5028,10 @@ _LABEL_538C_:
     cp   $08
     jr   nz, _LABEL_53CB_
     ld   a, [buffer__RAM_D028_ + 2]    ; buffer__RAM_D028_ + 2 = $D02A
-    ld   [_RAM_D053_], a    ; _RAM_D053_ = $D053
+    ld   [shadow_rtc_day__RAM_D053_], a    ; shadow_rtc_day__RAM_D053_ = $D053
     ld   a, [buffer__RAM_D028_ + 3]    ; buffer__RAM_D028_ + 3 = $D02B
     dec  a
-    ld   [_RAM_D054_], a    ; _RAM_D054_ = $D054
+    ld   [shadow_rtc_dayofweek__RAM_D054_], a    ; shadow_rtc_dayofweek__RAM_D054_ = $D054
     cp   $06
     jr   z, _LABEL_53C1_
     call _LABEL_532F_
@@ -5242,7 +5264,7 @@ _LABEL_5532_:
     ldi  [hl], a
     dec  b
     jr   nz, _LABEL_5532_
-    call memcopy_8_bytes_frombuffer__RAM_D028__to_copy_buffer__RAM_D051__5D50_
+    call memcopy_8_bytes_frombuffer__RAM_D028__to_copyshadow_rtc_buf_start_and_year__RAM_D051__5D50_
     call _LABEL_5B5F_
     call _LABEL_55A0_
     xor  a
@@ -5258,6 +5280,7 @@ _LABEL_5549_:
     xor  a
     ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
 
+    ; TODO: Maybe Read Hardware RTC and then ...
     ld   a, SYS_CMD_INIT_UNKNOWN_0x0C  ; $0C
     ld   [serial_rx_cmd_to_send__RAM_D036_], a
     call serial_io_send_command_and_receive_buffer__AEF_
@@ -5265,11 +5288,12 @@ _LABEL_5549_:
     cp   SYS_CHAR_SERIAL_RX_SUCCESS  ; $F9
     jr   nz, _LABEL_5579_
 
+    ; TODO: Maybe then compare Hardware RTC reply data with System Shadow RTC data
     call _LABEL_5D5F_
     ld   a, [_RAM_D03A_]
     and  a
     jr   z, _LABEL_5579_
-    call memcopy_8_bytes_frombuffer__RAM_D028__to_copy_buffer__RAM_D051__5D50_
+    call memcopy_8_bytes_frombuffer__RAM_D028__to_copyshadow_rtc_buf_start_and_year__RAM_D051__5D50_
     call _LABEL_5B5F_
     call _LABEL_55A0_
 _LABEL_5579_:
@@ -5300,7 +5324,7 @@ _LABEL_55A0_:
     and  $0F
     and  a
     jr   nz, _LABEL_55CB_
-    ld   hl, _RAM_D055_
+    ld   hl, shadow_rtc_am_pm__RAM_D055_
     ldi  a, [hl]
     and  a
     ld   a, $90
@@ -5313,7 +5337,7 @@ _LABEL_55B3_:
 _LABEL_55BB_:
     ld   a, $BE
     ld   [_RAM_D402_], a
-    ld   de, _RAM_D056_
+    ld   de, shadow_rtc_hour__RAM_D056_
     ld   hl, _RAM_D403_
     call _LABEL_56BC_
     jr   _LABEL_5600_
@@ -5323,13 +5347,13 @@ _LABEL_55CB_:
     ld   [_RAM_D400_], a
     ld   [_RAM_D401_], a
     ld   [_RAM_D402_], a
-    ld   a, [_RAM_D055_]
+    ld   a, [shadow_rtc_am_pm__RAM_D055_]
     and  a
     jr   z, _LABEL_55BB_
-    ld   a, [_RAM_D056_]
+    ld   a, [shadow_rtc_hour__RAM_D056_]
     and  $F0
     ld   b, a
-    ld   a, [_RAM_D056_]
+    ld   a, [shadow_rtc_hour__RAM_D056_]
     and  $0F
     add  $02
     cp   $0A
@@ -5346,13 +5370,13 @@ _LABEL_55F1_:
 _LABEL_5600_:
     ld   a, $73
     ld   [_RAM_D405_], a
-    ld   de, _RAM_D057_
+    ld   de, shadow_rtc_minute__RAM_D057_
     ld   hl, _RAM_D406_
     call _LABEL_56BC_
     ld   a, $BE
     ldi  [hl], a
     ldi  [hl], a
-    ld   de, _RAM_D058_
+    ld   de, shadow_rtc_maybe_seconds__RAM_D058_
     ld   hl, _RAM_D40A_
     call _LABEL_56BC_
     xor  a
@@ -5362,7 +5386,7 @@ _LABEL_5600_:
     ld   b, $02
     ld   hl, $030E
     call _LABEL_4944_
-    ld   a, [_RAM_D054_]
+    ld   a, [shadow_rtc_dayofweek__RAM_D054_]
     dec  a
     ld   b, $03
     call multiply_a_x_b__result_in_de__4853_
@@ -5376,18 +5400,18 @@ _LABEL_5600_:
     ld   [_RAM_D402_], a
     ld   a, $BE
     ld   [_RAM_D403_], a
-    ld   de, _RAM_D053_
+    ld   de, shadow_rtc_day__RAM_D053_
     ld   hl, _RAM_D404_
     call _LABEL_56BC_
     ld   a, $BE
     ldi  [hl], a
     ldi  [hl], a
-    ld   a, [_RAM_D052_]
+    ld   a, [shadow_rtc_month__RAM_D052_]
     swap a
     and  $0F
     ld   b, $0A
     call multiply_a_x_b__result_in_de__4853_
-    ld   a, [_RAM_D052_]
+    ld   a, [shadow_rtc_month__RAM_D052_]
     and  $0F
     add  e
     dec  a
@@ -5404,7 +5428,7 @@ _LABEL_5600_:
     ld   a, $BE
     ld   [_RAM_D40B_], a
     ld   [_RAM_D40C_], a
-    ld   a, [_buffer__RAM_D051_]
+    ld   a, [shadow_rtc_buf_start_and_year__RAM_D051_]
     bit  7, a
     jr   nz, _LABEL_5697_
     ld   a, $C2
@@ -5418,7 +5442,7 @@ _LABEL_5697_:
     ld   a, $C9
 _LABEL_569E_:
     ld   [_RAM_D40E_], a
-    ld   de, _buffer__RAM_D051_
+    ld   de, shadow_rtc_buf_start_and_year__RAM_D051_
     ld   hl, _RAM_D40F_
     call _LABEL_56BC_
     xor  a
@@ -5525,7 +5549,7 @@ _LABEL_5740_:
     xor  $01
     ld   [_RAM_D059_], a
     xor  a
-    ld   [_RAM_D052_], a
+    ld   [shadow_rtc_month__RAM_D052_], a
     call timer_wait_tick_AND_TODO__289_
     call timer_wait_tick_AND_TODO__289_
     call timer_wait_tick_AND_TODO__289_
@@ -5639,13 +5663,13 @@ _LABEL_57D5_:
     ld   b, $02
     ld   hl, $0203
     call _LABEL_4944_
-    ld   a, [_RAM_D056_]
+    ld   a, [shadow_rtc_hour__RAM_D056_]
     cp   $12
     jr   nz, _LABEL_581C_
     xor  a
-    ld   [_RAM_D056_], a
+    ld   [shadow_rtc_hour__RAM_D056_], a
 _LABEL_581C_:
-    ld   de, _RAM_D055_
+    ld   de, shadow_rtc_am_pm__RAM_D055_
     ld   a, [de]
     inc  de
     and  a
@@ -5664,7 +5688,7 @@ _LABEL_5835_:
     add  $10
     add  b
     ld   [_RAM_D402_], a
-    ld   [_RAM_D056_], a
+    ld   [shadow_rtc_hour__RAM_D056_], a
     ld   de, _RAM_D402_
 _LABEL_5841_:
     ld   hl, _RAM_D400_
@@ -5675,7 +5699,7 @@ _LABEL_5841_:
     ld   a, $73
     ldi  [hl], a
     inc  hl
-    ld   de, _RAM_D057_
+    ld   de, shadow_rtc_minute__RAM_D057_
     call _LABEL_56BC_
     xor  a
     ldi  [hl], a
@@ -5684,20 +5708,20 @@ _LABEL_5841_:
     ld   b, $02
     ld   hl, $0207
     call _LABEL_4944_
-    ld   de, _RAM_D052_
+    ld   de, shadow_rtc_month__RAM_D052_
     ld   hl, _RAM_D400_
     call _LABEL_56BC_
     ld   a, $BE
     ldi  [hl], a
     ldi  [hl], a
-    ld   de, _RAM_D053_
+    ld   de, shadow_rtc_day__RAM_D053_
     call _LABEL_56BC_
     ld   a, $BE
     ld   [_RAM_D406_], a
     ld   [_RAM_D408_], a
     ld   a, $9E
     ld   [_RAM_D407_], a
-    ld   de, _buffer__RAM_D051_
+    ld   de, shadow_rtc_buf_start_and_year__RAM_D051_
     ld   hl, _RAM_D409_
     call _LABEL_56BC_
     xor  a
@@ -5803,9 +5827,9 @@ _LABEL_593C_:
 
 _LABEL_5950_:
     cp   SYS_CHAR_0  ; $C0
-    jr   c, _LABEL_5987_
+    jr   c, rtc_set_to_new_date_and_time___5987_
     cp   (SYS_CHAR_LAST_NUM + 1)  ; $CA
-    jr   nc, _LABEL_5987_
+    jr   nc, rtc_set_to_new_date_and_time___5987_
     ld   b, $C0
     sub  b
     ld   c, a
@@ -5813,7 +5837,7 @@ _LABEL_5950_:
     ld   hl, _DATA_5DA1_
     call add_a_to_hl__486E_
     ld   a, [hl]
-    ld   hl, _buffer__RAM_D051_
+    ld   hl, shadow_rtc_buf_start_and_year__RAM_D051_
     call add_a_to_hl__486E_
     ld   a, [_RAM_D06C_]    ; _RAM_D06C_ = $D06C
     cp   $00
@@ -5830,55 +5854,83 @@ _LABEL_5975_:
     call _LABEL_59F2_
     jp   _LABEL_59F1_
 
-_LABEL_5987_:
+; Probably being called by Clock App
+; Set Hardware RTC with new values
+rtc_set_to_new_date_and_time___5987_:
+    ; Wait for Enter Key to finalize
+    ; Any other key... (
     cp   SYS_CHAR_ENTRA_CR  ; $2E
-    jr   nz, _LABEL_59ED_
-    ld   a, [_RAM_D056_]
+    jr   nz, _LABEL_59ED_  ; TODO
+
+    ; Convert Hour from BCD to decimal
+    ; and check if it's greater than 12
+    ld   a, [shadow_rtc_hour__RAM_D056_]
+    ; Multiply Upper BCD digit x 10
     swap a
     and  $0F
     ld   b, $0A
     call multiply_a_x_b__result_in_de__4853_
-    ld   a, [_RAM_D056_]
+    ; Add result to Lower BCD digit
+    ld   a, [shadow_rtc_hour__RAM_D056_]
     and  $0F
     add  e
-    cp   $0C
-    jr   nc, _LABEL_59A4_
-    xor  a
-    jr   _LABEL_59B7_
+    ; If hour >= 12:00 then it's PM and
+    ; and needs 24 -> 12 hour time conversion
+    cp   _TIME_HOUR_12  ; $0C
+    jr   nc, .convert_from_24hour_time__59A4_
+    xor  a  ; Set AM/PM, 0 = AM
+    jr   .set_am_pm__59B7_
 
-    _LABEL_59A4_:
-        sub  $0C
+    .convert_from_24hour_time__59A4_:
+        ; Convert from decimal back to BCD
+        ; First: Hour -= 12
+        sub  _TIME_HOUR_12  ; $0C
+        ; Hour / 10 -> Upper BCD Digit
         ld   d, $00
         ld   e, a
         ld   h, $0A
-        call _LABEL_4832_
+        call maybe_divide_de_by_h_result_in_bc_remainder_in_l__4832_
         ld   a, c
         swap a
+        ; Use Remainder for Lower BCD Digit
         or   l
-        ld   [_RAM_D056_], a
-        ld   a, $01
+        ld   [shadow_rtc_hour__RAM_D056_], a
+        ; Set AM/PM, 1 = PM
+        ld   a, _TIME_PM  ; $01
 
-    _LABEL_59B7_:
-        ld   [_RAM_D055_], a
-        call _LABEL_5A2B_
-        ld   a, [_RAM_D06A_]
+    .set_am_pm__59B7_:
+        ld   [shadow_rtc_am_pm__RAM_D055_], a
+; TODO: Is this validating the rest of the date?
+        call rtc_validate_shadow_data__5A2B_
+        ld   a, [rtc_validate_result__RAM_D06A_]
         and  a
         jp   z, _LABEL_5B12_
+
         di
-        ld   b, $08
-        ld   hl, _buffer__RAM_D051_
+        ; TODO: Maybe copying from Shadow RTC Buffer to Serial TX Buffer
+        ld   b, SYS_RTC_SET_DATE_AND_TIME_LEN  ; $08
+        ld   hl, shadow_rtc_buf_start_and_year__RAM_D051_
         ld   de, buffer__RAM_D028_
         call memcopy_b_bytes_from_hl_to_de__482B_
-        ld   a, SYS_CMD_INIT_UNKNOWN_0x0B  ; $0B
+
+        ld   a, SYS_CMD_RTC_SET_DATE_AND_TIME  ; $0B
         ld   [serial_cmd_to_send__RAM_D035_], a
 
     .send_loop_wait_valid_reply__59D5_:
-        ; ?? Where does it set the buffer TX length
-        ; in serial_cmd_to_send__RAM_D035_ required by the call below?
+        ; Note: Where does it set the required buffer TX length?
+        ; (should be: 8, aka SYS_RTC_SET_DATE_AND_TIME_LEN )
+        ;
+        ; Maybe casually relying on existing value from first system power-up?
+        ;
+        ; For example:
+        ; ld   a, SYS_RTC_SET_DATE_AND_TIME_LEN  ; $08  ; Send 8 bytes
+        ; ld   [serial_transfer_length__RAM_D034_], a
+        ;
         call serial_io_send_command_and_buffer__A34_
         ld   a, [input_key_pressed__RAM_D025_]
-        cp   $FC
+        cp   SYS_CHAR_SERIAL_TX_SUCCESS  ; $FC
         jr   z, _LABEL_59E4_
+
         call timer_wait_tick_AND_TODO__289_
         jr   .send_loop_wait_valid_reply__59D5_
 
@@ -5926,81 +5978,93 @@ _LABEL_59F2_:
 _DATA_5A21_:
 db $02, $07, $07, $07, $02, $0B, $06, $0B, $0B, $0B
 
-_LABEL_5A2B_:
-    ld   hl, _buffer__RAM_D051_
-    call _LABEL_5B03_
-    cp   $0C
-    jr   c, _LABEL_5A3B_
-    cp   $5C
-    jr   nc, _LABEL_5A3B_
-    jr   _LABEL_5A9A_
+; TODO: Probably something such as "validate_dates_for_RTC
+;
+; Starting with Year: Allowed range is 1992(92) - 2011(11)
+;
+; Note: Behold the Super Quique Y2K12 Bug! (unclear why that's the cutoff)
+rtc_validate_shadow_data__5A2B_:
+    ld   hl, shadow_rtc_buf_start_and_year__RAM_D051_
+    call convert_bcd2dec_at_hl_result_in_a__5B03_
+    ; Year must be < 12 ( <= 2012)
+    cp   _DATE_MAX_YEAR_2011_  ; 12  ; $0C
+    jr   c, ._LABEL_5A3B_
+    ; Or year must be >= 92 ( >= 1992)
+    cp   _DATE_MIN_YEAR_1992_  ; 92  ; $5C
+    jr   nc, ._LABEL_5A3B_
+    jr   .validation_fail_and_return__5A9A_  ; This is probably abort_and_fail__5A9A_
 
-_LABEL_5A3B_:
-    inc  hl
-    call _LABEL_5B03_
-    cp   $00
-    jr   z, _LABEL_5A9A_
-    cp   $0D
-    jr   nc, _LABEL_5A9A_
-    push hl
-    ld   hl, $5DB2
-    dec  a
-    call add_a_to_hl__486E_
-    ld   c, [hl]
-    inc  c
-    pop  hl
-    inc  hl
-    push bc
-    call _LABEL_5B03_
-    pop  bc
-    cp   $00
-    jr   z, _LABEL_5A9A_
-    cp   c
-    jr   nc, _LABEL_5A9A_
-    dec  hl
-    ld   a, [hl]
-    cp   $02
-    jr   nz, _LABEL_5A7F_
-    dec  hl
-    push hl
-    call _LABEL_5B03_
-    ld   e, a
-    ld   d, $00
-    ld   h, $04
-    call _LABEL_4832_
-    ld   a, l
-    and  a
-    pop  hl
-    inc  hl
-    jr   z, _LABEL_5A7F_
-    inc  hl
-    ld   a, [hl]
-    cp   $29
-    jr   z, _LABEL_5A9A_
-    dec  hl
-_LABEL_5A7F_:
-    ld   a, $04
-    call add_a_to_hl__486E_
-    call _LABEL_5B03_
-    cp   $0C
-    jr   nc, _LABEL_5A9A_
-    inc  hl
-    call _LABEL_5B03_
-    cp   $3C
-    jr   nc, _LABEL_5A9A_
-    call _LABEL_5A9F_
-    ld   a, $01
-    jr   _LABEL_5A9B_
+    ; Validate Continue...
+    ._LABEL_5A3B_:
+        inc  hl
+        ; HL now points to shadow_rtc_month__RAM_D052_
+        call convert_bcd2dec_at_hl_result_in_a__5B03_
+        cp   $00
+        jr   z, .validation_fail_and_return__5A9A_
+        cp   $0D
+        jr   nc, .validation_fail_and_return__5A9A_
+        push hl
+        ld   hl, $5DB2
+        dec  a
+        call add_a_to_hl__486E_
+        ld   c, [hl]
+        inc  c
+        pop  hl
+        inc  hl
+        push bc
+        call convert_bcd2dec_at_hl_result_in_a__5B03_
+        pop  bc
+        cp   $00
+        jr   z, .validation_fail_and_return__5A9A_
+        cp   c
+        jr   nc, .validation_fail_and_return__5A9A_
+        dec  hl
+        ld   a, [hl]
+        cp   $02
+        jr   nz, ._LABEL_5A7F_
+        dec  hl
+        push hl
+        call convert_bcd2dec_at_hl_result_in_a__5B03_
+        ld   e, a
+        ld   d, $00
+        ld   h, $04
+        call maybe_divide_de_by_h_result_in_bc_remainder_in_l__4832_
+        ld   a, l
+        and  a
+        pop  hl
+        inc  hl
+        jr   z, ._LABEL_5A7F_
+        inc  hl
+        ld   a, [hl]
+        cp   $29
+        jr   z, .validation_fail_and_return__5A9A_
+        dec  hl
 
-_LABEL_5A9A_:
-    xor  a
-_LABEL_5A9B_:
-    ld   [_RAM_D06A_], a
-    ret
+    ._LABEL_5A7F_:
+        ld   a, $04
+        call add_a_to_hl__486E_
+        call convert_bcd2dec_at_hl_result_in_a__5B03_
+        cp   $0C
+        jr   nc, .validation_fail_and_return__5A9A_
+        inc  hl
+        call convert_bcd2dec_at_hl_result_in_a__5B03_
+        cp   $3C
+        jr   nc, .validation_fail_and_return__5A9A_
+        call _LABEL_5A9F_
+        ld   a, $01
+        jr   .validation_success_return_ok__5A9B_
+
+    .validation_fail_and_return__5A9A_:
+        xor  a
+
+    .validation_success_return_ok__5A9B_:
+        ld   [rtc_validate_result__RAM_D06A_], a
+        ret
+
 
 _LABEL_5A9F_:
-    ld   hl, _buffer__RAM_D051_
-    call _LABEL_5B03_
+    ld   hl, shadow_rtc_buf_start_and_year__RAM_D051_
+    call convert_bcd2dec_at_hl_result_in_a__5B03_
     ld   e, a
     cp   $5C
     jr   nc, _LABEL_5AAE_
@@ -6016,7 +6080,7 @@ _LABEL_5AB0_:
     push bc
     ld   d, $00
     ld   h, $04
-    call _LABEL_4832_
+    call maybe_divide_de_by_h_result_in_bc_remainder_in_l__4832_
     ld   a, l
     and  a
     jr   nz, _LABEL_5AC8_
@@ -6026,9 +6090,9 @@ _LABEL_5AB0_:
 _LABEL_5AC8_:
     ld   de, _DATA_5DA6_
 _LABEL_5ACB_:
-    ld   hl, _RAM_D052_
+    ld   hl, shadow_rtc_month__RAM_D052_
     push de
-    call _LABEL_5B03_
+    call convert_bcd2dec_at_hl_result_in_a__5B03_
     pop  de
     dec  a
     pop  bc
@@ -6047,33 +6111,42 @@ _LABEL_5AE4_:
     push de
     dec  hl
     push hl
-    ld   hl, _RAM_D053_
-    call _LABEL_5B03_
+    ld   hl, shadow_rtc_day__RAM_D053_
+    call convert_bcd2dec_at_hl_result_in_a__5B03_
     pop  hl
     call add_a_to_hl__486E_
     ld   e, l
     ld   d, h
     ld   h, $07
-    call _LABEL_4832_
+    call maybe_divide_de_by_h_result_in_bc_remainder_in_l__4832_
     ld   a, l
     and  a
     jr   nz, _LABEL_5AFE_
     ld   a, $07
 _LABEL_5AFE_:
-    ld   [_RAM_D054_], a
+    ld   [shadow_rtc_dayofweek__RAM_D054_], a
     pop  de
     ret
 
-_LABEL_5B03_:
+
+; Convert value at [HL] from BCD to Decimal
+;
+; - Resulting BCD value in: A
+;
+; Destroys A, B, E (not counting call to multiply)
+convert_bcd2dec_at_hl_result_in_a__5B03_:
     ld   a, [hl]
+    ; Multiply Upper BCD digit x 10
     swap a
     and  $0F
     ld   b, $0A
     call multiply_a_x_b__result_in_de__4853_
+    ; Add result to Lower BCD digit
     ld   a, [hl]
     and  $0F
     add  e
     ret
+
 
 _LABEL_5B12_:
     ; Render text message to screen about continuing or
@@ -6123,7 +6196,7 @@ _LABEL_5B5F_:
     ld   a, $05
     ldh  [rIE], a
     ei
-    ld   hl, _RAM_D056_
+    ld   hl, shadow_rtc_hour__RAM_D056_
     ld   a, [hl]
     bit  4, a
     jr   z, _LABEL_5B73_
@@ -6141,20 +6214,20 @@ _LABEL_5B73_:
     ld   d, $00
     ld   e, a
     ld   h, $0C
-    call _LABEL_4832_
+    call maybe_divide_de_by_h_result_in_bc_remainder_in_l__4832_
     ld   a, [_RAM_D03A_]
     add  c
     ld   [_RAM_D049_], a
     xor  a
     ld   [_RAM_D048_], a
     call _LABEL_5BC8_
-    ld   hl, _RAM_D057_
+    ld   hl, shadow_rtc_minute__RAM_D057_
     call _LABEL_5BB9_
     ld   [_RAM_D049_], a
     ld   a, $01
     ld   [_RAM_D048_], a
     call _LABEL_5BC8_
-    ld   hl, _RAM_D058_
+    ld   hl, shadow_rtc_maybe_seconds__RAM_D058_
     call _LABEL_5BB9_
     ld   [_RAM_D049_], a
     ld   a, $02
@@ -6395,15 +6468,15 @@ _LABEL_5D3E_:
     ld   [_RAM_D02D_], a
     ret
 
-memcopy_8_bytes_frombuffer__RAM_D028__to_copy_buffer__RAM_D051__5D50_:
+memcopy_8_bytes_frombuffer__RAM_D028__to_copyshadow_rtc_buf_start_and_year__RAM_D051__5D50_:
     call _LABEL_5D3E_
     ld   b, $08
     ld   hl, buffer__RAM_D028_
-    ld   de, _buffer__RAM_D051_
+    ld   de, shadow_rtc_buf_start_and_year__RAM_D051_
     call memcopy_b_bytes_from_hl_to_de__482B_
     ret
 
-; TODO: compares buffers at buffer__RAM_D028_ and _buffer__RAM_D051_
+; TODO: compares buffers at buffer__RAM_D028_ and shadow_rtc_buf_start_and_year__RAM_D051_
 ; - Wherever they don't match:
 ;   -  ..D028 is copied into ...D051
 ;   - _RAM_D03A_ is set to 0x01
@@ -6413,7 +6486,7 @@ _LABEL_5D5F_:
     ld   [_RAM_D03A_], a
     ld   b, $08
     ld   hl, buffer__RAM_D028_
-    ld   de, _buffer__RAM_D051_
+    ld   de, shadow_rtc_buf_start_and_year__RAM_D051_
 
     .loop_compare_buffers__5D6E_:
         ld   a, [de]
@@ -6423,7 +6496,7 @@ _LABEL_5D5F_:
         ld   a, [hl]
         ld   [de], a
         ld   a, $01
-        ld   [_RAM_D03A_], a
+        ld   [_RAM_D03A_], a  ; TODO: Maybe setting "system shadow RTC" doesn't match "Received Hardware RTC"?
 
     .match_ok__5D79_:
         inc  de

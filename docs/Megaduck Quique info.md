@@ -41,6 +41,29 @@ Keyboard serial reply scan codes have different ordering than SYS_CHAR_* codes
 
 
 ## RTC?
+- Allowed Date Range in QuiQue System ROM: (1992 - 2011)
+  - Supported dates in RTC Hardware: TODO
+  - Format for all values is in BCD
+
+
+### Read RTC
+TODO
+
+### Set RTC
+- Use "Send Command With Buffer" (along with it's error handling and success/fail status)
+    - Values shown are system power-up defaults
+    - All values are in BCD format
+      - Ex: Month = December = 12th month = 0x12 (NOT 0x0C)
+    - Command: (0x0B) SYS_CMD_RTC_SET_DATE_AND_TIME
+    - Buffer: 8 Bytes
+        - 00: Year   : 94 (Year = 1900 + Date Byte in BCD 0x94) `Quique Sys Range: 0x92 - 0x11` (1992 - 2011)
+        - 01: Month  : 01 (January / Enero) `TODO: Range: 0x01 - 0x12`
+        - 02: Day    : 01 (1st)
+        - 03: DoW    : 06 (6th day of week: Saturday / Sabado) `TODO: Range: 0x01 -0x07`
+        - 04: AM/PM  : 00 (AM) `0=AM, 1=PM`- TODO: Verify
+        - 05: Hour   : 00 (With above it's: 12 am) `TODO: Range 0-11`
+        - 06: Minute : 00
+        - 07: Second?: 00
 
 ## Printing
 
