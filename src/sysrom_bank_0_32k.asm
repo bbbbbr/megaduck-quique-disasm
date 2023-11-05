@@ -3252,7 +3252,7 @@ memcopy_b_bytes_from_hl_to_de__482B_:
 ; - Result DE % H in       : L
 ;
 ; Destroys A, BC, DE, L
-maybe_divide_de_by_h_result_in_bc_remainder_in_l__4832_:
+divide_de_by_h_result_in_bc_remainder_in_l__4832_:
     ld   bc, $0000
     ld   l, $00
     ld   a, h
@@ -4369,7 +4369,7 @@ _LABEL_4E69_:
     ld   a, $01
     ld   [shadow_rtc_day__RAM_D053_], a
 
-    call _LABEL_5A9F_
+    call rtc_calc_day_of_week_for_current_date__5A9F_
     ld   a, [shadow_rtc_dayofweek__RAM_D054_]
     dec  a
     ld   [shadow_rtc_dayofweek__RAM_D054_], a
@@ -4380,7 +4380,7 @@ _LABEL_4E69_:
     ld   e, a
     ld   d, $00
     ld   h, $0A
-    call maybe_divide_de_by_h_result_in_bc_remainder_in_l__4832_
+    call divide_de_by_h_result_in_bc_remainder_in_l__4832_
     ld   a, c
     swap a
     or   l
@@ -4713,7 +4713,7 @@ _LABEL_5148_:
     ld   e, a
     ld   d, $00
     ld   h, $07
-    call maybe_divide_de_by_h_result_in_bc_remainder_in_l__4832_
+    call divide_de_by_h_result_in_bc_remainder_in_l__4832_
     ld   a, c
     ld   b, $10
     call multiply_a_x_b__result_in_de__4853_
@@ -4773,7 +4773,7 @@ _LABEL_51B0_:
     ld   e, a
     ld   d, $00
     ld   h, $0A
-    call maybe_divide_de_by_h_result_in_bc_remainder_in_l__4832_
+    call divide_de_by_h_result_in_bc_remainder_in_l__4832_
     ld   a, c
     swap a
     or   l
@@ -5005,7 +5005,7 @@ _LABEL_5379_:
     ld   e, a
     ld   d, $00
     ld   h, $0A
-    call maybe_divide_de_by_h_result_in_bc_remainder_in_l__4832_
+    call divide_de_by_h_result_in_bc_remainder_in_l__4832_
     ld   a, c
     cp   $0A
     jr   c, _LABEL_5388_
@@ -5466,7 +5466,6 @@ _LABEL_56BC_:
     ldi  [hl], a
     ret
 
-; TODO: keycode / button constant labeling
 _LABEL_56CB_:
     xor  a
     ld   [_RAM_D05A_], a
@@ -5854,13 +5853,14 @@ _LABEL_5975_:
     call _LABEL_59F2_
     jp   _LABEL_59F1_
 
+
 ; Probably being called by Clock App
 ; Set Hardware RTC with new values
 rtc_set_to_new_date_and_time___5987_:
     ; Wait for Enter Key to finalize
     ; Any other key... (
     cp   SYS_CHAR_ENTRA_CR  ; $2E
-    jr   nz, _LABEL_59ED_  ; TODO
+    jr   nz, .not_enter_key__59ED_
 
     ; Convert Hour from BCD to decimal
     ; and check if it's greater than 12
@@ -5889,7 +5889,7 @@ rtc_set_to_new_date_and_time___5987_:
         ld   d, $00
         ld   e, a
         ld   h, $0A
-        call maybe_divide_de_by_h_result_in_bc_remainder_in_l__4832_
+        call divide_de_by_h_result_in_bc_remainder_in_l__4832_
         ld   a, c
         swap a
         ; Use Remainder for Lower BCD Digit
@@ -5900,26 +5900,27 @@ rtc_set_to_new_date_and_time___5987_:
 
     .set_am_pm__59B7_:
         ld   [shadow_rtc_am_pm__RAM_D055_], a
-; TODO: Is this validating the rest of the date?
-        call rtc_validate_shadow_data__5A2B_
+
+        ; Now Validate RTC data
+        call rtc_validate_shadow_data_and_time__5A2B_
         ld   a, [rtc_validate_result__RAM_D06A_]
         and  a
-        jp   z, _LABEL_5B12_
+        ; If validation failed
+        jp   z, clock_app_message__invalid_date_time__then_ret__5B12_
 
+        ; Copy from Shadow RTC Buffer to Serial TX Buffer
+        ; then transfer it over Serial IO
         di
-        ; TODO: Maybe copying from Shadow RTC Buffer to Serial TX Buffer
         ld   b, SYS_RTC_SET_DATE_AND_TIME_LEN  ; $08
         ld   hl, shadow_rtc_buf_start_and_year__RAM_D051_
         ld   de, buffer__RAM_D028_
         call memcopy_b_bytes_from_hl_to_de__482B_
-
         ld   a, SYS_CMD_RTC_SET_DATE_AND_TIME  ; $0B
         ld   [serial_cmd_to_send__RAM_D035_], a
 
     .send_loop_wait_valid_reply__59D5_:
         ; Note: Where does it set the required buffer TX length?
         ; (should be: 8, aka SYS_RTC_SET_DATE_AND_TIME_LEN )
-        ;
         ; Maybe casually relying on existing value from first system power-up?
         ;
         ; For example:
@@ -5929,24 +5930,26 @@ rtc_set_to_new_date_and_time___5987_:
         call serial_io_send_command_and_buffer__A34_
         ld   a, [input_key_pressed__RAM_D025_]
         cp   SYS_CHAR_SERIAL_TX_SUCCESS  ; $FC
-        jr   z, _LABEL_59E4_
+        jr   z, .done_ok__59E4_
 
         call timer_wait_tick_AND_TODO__289_
         jr   .send_loop_wait_valid_reply__59D5_
 
+    .done_ok__59E4_:
+        ld   a, SYS_RTC_UPDATE_DATE_TIME_OK  ; $01
+        ld   [_RAM_D06B_], a  ; TODO: Label this, maybe RTC update status of some kind
+        call maybe_input_wait_for_keys__4B84
+        ret
 
-_LABEL_59E4_:
-    ld   a, $01
-    ld   [_RAM_D06B_], a
-    call maybe_input_wait_for_keys__4B84
-    ret
+    .not_enter_key__59ED_:
+        cp   SYS_CHAR_SALIDA  ; $2A
+        jr   z, .done_ok__59E4_
 
-_LABEL_59ED_:
-    cp   SYS_CHAR_SALIDA  ; $2A
-    jr   z, _LABEL_59E4_
-_LABEL_59F1_:
-    ret
+    _LABEL_59F1_:  ; TODO Maybe return no update?
+        ret
 
+; TODO: Could this part of Data Entry for Set New Date Time in the Clock App
+; Maybe calculating cursor position in fields
 _LABEL_59F2_:
     push hl
     pop  de
@@ -5974,84 +5977,128 @@ _LABEL_59F2_:
     call _LABEL_4944_
     ret
 
-; Data from 5A21 to 5A2A (10 bytes)
-_DATA_5A21_:
-db $02, $07, $07, $07, $02, $0B, $06, $0B, $0B, $0B
+    ; TODO: Maybe Look Up Table for Date/Time data entry screen
+    ; Offsets from first character on screen?
+    ; Data from 5A21 to 5A2A (10 bytes)
+    _DATA_5A21_:
+    db $02, $07, $07, $07, $02, $0B, $06, $0B, $0B, $0B
 
-; TODO: Probably something such as "validate_dates_for_RTC
+
+; Validate the Shadow RTC Date and Time before sending it to the Hardware RTC
 ;
-; Starting with Year: Allowed range is 1992(92) - 2011(11)
+; Note: Super Quique has a Y2K12 Bug!
+;       Look up tables only support years 1992 - 2011
 ;
-; Note: Behold the Super Quique Y2K12 Bug! (unclear why that's the cutoff)
-rtc_validate_shadow_data__5A2B_:
+;
+;
+rtc_validate_shadow_data_and_time__5A2B_:
+    ; Validate Year: Allowed range is 1992 - 2011
+    ;
     ld   hl, shadow_rtc_buf_start_and_year__RAM_D051_
     call convert_bcd2dec_at_hl_result_in_a__5B03_
     ; Year must be < 12 ( <= 2012)
-    cp   _DATE_MAX_YEAR_2011_  ; 12  ; $0C
-    jr   c, ._LABEL_5A3B_
-    ; Or year must be >= 92 ( >= 1992)
-    cp   _DATE_MIN_YEAR_1992_  ; 92  ; $5C
-    jr   nc, ._LABEL_5A3B_
-    jr   .validation_fail_and_return__5A9A_  ; This is probably abort_and_fail__5A9A_
+    ; And year must be >= 92 ( >= 1992)
+    cp   _DATE_MAX_YEAR_2011_  ; $0C (12)
+    jr   c, .continue_validation__5A3B_
+    cp   _DATE_MIN_YEAR_1992_  ; $5C (92)
+    jr   nc, .continue_validation__5A3B_
+    jr   .validation_fail_and_return__5A9A_
 
-    ; Validate Continue...
-    ._LABEL_5A3B_:
+    .continue_validation__5A3B_:
+        ; Validate Month: Allowed range is  1 - 12
+        ;
         inc  hl
         ; HL now points to shadow_rtc_month__RAM_D052_
         call convert_bcd2dec_at_hl_result_in_a__5B03_
+        ; Month must != 0
+        ; And Month be < 13 ( <= 12)
         cp   $00
         jr   z, .validation_fail_and_return__5A9A_
         cp   $0D
         jr   nc, .validation_fail_and_return__5A9A_
+
+        ; Validate Day within Month
+        ;
+        ; The Leap Year table is used first for all dates and then
+        ;  later non-leap year Februarys are checked to be < 29
+        ;
+        ; Use Month to into Max Days per Month Look Up Table
+        ; and store result in C (then increment +1 for >= via NC)
         push hl
-        ld   hl, $5DB2
+        ld   hl, RTC_DAYS_PER_MONTH_LEAP_YEARS_LUT__5DB2_  ; $5DB2
         dec  a
         call add_a_to_hl__486E_
         ld   c, [hl]
         inc  c
         pop  hl
         inc  hl
+        ; HL now points to shadow_rtc_day__RAM_D053_
         push bc
         call convert_bcd2dec_at_hl_result_in_a__5B03_
         pop  bc
+        ; Day must != 0
+        ; And Day must be <= Max day for current Month (in C)
         cp   $00
         jr   z, .validation_fail_and_return__5A9A_
         cp   c
         jr   nc, .validation_fail_and_return__5A9A_
+
+        ; Validate Day of Month for February in NON-Leap years
+        ;
+        ; Load month again and check if it's February (2nd month)
+        ; If not Feb then skip test
         dec  hl
+        ; HL now points to shadow_rtc_month__RAM_D052_
         ld   a, [hl]
-        cp   $02
-        jr   nz, ._LABEL_5A7F_
+        cp   _MONTH_FEB  ; $02
+        jr   nz, .test_is_february_or_is_leap_year_done__5A7F_
+
+        ; Check to see if it's a Leap Year
         dec  hl
+        ; HL now points to shadow_rtc_buf_start_and_year__RAM_D051_
         push hl
         call convert_bcd2dec_at_hl_result_in_a__5B03_
         ld   e, a
         ld   d, $00
         ld   h, $04
-        call maybe_divide_de_by_h_result_in_bc_remainder_in_l__4832_
+        call divide_de_by_h_result_in_bc_remainder_in_l__4832_
         ld   a, l
         and  a
         pop  hl
         inc  hl
-        jr   z, ._LABEL_5A7F_
+        ; If (Year % 4) == 0 then it's a leap year, skip Non-Leap Year handling
+        ; HL now points to shadow_rtc_month__RAM_D052_
+        jr   z, .test_is_february_or_is_leap_year_done__5A7F_
+
+        ; If it's a non-leap year, make sure Day of Month != 29 (in BCD format)
         inc  hl
+        ; HL now points to shadow_rtc_day__RAM_D053_
         ld   a, [hl]
-        cp   $29
+        cp   $29  ; 29th day in BCD format
         jr   z, .validation_fail_and_return__5A9A_
         dec  hl
+        ; HL now points to shadow_rtc_month__RAM_D052_
 
-    ._LABEL_5A7F_:
-        ld   a, $04
+    .test_is_february_or_is_leap_year_done__5A7F_:
+        ; Make sure Hour is 0 - 11 (not >= 12)
+        ld   a, (shadow_rtc_minute__RAM_D057_ - shadow_rtc_day__RAM_D053_)  ; $04
         call add_a_to_hl__486E_
+        ; HL now points to shadow_rtc_hour__RAM_D056_
         call convert_bcd2dec_at_hl_result_in_a__5B03_
-        cp   $0C
+        cp   _TIME_HOUR_12  ; $0C (12)
         jr   nc, .validation_fail_and_return__5A9A_
+
+        ; Make sure Minute is Hour is 0 - 59 (not >= 60)
         inc  hl
+        ; HL now points to shadow_rtc_minute__RAM_D057_
         call convert_bcd2dec_at_hl_result_in_a__5B03_
-        cp   $3C
+        cp   _TIME_MINUTE_60  ; $3C (60)
         jr   nc, .validation_fail_and_return__5A9A_
-        call _LABEL_5A9F_
-        ld   a, $01
+
+        ; Calculate Day of Week (DoW) based on current Year/Month/Day
+        ; Result is stored in  shadow_rtc_dayofweek__RAM_D054_
+        call rtc_calc_day_of_week_for_current_date__5A9F_
+        ld   a, SYS_RTC_VALIDATE_DATE_TIME_OK  ; $01
         jr   .validation_success_return_ok__5A9B_
 
     .validation_fail_and_return__5A9A_:
@@ -6062,71 +6109,123 @@ rtc_validate_shadow_data__5A2B_:
         ret
 
 
-_LABEL_5A9F_:
-    ld   hl, shadow_rtc_buf_start_and_year__RAM_D051_
-    call convert_bcd2dec_at_hl_result_in_a__5B03_
-    ld   e, a
-    cp   $5C
-    jr   nc, _LABEL_5AAE_
-    add  $08
-    jr   _LABEL_5AB0_
+; Calculate current Day of Week based on (Leap)Year, Month, Day
+; (only supports 1992 - 2011)
+;
+; Day of Week range is 1-7
+;
+; Formula is roughly:
+;  ((Starting Day of Week for Year
+;    + Sum of days for all preceding Months
+;    + Current day of Month) - 1)% 7
+;
+rtc_calc_day_of_week_for_current_date__5A9F_:
 
-_LABEL_5AAE_:
-    sub  $5C
-_LABEL_5AB0_:
-    ld   hl, $5DBE
-    call add_a_to_hl__486E_
-    ld   b, [hl]
-    push bc
-    ld   d, $00
-    ld   h, $04
-    call maybe_divide_de_by_h_result_in_bc_remainder_in_l__4832_
-    ld   a, l
-    and  a
-    jr   nz, _LABEL_5AC8_
-    ld   de, _DATA_5DB2_
-    jr   _LABEL_5ACB_
+    ; First step is to get Starting Day of Week by Year as start of Total
 
-_LABEL_5AC8_:
-    ld   de, _DATA_5DA6_
-_LABEL_5ACB_:
-    ld   hl, shadow_rtc_month__RAM_D052_
-    push de
-    call convert_bcd2dec_at_hl_result_in_a__5B03_
-    pop  de
-    dec  a
-    pop  bc
-    ld   c, a
-    and  a
-    ld   l, b
-    ld   h, $00
-    jr   z, _LABEL_5AE4_
-_LABEL_5ADC_:
-    ld   a, [de]
-    call add_a_to_hl__486E_
-    inc  de
-    dec  c
-    jr   nz, _LABEL_5ADC_
-_LABEL_5AE4_:
-    push de
-    dec  hl
-    push hl
-    ld   hl, shadow_rtc_day__RAM_D053_
-    call convert_bcd2dec_at_hl_result_in_a__5B03_
-    pop  hl
-    call add_a_to_hl__486E_
-    ld   e, l
-    ld   d, h
-    ld   h, $07
-    call maybe_divide_de_by_h_result_in_bc_remainder_in_l__4832_
-    ld   a, l
-    and  a
-    jr   nz, _LABEL_5AFE_
-    ld   a, $07
-_LABEL_5AFE_:
-    ld   [shadow_rtc_dayofweek__RAM_D054_], a
-    pop  de
-    ret
+        ; If Year is >= 92 ( >= 1992 ) then skip ahead
+        ld   hl, shadow_rtc_buf_start_and_year__RAM_D051_
+        call convert_bcd2dec_at_hl_result_in_a__5B03_
+        ld   e, a
+        cp   _DATE_MIN_YEAR_1992_  ; $5C (92)
+        jr   nc, .year_1992_thru_1999__5AAE_
+
+        ; Otherwise Year += 8 to handle 2 digit year Y2K overflow
+        ; and having 1992 as zero base
+        ;
+        ; 2000 (00) -> 2008 (8)
+        add  (_DATE_Y2K_RTC_WRAP_2000_ - _DATE_MIN_YEAR_1992_)  ; $08
+        jr   .year_adjustment_done__5AB0_
+
+        .year_1992_thru_1999__5AAE_:
+            ; Year -= 92 to set 1992 as zero base
+            sub  _DATE_MIN_YEAR_1992_  ; $5C (92)
+
+        .year_adjustment_done__5AB0_:
+            ; Use LUT to find starting Day of Week for current Year
+            ; Save DoW result in B
+            ld   hl, RTC_DOW_FIRST_DAY_OF_YEAR_LUT__5DB2_
+            call add_a_to_hl__486E_
+            ld   b, [hl]
+            push bc
+
+
+    ; Second step is to add the days from all the preceding months to Total
+
+        ; For Days per Month LUT, select whether or not to use Leap Year version
+        ; - E has decimal value of last 2 digits of year (non-1992 base modified)
+        ld   d, $00
+        ld   h, $04
+        call divide_de_by_h_result_in_bc_remainder_in_l__4832_
+        ld   a, l
+        and  a
+        ; If (Year % 4) != 0 then it's not a leap year
+        jr   nz, .not_a_leap_year__5AC8_
+        ; Use the Leap Year version of LUT
+        ld   de, RTC_DAYS_PER_MONTH_LEAP_YEARS_LUT__5DB2_
+        jr   .lookup_table_ready__5ACB_
+
+        .not_a_leap_year__5AC8_:
+            ; Use Non-Leap Year version of LUT
+            ld   de, RTC_DAYS_PER_MONTH_LUT__5DA6_
+
+        .lookup_table_ready__5ACB_:
+            ; Load (Month - 1) (since no need to add days for current month)
+            ld   hl, shadow_rtc_month__RAM_D052_
+            push de
+            call convert_bcd2dec_at_hl_result_in_a__5B03_
+            pop  de
+            dec  a
+            pop  bc
+            ; B has saved Day of Week (DoW)
+            ; Use HL to start calculating Day of Year (DoY)
+            ; - Initial value will be start DoW for Year
+            ld   c, a
+            and  a
+            ld   l, b
+            ld   h, $00
+            ; Skip over add loop if month is January
+            jr   z, .finalize_dow_calc__5AE4_
+
+        ; Add days from all preceding months to DoY total in HL
+        .loop_add_days_of_each_month__5ADC_:
+            ld   a, [de]
+            call add_a_to_hl__486E_
+            inc  de
+            dec  c
+            jr   nz, .loop_add_days_of_each_month__5ADC_
+
+    ; Now add current Day (of current month) to total
+    ; and calculate final Day of Week based on (Total -1) % 7
+
+        .finalize_dow_calc__5AE4_:
+            push de
+            dec  hl ; Adjust for current day being DoW Year Start +0 (not +1)
+            push hl
+
+            ; Add current Day to Day of Year Total in HL
+            ld   hl, shadow_rtc_day__RAM_D053_
+            call convert_bcd2dec_at_hl_result_in_a__5B03_
+            pop  hl
+            call add_a_to_hl__486E_
+
+            ; Final Day of Week = Day of Year % 7
+            ld   e, l
+            ld   d, h
+            ld   h, _DAYS_IN_WEEK ; $07
+            call divide_de_by_h_result_in_bc_remainder_in_l__4832_
+            ld   a, l
+            and  a
+            jr   nz, .done__5AFE_
+
+            ; Remap (Year % 7) == 0 -> 7th Day (Sunday)
+            ld   a, _WEEK_SUN  ; $07
+
+    .done__5AFE_:
+        ; Save result
+        ld   [shadow_rtc_dayofweek__RAM_D054_], a
+        pop  de
+        ret
 
 
 ; Convert value at [HL] from BCD to Decimal
@@ -6148,9 +6247,12 @@ convert_bcd2dec_at_hl_result_in_a__5B03_:
     ret
 
 
-_LABEL_5B12_:
-    ; Render text message to screen about continuing or
-    ; aborting by pressing escape/salida key
+; Render text message to screen about continuing /
+; aborting by pressing escape/salida key.
+;
+; - Wait for a keypress
+; - It's Ret will return to main clock app screen
+clock_app_message__invalid_date_time__then_ret__5B12_:
     ;
     ld   de, rom_str__PARA_CONTINUAR_O___5DE1_
     ld   hl, $010F        ; X,Y = 1,15
@@ -6167,30 +6269,40 @@ _LABEL_5B12_:
     ld   c, PRINT_NORMAL  ; $01
     call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
 
-_LABEL_5B33_:
-    call input_map_gamepad_buttons_to_keycodes__49C2_
-    ld   a, [input_key_pressed__RAM_D025_]
-    cp   $2A
-    jr   nz, _LABEL_5B33_
+    .wait_salida_esc_key_loop__5B33_:
+        call input_map_gamepad_buttons_to_keycodes__49C2_
+        ld   a, [input_key_pressed__RAM_D025_]
+        cp   SYS_CHAR_SALIDA  ; $2A
+        jr   nz, .wait_salida_esc_key_loop__5B33_
+
     xor  a
-    ld   [_RAM_D03A_], a
-    ld   [_RAM_D06C_], a    ; _RAM_D06C_ = $D06C
-    ld   c, $03
-    ld   hl, $99C0
-    ld   de, $000C
-_LABEL_5B4C_:
-    call wait_until_vbl__92C_
-    ld   b, $14
-_LABEL_5B51_:
-    ld   a, $BE
-    ldi  [hl], a
-    dec  b
-    jr   nz, _LABEL_5B51_
-    add  hl, de
-    dec  c
-    jr   nz, _LABEL_5B4C_
-    call maybe_input_wait_for_keys__4B84
+    ld   [_RAM_D03A_], a  ; TODO not sure what these are for... maybe sets "copy new rtc data" = FALSE?
+    ld   [_RAM_D06C_], a  ; TODO
+
+    ; After user presses key, clear the message off the screen
+    ; Starting at Tile Row #15 write 3 rows of blank tiles
+    ld   c, $03  ; 3 rows
+    ld   hl, _TILEMAP0 + (_TILEMAP_WIDTH * 14)  ; $99C0
+    ld   de, (_TILEMAP_WIDTH - _TILEMAP_SCREEN_WIDTH)  ; $000C
+
+    clear_tile_rows_loop__5B4C_:
+        call wait_until_vbl__92C_
+        ld   b, _TILEMAP_SCREEN_WIDTH  ; $14
+
+        clear_single_tile_row_loop__5B51_:
+            ld   a, FONT_BLANKSPACE  ; $BE
+            ldi  [hl], a
+            dec  b
+            jr   nz, clear_single_tile_row_loop__5B51_
+
+        ; Skip remainder of current Tile Map row down to next line
+        add  hl, de
+        dec  c
+        jr   nz, clear_tile_rows_loop__5B4C_
+
+    call maybe_input_wait_for_keys__4B84  ; TODO
     ret
+
 
 _LABEL_5B5F_:
     ld   a, $05
@@ -6214,7 +6326,7 @@ _LABEL_5B73_:
     ld   d, $00
     ld   e, a
     ld   h, $0C
-    call maybe_divide_de_by_h_result_in_bc_remainder_in_l__4832_
+    call divide_de_by_h_result_in_bc_remainder_in_l__4832_
     ld   a, [_RAM_D03A_]
     add  c
     ld   [_RAM_D049_], a
@@ -6517,14 +6629,18 @@ db $68, $42
 _DATA_5DA1_:
 db $05, $06, $01, $02, $00
 
-; Data from 5DA6 to 5DB1 (12 bytes)
-_DATA_5DA6_:
-db $1F, $1C, $1F, $1E, $1F, $1E, $1F, $1F, $1E, $1F, $1E, $1F
 
-; Data from 5DB2 to 5DD1 (32 bytes)
-_DATA_5DB2_:
-db $1F, $1D, $1F, $1E, $1F, $1E, $1F, $1F, $1E, $1F, $1E, $1F, $03, $05, $06, $07
-db $01, $03, $04, $05, $06, $01, $02, $03, $04, $06, $07, $01, $02, $04, $05, $06
+; Located at: _5DA6_
+;
+; Look up Tables used for RTC Date Calculations
+;
+; Particularly
+; - rtc_validate_shadow_data_and_time__5A2B_
+;   - called via: rtc_set_to_new_date_and_time___5987_
+;
+include "inc/rtc_date_calc_LUTs.inc"
+
+
 
 ; Data from 5DD2 to 5DE0 (15 bytes)
 ; Text string: "PUESTA EN HORA" (setting the time)

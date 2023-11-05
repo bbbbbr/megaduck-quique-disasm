@@ -70,12 +70,36 @@ DEF SYS_REPLY_NO_CART_IN_SLOT     EQU $06  ; TODO: Maybe also some failure durin
 DEF SYS_REPLY_MAYBE_KBD_START     EQU $0E  ; Maybe 0x0E ... why 0x04 when logged? Reply at start of a 4 byte keyboard reply packet 
 ; Maybe this is wrong... DEF SYS_REPLY_PERIPHERAL_DATA_INCOMING    EQU $0E  ; See above - This may be a general prologue/header for any sequence of data about to be sent by the peripheral hardware to the SM83 CPU over Serial IO
 
+DEF SYS_RTC_UPDATE_DATE_TIME_OK   EQU  1
+DEF SYS_RTC_VALIDATE_DATE_TIME_OK EQU  1
 DEF SYS_RTC_SET_DATE_AND_TIME_LEN EQU  8 ; 8 Bytes
 DEF _TIME_HOUR_12                 EQU  12
+DEF _TIME_MINUTE_60               EQU  60
 DEF _TIME_AM                      EQU  $00
 DEF _TIME_PM                      EQU  $01
 DEF _DATE_MAX_YEAR_2011_          EQU  12
 DEF _DATE_MIN_YEAR_1992_          EQU  92
+DEF _DATE_Y2K_RTC_WRAP_2000_      EQU  100
+DEF _MONTH_JAN                    EQU  1
+DEF _MONTH_FEB                    EQU  2
+DEF _MONTH_MAR                    EQU  3
+DEF _MONTH_APR                    EQU  4
+DEF _MONTH_MAY                    EQU  5
+DEF _MONTH_JUN                    EQU  6
+DEF _MONTH_JUL                    EQU  7
+DEF _MONTH_AUG                    EQU  8
+DEF _MONTH_SEP                    EQU  9
+DEF _MONTH_OCT                    EQU  10
+DEF _MONTH_NOV                    EQU  11
+DEF _MONTH_DEC                    EQU  12
+DEF _WEEK_MON                     EQU  1
+DEF _WEEK_TUE                     EQU  2
+DEF _WEEK_WED                     EQU  3
+DEF _WEEK_THU                     EQU  4
+DEF _WEEK_FRI                     EQU  5
+DEF _WEEK_SAT                     EQU  6
+DEF _WEEK_SUN                     EQU  7
+DEF _DAYS_IN_WEEK                 EQU  7
 
 DEF VBL_CMD_COPY_16_BYTES_FROM_COPY_BUF_TO_HL   EQU $3
 DEF VBL_CMD_COPY_16_BYTES_FROM_HL_TO_COPY_BUF   EQU $4
