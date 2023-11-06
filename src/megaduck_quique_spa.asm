@@ -58,7 +58,7 @@ DEF SYS_CMD_ABORT_OR_FAIL         EQU $04  ; TODO: What does this do and why?
 DEF SYS_CMD_RUN_CART_IN_SLOT      EQU $08
 DEF SYS_CMD_INIT_UNKNOWN_0x09     EQU $09
 DEF SYS_CMD_RTC_SET_DATE_AND_TIME EQU $0B  ; Sets Hardware RTC Date and Time using multi-byte buffer send/TX
-DEF SYS_CMD_INIT_UNKNOWN_0x0C     EQU $0C  ; Used in multi-byte buffer receive/RX
+DEF SYS_CMD_RTC_GET_DATE_AND_TIME EQU $0C  ; Used in multi-byte buffer receive/RX
 
 DEF SYS_REPLY_MULTI_BYTE_SEND_AND_CHECKSUM_OK             EQU $01
 DEF SYS_REPLY_BOOT_OK             EQU $01  ; Reply on startup that allows rest of code to proceed
@@ -77,7 +77,7 @@ DEF _TIME_HOUR_12                 EQU  12
 DEF _TIME_MINUTE_60               EQU  60
 DEF _TIME_AM                      EQU  $00
 DEF _TIME_PM                      EQU  $01
-DEF _DATE_MAX_YEAR_2011_          EQU  12
+DEF _DATE_MAX_YEAR_2011_          EQU  (11 + 1) ; 12
 DEF _DATE_MIN_YEAR_1992_          EQU  92
 DEF _DATE_Y2K_RTC_WRAP_2000_      EQU  100
 DEF _MONTH_JAN                    EQU  1
@@ -195,7 +195,7 @@ input_key_pressed__RAM_D025_: db         ; Byte 3/4 in Keyboard reply seq. Gamep
 serial_io_checksum_calc__RAM_D026_: db      ; Byte 4/4 in Keyboard reply seq. Should == 2's Complement of (Byte 1 + Byte 2 + Byte 3_
 input_key_modifier_flags__RAM_D027_: db  ; Byte 2/4 in Keyboard reply seq. input_kbd_rx_2_modifiers__RAM_D027_ Stores Modifier flag keys
 
-buffer__RAM_D028_: db                   ; At least 8 bytes in size, but often direct access to values inside it's range
+buffer__RAM_D028_: db                   ; OFten (always?) used for Serial IO transfers. At least 8 bytes in size, but often direct access to values inside it's range
 _RAM_D029_: db
 _RAM_D02A_: ds $3
 _RAM_D02D_: ds $7

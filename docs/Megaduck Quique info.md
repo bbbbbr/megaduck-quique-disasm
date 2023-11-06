@@ -46,8 +46,6 @@ Keyboard serial reply scan codes have different ordering than SYS_CHAR_* codes
   - Format for all values is in BCD
 
 
-### Read RTC
-TODO
 
 ### Set RTC
 - Use "Send Command With Buffer" (along with it's error handling and success/fail status)
@@ -64,6 +62,11 @@ TODO
         - 05: Hour   : 00 (With above it's: 12 am) `TODO: Range 0-11`
         - 06: Minute : 00
         - 07: Second?: 00
+
+### Read RTC
+- Use "Send Command and Read Buffer" (along with it's error handling and success/fail status)
+    - Command: (0x0C) SYS_CMD_RTC_GET_DATE_AND_TIME
+      - Values are the same (so far) as SYS_CMD_RTC_SET_DATE_AND_TIME
 
 ## Printing
 
@@ -105,7 +108,9 @@ There is some cross-mapping of the GamePad and Keyboard data to allow input with
   - ? TODO: Should be reverse of above, but need to check
 
 ## Sending a Buffer over Serial IO  
+  - serial_io_send_command_and_buffer__A34_
   - Max Length: 12 (?)
+
   - Turn off all interrupts except serial
   - Send Initial Command (Ex: 0x0B)
   - Wait 1/2 msec (?)
@@ -127,7 +132,7 @@ There is some cross-mapping of the GamePad and Keyboard data to allow input with
           - Wait for response up to 50 msec
             `Check_Send_Byte_OK`
               - If OK calculate checksum (truncated to 8 bits) and send it
-                - two's complement of (Sum of all bytes sent)
+                - two's complement of (Sum of all bytes sent but excluding checksum)
                   - I.E: (((Length + 2) + sum of buffer bytes) xor 0xFF) + 1
               - Wait for response up to 50 msec
                 - If no Reply then Failed
@@ -143,4 +148,27 @@ There is some cross-mapping of the GamePad and Keyboard data to allow input with
 
 
 ## Receiving a Buffer over Serial IO
-  - TODO: serial_io_send_command_and_receive_buffer__AEF_
+  - serial_io_send_command_and_receive_buffer__AEF_
+  - Max Length: maybe 13 bytes
+    - So far observed max used is 8 bytes for reading RTC data
+
+  - Turn off all interrupts except serial
+  - Wait 1/4 msec
+  - Send Initial Command (Ex: 0x0C)
+    - `RX_Byte_Loop`
+      - Wait for response up to 50 msec
+        - If no Reply then Failed
+        - If RX OK then Save/Process Reply byte
+          - 1st RX Byte: Length of transfer
+            - (Payload size = Length - 2 to strip off Length and Checksum bytes)
+            - If Raw Length >= 14: Then Failed
+                - Send SYS_CMD_ABORT_OR_FAIL (0x04) out over serial
+            - If Raw length < 14: continue receiving bytes
+          - 2nd -> (Length-1) RX Bytes : Payload bytes, save them to buffer
+          - Last RX Byte: Checksum
+            - two's complement of (Sum of all bytes received except checksum [so length is included])
+              - I.E: (((Length + 2) + sum of buffer bytes) xor 0xFF) + 1
+    - If transfer completed with no errors and expected number of bytes (from 1st RX byte)
+      - then Send SYS_CMD_DONE_OR_OK (0x01) out over serial
+
+    
