@@ -1,5 +1,5 @@
 
-; SECTION "rom0_serial_io_functions_9CF", ROM0[$09CF]
+; SECTION "rom0_serial_io_9CF", ROM0[$09CF]
 
 ; ===== Serial IO peripheral interface functions =====
 
