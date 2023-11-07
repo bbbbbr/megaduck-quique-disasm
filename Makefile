@@ -10,7 +10,7 @@ INCPATH=$(SRCDIR)
 REF_ROM_DIR=reference_rom
 REFERENCE_ROM_NAME=megaduck_quique_spa.duck
 REFERENCE_ROM=$(REF_ROM_DIR)/$(REFERENCE_ROM_NAME)
-ROMNAME_BASE=quique
+ROMNAME_BASE=megaduck_quique_spa
 
 SPLIT_ROMS_DIR=$(REF_ROM_DIR)/split_roms
 
