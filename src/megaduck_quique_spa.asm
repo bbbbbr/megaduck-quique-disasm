@@ -51,6 +51,7 @@ DEF INIT_KEY_2                    EQU $E4
 DEF INIT_KEY_3                    EQU $55
 DEF INIT_KEYS_DIDNT_MATCH_IN_RAM  EQU $AA
 
+; Serial IO peripheral commands
 DEF SYS_CMD_INIT_SEQ_REQUEST      EQU $00  ; Value sent to request the 255..0 countdown sequence (be sent into the serial port)
 DEF SYS_CMD_READ_KEYS_MAYBE       EQU $00
 DEF SYS_CMD_DONE_OR_OK            EQU $01  ; TODO: What does this do and why?
