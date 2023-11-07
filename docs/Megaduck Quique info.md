@@ -2,6 +2,7 @@
 
 
 # Keyboard/Character/Font classification
+See definitions in `src/inc`
 - KBD_CODE_* : Keyboard scan codes received over the serial port in Byte 3 of the serial port keyboard reply packet, as well as modifier flags from Byte 2. Upper/Lower case/etc are represented through Shift and Caps Lock flags.
 
 - SYS_CHAR_* : Scan codes are translated into these Quique internal character codes (through lookup tables and additional translation code). Supports Upper and Lower case as distinct values.
@@ -10,6 +11,31 @@
 
 
 # Serial Interface to Peripherals
+
+## Power-On Initialization
+  - TODO: needs review and maybe tidyup
+  
+  - Turn off all interrupts except serial
+  - Send following sequence of bytes via serial_io_send_byte__B64_
+    - 0,1,2,3...255
+      - 1/4 msec delay between each transfer
+  - Wait for response up to 50 msec
+    - If failed
+    - If OK and resulting byte was SYS_REPLY_BOOT_OK (0x01)
+      - Send SYS_CMD_INIT_SEQ_REQUEST (0x00) via serial_io_send_byte__B64_
+        - 1/4 msec delay
+        - Turn on serial interrupt
+        - Use external serial clock
+        - Wait for reply sequence of 255, 254, 253..0
+          - Use a wait with no timeout
+            - If any byte didn't match then set fail flag
+        - After done receiving check fail flag
+          - Turn off serial interrupt
+          - If any failed then send
+            - SYS_CMD_ABORT_OR_FAIL  ; $04
+          - If all bytes matched the expected sequence order then send
+            - SYS_CMD_DONE_OR_OK  ; $01
+
 
 ## Keyboard
  - ? DEF SYS_CMD_READ_KEYS_MAYBE       EQU $00
@@ -44,8 +70,6 @@ Keyboard serial reply scan codes have different ordering than SYS_CHAR_* codes
 - Allowed Date Range in QuiQue System ROM: (1992 - 2011)
   - Supported dates in RTC Hardware: TODO
   - Format for all values is in BCD
-
-
 
 ### Set RTC
 - Use "Send Command With Buffer" (along with it's error handling and success/fail status)
