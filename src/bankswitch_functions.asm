@@ -30,7 +30,7 @@ _switch_bank_memcopy_hl_to_de_len_bc_ROM__7EF_:
     _wait_loop__703_:
         dec  a
         jr   nz, _wait_loop__703_
-    call _memcopy_in_RAM__C900_
+    call memcopy_in_RAM__C900_
     jp   $C940  ; TODO: probably the return bankswitch
 
 

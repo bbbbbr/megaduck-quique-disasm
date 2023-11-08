@@ -121,7 +121,32 @@ DEF MENU_FONT_128_TILES           EQU 128
 DEF TEXTBOX_OFFSET_TO_MIDDLE_TILES EQU $3 ; Top, middle and bottom of textbox are each comprised of 3 tiles (left/middle/right)
 DEF TEXTBOX_OFFSET_TO_BOTTOM_TILES EQU $6 ; Top, middle and bottom of textbox are each comprised of 3 tiles (left/middle/right)
 
+DEF MAINMENU_ICON_WIDTH            EQU  3  ; Icon width in Tiles
+DEF MAINMENU_ICON_HEIGHT           EQU  3  ; Icon width in Tiles
+DEF MAINMENU_ICON_SPACE_X          EQU  2  ; Space in Tiles
+DEF MAINMENU_ICON_SPACE_Y          EQU  2  ; Space in Tiles
+DEF MAINMENU_ICON_FIRST_X          EQU  1  ; First in Tiles
+DEF MAINMENU_ICON_FIRST_Y          EQU  3  ; Space in Tiles
+DEF MAINMENU_GRID_WIDTH            EQU  4  ; 4 Icons Wide
+DEF MAINMENU_GRID_HEIGHT           EQU  3  ; 3 Icons Tall
+DEF MAINMENU_NUM_ICONS             EQU  (MAINMENU_GRID_WIDTH * MAINMENU_GRID_HEIGHT)  ; 12 icons in a 4x3 grid
 
+
+; Row 1
+DEF MAINMENU_APP_CLOCK            EQU   0  ; $0
+DEF MAINMENU_APP_CALENDAR         EQU   1  ; $1
+DEF MAINMENU_APP_CALCULATOR       EQU   2  ; $2
+DEF MAINMENU_APP_AGENDA           EQU   3  ; $3
+; Row 2
+DEF MAINMENU_APP_SPELLCHECKER     EQU   4  ; $4
+DEF MAINMENU_APP_GAMES            EQU   5  ; $5
+DEF MAINMENU_APP_PAINT            EQU   6  ; $6
+DEF MAINMENU_APP_BASIC            EQU   7  ; $7
+; Row 3
+DEF MAINMENU_APP_PIANO            EQU   8  ; $8
+DEF MAINMENU_APP_WORD_PROCESSOR   EQU   9  ; $9
+DEF MAINMENU_APP_WORDDRAWINGS     EQU  10  ; $A
+DEF MAINMENU_APP_RUN_CARTRIDGE    EQU  11  ; $B
 
 
 SECTION "wram_c800__shadow_oam_", WRAM0[$C800]
@@ -142,7 +167,7 @@ _rombank_currrent__C8D7_: db
 _rombank_saved__C8D8_: ds $28
 
 SECTION "wram_functions_start_c900", WRAM0[$c900]
-_memcopy_in_RAM__C900_:                           ds $20
+memcopy_in_RAM__C900_:                           ds $20
 _switch_bank_jump_hl_RAM__C920_:                  ds $20
 _switch_bank_return_to_saved_bank_RAM__C940_:     ds $20
 _switch_bank_memcopy_hl_to_de_len_bc_RAM__C960_:  ds $20
@@ -248,7 +273,7 @@ _RAM_D06B_: db
 SECTION "wram_d06c", WRAMX[$d06c], BANK[$1]
 _RAM_D06C_: db
 _RAM_D06D_: db
-_RAM_D06E_: db
+maybe_mainmenu_selected_app__RAM_D06E_: db
 
 SECTION "wram_d072", WRAMX[$D072]
 _RAM_D072_: db
@@ -412,6 +437,7 @@ SECTION "hram_fff0", HRAM[$fff0]
 _RAM_FFF0_: db
 
 
+; First 32K Bank (#0) with many system functions in it and the Main Menu 
 include "sysrom_bank_0_32k.asm"
 
 
