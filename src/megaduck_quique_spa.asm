@@ -1,6 +1,7 @@
 
 
 ; Turn on to enable skipping some MegaDuck QuiQue hardware specific code
+; so that the QuiQue ROM will run the Main Menu on a GB88888888888888888888888888888888888888888
 ; def GB_DEBUG = 1
 
  

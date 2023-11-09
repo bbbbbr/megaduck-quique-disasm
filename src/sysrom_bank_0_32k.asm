@@ -17,6 +17,7 @@ _RST__08_:
     di
     jp   switch_bank_return_to_saved_bank_RAM__C940_
 
+_RST_10_:
 _RST_10_serial_io_send_command_and_buffer__0010_:
     ei
     call serial_io_send_command_and_buffer__A34_
@@ -211,6 +212,7 @@ _GB_ENTRY_POINT_100_:
     xor  a
     ld   [vbl_action_select__RAM_D195_], a
 
+IF (!(DEF(GB_DEBUG)))
     ; Initialize Serially attached peripheral
     call serial_system_init_check__9CF_
     wait_serial_status_ok__108_:
@@ -258,7 +260,7 @@ _GB_ENTRY_POINT_100_:
     .init_keys_check_passed__014E_:
         xor  a
         ld   [_RAM_D400_], a
-
+ENDC
     .init_keys_check_done_now_init__152_:
         di
         ld   sp, $C400
@@ -268,13 +270,14 @@ _GB_ENTRY_POINT_100_:
 
 
     main_system_loop__15C_:
+IF (!(DEF(GB_DEBUG)))
         ; Check result of previous init sequence test
         ld   a, [_RAM_D400_]
         cp   INIT_KEYS_DIDNT_MATCH_IN_RAM  ; $AA
         ; Note: To force an RTC update to configured defaults use this instead (no Z test)
         ; call rtc_set_default_time_and_date__25E_
         call z, rtc_set_default_time_and_date__25E_
-
+ENDC
         ; Load Tile Data for the Main Menu launcher (Icons, Cursor)
         call wait_until_vbl__92C_
         call display_screen_off__94C_
@@ -282,7 +285,6 @@ _GB_ENTRY_POINT_100_:
         ld   de, gfx_tile_data__main_menu_icons__11F2_  ; Source
         ld   bc, (MENU_ICONS_128_TILES * TILE_SZ_BYTES) ; Copy size: 128 tiles (2048 bytes)
         call memcopy_in_RAM__C900_
-
 
         ; Load Tile Data for the Main Menu font
         call wait_until_vbl__92C_
@@ -323,8 +325,8 @@ _GB_ENTRY_POINT_100_:
         cp   MAIN_MENU_APP_CALCULATOR  ; $02
         jr   nz, .check_app_agenda__1C5_
         di
-        ld   hl, _RST__08_  ; _RST__08_ = $0008
-        res  7, h
+        ld   hl, _RST__08_  ; _RST__08_ in Bank 1 might launch the Agenda App
+        res  7, h           ; TODO: What does this even do when H is already 0x00?
         ld   a, $01
         call switch_bank_in_a_jump_hl_RAM__C920_
         ei
@@ -334,8 +336,8 @@ _GB_ENTRY_POINT_100_:
         cp   MAIN_MENU_APP_AGENDA  ; $03
         jr   nz, .check_app_spellchecker__1D7_
         di
-        ld   hl, $0010
-        res  7, h
+        ld   hl, _RST_10_  ; _RST_10_ in Bank 1 might launch the Agenda App
+        res  7, h          ; TODO: What does this even do when H is already 0x00?
         ld   a, $01
         call switch_bank_in_a_jump_hl_RAM__C920_
         ei
@@ -345,8 +347,8 @@ _GB_ENTRY_POINT_100_:
         cp   MAIN_MENU_APP_SPELLCHECKER  ; $04
         jr   nz, .check_app_games__1EA_
         di
-        ld   hl, _RST__18_  ; _RST__18_ = $0018
-        res  7, h
+        ld   hl, _RST__18_  ; _RST__18_ in Bank 1 might launch the Spellchecker App
+        res  7, h           ; TODO: What does this even do when H is already 0x00?
         ld   a, $01
         call switch_bank_in_a_jump_hl_RAM__C920_
         ei
@@ -356,8 +358,8 @@ _GB_ENTRY_POINT_100_:
         cp   MAIN_MENU_APP_GAMES  ; $05
         jr   nz, .check_app_paint__1FD_
         di
-        ld   hl, _RST__20_  ; _RST__20_ = $0020
-        res  7, h
+        ld   hl, _RST__20_  ; _RST__20_ in Bank 1 might launch the Games App
+        res  7, h           ; TODO: What does this even do when H is already 0x00?
         ld   a, $01
         call switch_bank_in_a_jump_hl_RAM__C920_
         ei
@@ -379,8 +381,8 @@ _GB_ENTRY_POINT_100_:
         jr   nz, .check_app_paino__226_
         di
         call _LABEL_52F_
-        ld   hl, $0010
-        res  7, h
+        ld   hl, _RST_10_  ; _RST_10_ in Bank 2 might launch the Basic Programming App
+        res  7, h          ; TODO: What does this even do when H is already 0x00?
         ld   a, $02
         call switch_bank_in_a_jump_hl_RAM__C920_
         call _LABEL_54B_
@@ -395,29 +397,28 @@ _GB_ENTRY_POINT_100_:
 
     .check_app_word_processor__230_:
         cp   MAIN_MENU_APP_WORD_PROCESSOR  ; $09
-        jr   nz, .check_app_wordrawings__249_
+        jr   nz, .check_app_worddrawings__249_
         di
         call _LABEL_52F_
-        ld   hl, $0008
-        res  7, h
+        ld   hl, _RST__08_ ; _RST_08_ in Bank 2 might launch the Word Processor App
+        res  7, h          ; TODO: What does this even do when H is already 0x00?
         ld   a, $02
         call switch_bank_in_a_jump_hl_RAM__C920_
         call _LABEL_54B_
         ei
         jp   main_system_loop__15C_
 
-    .check_app_wordrawings__249_:
+    .check_app_worddrawings__249_:
         cp   MAIN_MENU_APP_WORDDRAWINGS  ; $0A (10)
         jr   nz, .check_app_run_cartridge__253_
         call _LABEL_5E55_
         jp   main_system_loop__15C_
 
-
     .check_app_run_cartridge__253_:
         cp   MAIN_MENU_APP_RUN_CARTRIDGE
         jp   nz, main_system_loop__15C_
         call maybe_try_run_cart_from_slot__5E1_
-        jp   main_system_loop__15C_  ; TODO: Return to main_menu_init?
+        jp   main_system_loop__15C_
 
 
 ; Sets the RTC to Power-Up default Date and Time via Serial IO
@@ -900,6 +901,7 @@ _LABEL_52F_:
     ld   b, $C0
     jp   memcopy_b_bytes_from_hl_to_de__482B_
 
+; TODO: Maybe this displays a "back to main menu" notice
 _LABEL_54B_:
     ld   a, [_RAM_D080_]
     and  $02
@@ -1131,6 +1133,9 @@ db $C9
 vram_init__752_:
     ld   a, $00
     ld   [_rombank_currrent__C8D7_], a
+    IF (DEF(GB_DEBUG))
+        call wait_until_vbl__92C_
+    ENDC
     ldh  [rLCDC], a  ; clear all LCDC bits
 
         ld   hl, _TILEDATA8000  ; $8000
@@ -1172,7 +1177,9 @@ vram_init__752_:
 
         ; Clear OAM via cleared shadow OAM
         ; TODO: Is there no bus conflict when oam DMA is run from ROM on the Quique with interrupts disabled?
+        IF (!(DEF(GB_DEBUG)))
         call _oam_dma_routine_in_ROM__7E3_
+        ENDC
 
         ; Set the BG & Sprite color palettes
         ld   a, COLS_0WHT_1LGRY_2DGRY_3BLK  ; $E4
@@ -1220,6 +1227,9 @@ vram_init__752_:
         ld   hl, _oam_dma_routine_in_HRAM__FF80_
         ld   de, _oam_dma_routine_in_ROM__7E3_ ; $07E3
         call _memcpy_32_bytes__7CA_
+        IF (DEF(GB_DEBUG))
+            call _oam_dma_routine_in_HRAM__FF80_
+        ENDC
 
         ; Clear 42 bytes of RAM used for OAM slot management
         ld   a, OAM_SLOT_EMPTY

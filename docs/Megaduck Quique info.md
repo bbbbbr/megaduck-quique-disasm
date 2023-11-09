@@ -14,7 +14,7 @@ See definitions in `src/inc`
 
 ## Power-On Initialization
   - TODO: needs review and maybe tidyup
-  
+
   - Turn off all interrupts except serial
   - Send following sequence of bytes via serial_io_send_byte__B64_
     - 0,1,2,3...255
@@ -106,6 +106,8 @@ Request booting from the cart slot
 - Wait for a serial reply with the result
   - No cart found in slot: 0x06
   - If cart was found the program seems to idle in a endless nop loop. Maybe waiting for execution to transfer over. Perhaps CPU reset is handled by the peripheral hardware.
+
+- ? TODO: What happens to WRAM? Does it get preserved or reset?
 
 ## Any Save/External RAM built in?
 
