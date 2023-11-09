@@ -13,7 +13,7 @@ _DUCK_ENTRY_POINT_0000_:
 
 _RST__08_:
     ei
-    call maybe_mainmenu_run__4A7B_
+    call ui_icon_menu_draw_and_run__4A7B_
     di
     jp   switch_bank_return_to_saved_bank_RAM__C940_
 
@@ -292,25 +292,25 @@ _GB_ENTRY_POINT_100_:
         ld   bc, (MENU_FONT_128_TILES * TILE_SZ_BYTES) ; Copy size: 128 tiles (2048 bytes)
         call memcopy_in_RAM__C900_
 
-        xor  a
-        ld   [_RAM_D06C_], a
+        xor  a  ; MENU_ESCAPE_KEY_RUNS_LAST_ICON_FALSE
+        ld   [ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_], a
 
         ; Draw Main Menu Tilemap
-        ld   a, MAINMENU_NUM_ICONS  ; $0C (12)
-        ld   [_RAM_D06D_], a
-        call maybe_mainmenu_run__4A7B_
+        ld   a, MAIN_MENU_NUM_ICONS  ; $0C (12)
+        ld   [ui_grid_menu_icon_count__RAM_D06D_], a
+        call ui_icon_menu_draw_and_run__4A7B_
         call _LABEL_56E_
 
 
     ; Select which App to run
-        ld   a, [maybe_mainmenu_selected_app__RAM_D06E_]
-        cp   MAINMENU_APP_CLOCK  ; $00
+        ld   a, [ui_grid_menu_selected_icon__RAM_D06E_]
+        cp   MAIN_MENU_APP_CLOCK  ; $00
         jr   nz, .check_app_calendar__1A3_
         call _LABEL_54AE_
         jr   main_system_loop__15C_
 
     .check_app_calendar__1A3_:
-        cp   MAINMENU_APP_CALENDAR  ; $01
+        cp   MAIN_MENU_APP_CALENDAR  ; $01
         jr   nz, .check_app_calculator__1B3_
         xor  a
         ldh  [rSCX], a
@@ -320,7 +320,7 @@ _GB_ENTRY_POINT_100_:
         jr   main_system_loop__15C_
 
     .check_app_calculator__1B3_:
-        cp   MAINMENU_APP_CALCULATOR  ; $02
+        cp   MAIN_MENU_APP_CALCULATOR  ; $02
         jr   nz, .check_app_agenda__1C5_
         di
         ld   hl, _RST__08_  ; _RST__08_ = $0008
@@ -331,7 +331,7 @@ _GB_ENTRY_POINT_100_:
         jr   main_system_loop__15C_
 
     .check_app_agenda__1C5_:
-        cp   MAINMENU_APP_AGENDA  ; $03
+        cp   MAIN_MENU_APP_AGENDA  ; $03
         jr   nz, .check_app_spellchecker__1D7_
         di
         ld   hl, $0010
@@ -342,7 +342,7 @@ _GB_ENTRY_POINT_100_:
         jr   main_system_loop__15C_
 
     .check_app_spellchecker__1D7_:
-        cp   MAINMENU_APP_SPELLCHECKER  ; $04
+        cp   MAIN_MENU_APP_SPELLCHECKER  ; $04
         jr   nz, .check_app_games__1EA_
         di
         ld   hl, _RST__18_  ; _RST__18_ = $0018
@@ -353,7 +353,7 @@ _GB_ENTRY_POINT_100_:
         jp   main_system_loop__15C_
 
     .check_app_games__1EA_:
-        cp   MAINMENU_APP_GAMES  ; $05
+        cp   MAIN_MENU_APP_GAMES  ; $05
         jr   nz, .check_app_paint__1FD_
         di
         ld   hl, _RST__20_  ; _RST__20_ = $0020
@@ -364,7 +364,7 @@ _GB_ENTRY_POINT_100_:
         jp   main_system_loop__15C_
 
     .check_app_paint__1FD_:
-        cp   MAINMENU_APP_PAINT  ; $06
+        cp   MAIN_MENU_APP_PAINT  ; $06
         jr   nz, .check_app_basic__20D_
         call _LABEL_52F_
         call _LABEL_6328_
@@ -375,7 +375,7 @@ _GB_ENTRY_POINT_100_:
         jp   main_system_loop__15C_
 
     .check_app_basic__20D_:
-        cp   MAINMENU_APP_BASIC  ; $07
+        cp   MAIN_MENU_APP_BASIC  ; $07
         jr   nz, .check_app_paino__226_
         di
         call _LABEL_52F_
@@ -388,13 +388,13 @@ _GB_ENTRY_POINT_100_:
         jp   main_system_loop__15C_
 
     .check_app_paino__226_:
-        cp   MAINMENU_APP_PIANO  ; $08
+        cp   MAIN_MENU_APP_PIANO  ; $08
         jr   nz, .check_app_word_processor__230_
-        call _LABEL_711A_
+        call piano_app_icon_menu_init__711A_
         jp   main_system_loop__15C_
 
     .check_app_word_processor__230_:
-        cp   MAINMENU_APP_WORD_PROCESSOR  ; $09
+        cp   MAIN_MENU_APP_WORD_PROCESSOR  ; $09
         jr   nz, .check_app_wordrawings__249_
         di
         call _LABEL_52F_
@@ -407,14 +407,14 @@ _GB_ENTRY_POINT_100_:
         jp   main_system_loop__15C_
 
     .check_app_wordrawings__249_:
-        cp   MAINMENU_APP_WORDDRAWINGS  ; $0A (10)
+        cp   MAIN_MENU_APP_WORDDRAWINGS  ; $0A (10)
         jr   nz, .check_app_run_cartridge__253_
         call _LABEL_5E55_
         jp   main_system_loop__15C_
 
 
     .check_app_run_cartridge__253_:
-        cp   MAINMENU_APP_RUN_CARTRIDGE
+        cp   MAIN_MENU_APP_RUN_CARTRIDGE
         jp   nz, main_system_loop__15C_
         call maybe_try_run_cart_from_slot__5E1_
         jp   main_system_loop__15C_  ; TODO: Return to main_menu_init?
@@ -932,7 +932,7 @@ _LABEL_56E_:
     ; from the string table based on the
     ; Selected App Number
     ld   hl, _string_table_630_
-    ld   a, [maybe_mainmenu_selected_app__RAM_D06E_]
+    ld   a, [ui_grid_menu_selected_icon__RAM_D06E_]
     cp   $00
     jr   z, _LABEL_59A_
     ld   b, a
@@ -2250,10 +2250,11 @@ db $18, $18, $18, $18
 ds 44, $00
 db $FF, $FF,
 
-; ; 45 Tiles of ...?
-; ; Loaded to _TILEDATA9000 from _LABEL_711A_
-tile_data_0x40ba_720_bytes__40BA_:
-INCBIN "res/tile_data_0x40ba_720_bytes.2bpp"
+
+; 45 Tiles of Piano sub-menu (3x3 tile) icon tiles
+; Loaded to _TILEDATA9000 from piano_app_icon_menu_init__711A_
+tile_data_0x40ba_720_bytes_paino_app_menu_icons__40BA_:
+INCBIN "res/tile_data_0x40ba_720_bytes_paino_app_menu_icons.2bpp"
 
 
 ; Tile Map data loaded by gfx_load_tile_map_20x6_at_438a__7691_
@@ -2806,14 +2807,21 @@ _LABEL_4A72_:
     ret
 
 
-maybe_mainmenu_run__4A7B_:
+
+; Sets up Tilemap for menu with up to 4 x 3 grid of 3x3 tile icons
+; Then runs the user menu item selection
+;
+; Number of icons to draw in:      ui_grid_menu_icon_count__RAM_D06D_
+; Returns selected icon number in: ui_grid_menu_selected_icon__RAM_D06E_
+;
+; Icon Tile Data should be pre-loaded at _TILEDATA9000
+ui_icon_menu_draw_and_run__4A7B_:
 
     ; First set up the Main Menu screen
-
     call display_clear_screen_with_space_char__4875_
     xor  a
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-    ld   a, MAINMENU_ICON_FIRST_Y  ; $03
+    ld   a, MAIN_MENU_ICON_FIRST_Y  ; $03
     ld   [_tilemap_pos_y__RAM_C8CA_], a
     ld   c, $00  ; Counter for number of Tilemap Icons to set up
 
@@ -2822,7 +2830,7 @@ maybe_mainmenu_run__4A7B_:
     ; 9 Tile IDs per icon, 108 tiles total
     icons_start_of_row__4A89_:
         ; Start at TileMap 1,3 (A, C)
-        ld   a, MAINMENU_ICON_FIRST_X  ; $01
+        ld   a, MAIN_MENU_ICON_FIRST_X  ; $01
         ld   [_tilemap_pos_x__RAM_C8CB_], a
 
         .icons_make_row__4A8E_:
@@ -2844,14 +2852,14 @@ maybe_mainmenu_run__4A7B_:
             ld   d, $00
             add  hl, de
 
-            ld   c, MAINMENU_ICON_HEIGHT  ; $03
+            ld   c, MAIN_MENU_ICON_HEIGHT  ; $03
             call wait_until_vbl__92C_
 
             ; Write a 3 x 3 tile icon to the Tilemap of incrementing Tile IDs
             ; Loop through all 3 Rows (so 9 Tilemap entries total)
             .per_icon_all_rows_loop__4AAB_:
                 ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
-                ld   b, MAINMENU_ICON_WIDTH  ; $03
+                ld   b, MAIN_MENU_ICON_WIDTH  ; $03
 
                 ; write current row of incrementing Tile IDs
                 .per_icon_current_row_loop__4AB0_:
@@ -2865,7 +2873,7 @@ maybe_mainmenu_run__4A7B_:
                 ;  Go to next Icon Row Start on Tilemap (tilemap_x += 29)
                 ; (1 Row @ 32 tiles - Icon is 3 tiles wide wide) = 29
                 xor  d
-                ld   e, (_TILEMAP_WIDTH - MAINMENU_ICON_WIDTH) ; $1D (29)
+                ld   e, (_TILEMAP_WIDTH - MAIN_MENU_ICON_WIDTH) ; $1D (29)
                 add  hl, de
                 dec  c
                 jr   nz, .per_icon_all_rows_loop__4AAB_
@@ -2874,28 +2882,28 @@ maybe_mainmenu_run__4A7B_:
             pop  de
             pop  bc
             ld   a, [_tilemap_pos_x__RAM_C8CB_]
-            add  (MAINMENU_ICON_WIDTH + MAINMENU_ICON_SPACE_X)  ; $05
+            add  (MAIN_MENU_ICON_WIDTH + MAIN_MENU_ICON_SPACE_X)  ; $05
             ld   [_tilemap_pos_x__RAM_C8CB_], a
 
             ; Update counter for number of Tilemap Icons to set up
             ; Once it reaches 12 then it's finished
             inc  c
-            ld   a, [_RAM_D06D_]  ; Set to 0x0C by caller
+            ld   a, [ui_grid_menu_icon_count__RAM_D06D_]  ; Set to 0x0C by caller
             cp   c
             jr   z, .mainmenu_finish_setup__4AE6_
 
             ; Wrap down to a new row of icons once total icon count reaches 4 or 8
             ld   a, c
-            cp   (MAINMENU_GRID_WIDTH * 1)  ; $04
+            cp   (MAIN_MENU_GRID_WIDTH * 1)  ; $04
             jr   z, .icons_reset_to_new_row__4ADC_
-            cp   (MAINMENU_GRID_WIDTH * 2)  ; $08
+            cp   (MAIN_MENU_GRID_WIDTH * 2)  ; $08
             jr   z, .icons_reset_to_new_row__4ADC_
             jr   .icons_make_row__4A8E_
 
     .icons_reset_to_new_row__4ADC_:
         ; Start a new row of icons 5 tiles down
         ld   a, [_tilemap_pos_y__RAM_C8CA_]
-        add  (MAINMENU_ICON_HEIGHT + MAINMENU_ICON_SPACE_Y)  ; $05
+        add  (MAIN_MENU_ICON_HEIGHT + MAIN_MENU_ICON_SPACE_Y)  ; $05
         ld   [_tilemap_pos_y__RAM_C8CA_], a
         jr   icons_start_of_row__4A89_
 
@@ -2914,7 +2922,7 @@ maybe_mainmenu_run__4A7B_:
         ldh  [rLCDC], a
 
         xor  a
-        ld   [maybe_mainmenu_selected_app__RAM_D06E_], a    ; TODO: maybe main menu action index
+        ld   [ui_grid_menu_selected_icon__RAM_D06E_], a    ; TODO: maybe main menu action index
         ld   [_RAM_D05D_], a    ; _RAM_D05D_ = $D05D
         ld   [_RAM_D05E_], a    ; _RAM_D05E_ = $D05E
         ld   [_RAM_D05C_], a    ; _RAM_D05C_ = $D05C
@@ -2922,27 +2930,27 @@ maybe_mainmenu_run__4A7B_:
         call maybe_input_wait_for_keys__4B84
 
     ; TODO: track down all calls to this and see if scope can be reduced
-    maybe_mainmenu_input_loop__4B0E_:
+    ui_grid_menu_input_loop__4B0E_:
         call timer_wait_tick_AND_TODO__289_
         call input_read_keys__C8D_
-        ld   hl, _RAM_D06D_
+        ld   hl, ui_grid_menu_icon_count__RAM_D06D_
         ld   a, [input_key_pressed__RAM_D025_]
 
         cp   SYS_CHAR_ENTRA_CR  ; $2E
-        jp   z, maybe_mainmenu_keypressed_enter__4C83_
+        jp   z, ui_grid_menu_keypressed_enter__4C83_
 
         cp   SYS_CHAR_SALIDA  ; $2A
-        jp   z, mainmenu_keypressed_escape__4C76_
+        jp   z, ui_grid_menu_keypressed_escape__4C76_
 
         cp   SYS_CHAR_PRINTSCREEN  ; $2F
-        jp   z, mainmenu_keypressed_printscreen__4C70_
+        jp   z, ui_grid_menu_keypressed_printscreen__4C70_
 
         sub  $30  ; TODO: possibly SYS_CHAR_FUNCTION_KEYS_START
         jr   c, _LABEL_4B36_
         cp   [hl]
         jr   nc, _LABEL_4B36_
-        ld   [maybe_mainmenu_selected_app__RAM_D06E_], a
-        jp   maybe_mainmenu_keypressed_enter__4C83_
+        ld   [ui_grid_menu_selected_icon__RAM_D06E_], a
+        jp   ui_grid_menu_keypressed_enter__4C83_
 
     _LABEL_4B36_:
         call input_map_keycodes_to_gamepad_buttons__4D30_
@@ -2955,11 +2963,11 @@ maybe_mainmenu_run__4A7B_:
         ld   [_RAM_D05E_], a    ; _RAM_D05E_ = $D05E
         ld   [_RAM_D05C_], a    ; _RAM_D05C_ = $D05C
         ld   [_RAM_D05B_], a    ; _RAM_D05B_ = $D05B
-        jr   maybe_mainmenu_input_loop__4B0E_
+        jr   ui_grid_menu_input_loop__4B0E_
 
     _LABEL_4B4F_:
         bit  2, a
-        jp   nz, maybe_mainmenu_keypressed_enter__4C83_
+        jp   nz, ui_grid_menu_keypressed_enter__4C83_
         call _LABEL_4C87_
         ld   a, [_RAM_D05E_]    ; _RAM_D05E_ = $D05E
         cp   $01
@@ -2973,14 +2981,14 @@ maybe_mainmenu_run__4A7B_:
         ld   a, [_RAM_D05B_]    ; _RAM_D05B_ = $D05B
         cp   $01
         jp   z, _LABEL_4C1A_
-        jp   maybe_mainmenu_input_loop__4B0E_
+        jp   ui_grid_menu_input_loop__4B0E_
 
 
     _LABEL_4B78_:
         call timer_wait_tick_AND_TODO__289_
         call timer_wait_tick_AND_TODO__289_
         call timer_wait_tick_AND_TODO__289_
-        jp   maybe_mainmenu_input_loop__4B0E_
+        jp   ui_grid_menu_input_loop__4B0E_
 
 
 ; TODO: Maybe waits for an input key press
@@ -2995,13 +3003,13 @@ maybe_input_wait_for_keys__4B84:
 _LABEL_4B92_:
     xor  a
     ld   [_RAM_D05E_], a    ; _RAM_D05E_ = $D05E
-    ld   a, [maybe_mainmenu_selected_app__RAM_D06E_]
+    ld   a, [ui_grid_menu_selected_icon__RAM_D06E_]
     inc  a
-    ld   hl, _RAM_D06D_
+    ld   hl, ui_grid_menu_icon_count__RAM_D06D_
     cp   [hl]
-    jp   nc, maybe_mainmenu_input_loop__4B0E_
+    jp   nc, ui_grid_menu_input_loop__4B0E_
     push af
-    ld   [maybe_mainmenu_selected_app__RAM_D06E_], a
+    ld   [ui_grid_menu_selected_icon__RAM_D06E_], a
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
@@ -3029,12 +3037,12 @@ _LABEL_4BD1_:
 _LABEL_4BD7_:
     xor  a
     ld   [_RAM_D05D_], a    ; _RAM_D05D_ = $D05D
-    ld   a, [maybe_mainmenu_selected_app__RAM_D06E_]
+    ld   a, [ui_grid_menu_selected_icon__RAM_D06E_]
     dec  a
     cp   $FF
-    jp   z, maybe_mainmenu_input_loop__4B0E_
+    jp   z, ui_grid_menu_input_loop__4B0E_
     push af
-    ld   [maybe_mainmenu_selected_app__RAM_D06E_], a
+    ld   [ui_grid_menu_selected_icon__RAM_D06E_], a
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
@@ -3062,12 +3070,12 @@ _LABEL_4C14_:
 _LABEL_4C1A_:
     xor  a
     ld   [_RAM_D05B_], a    ; _RAM_D05B_ = $D05B
-    ld   a, [maybe_mainmenu_selected_app__RAM_D06E_]
+    ld   a, [ui_grid_menu_selected_icon__RAM_D06E_]
     add  $04
-    ld   hl, _RAM_D06D_
+    ld   hl, ui_grid_menu_icon_count__RAM_D06D_
     cp   [hl]
-    jp   nc, maybe_mainmenu_input_loop__4B0E_
-    ld   [maybe_mainmenu_selected_app__RAM_D06E_], a
+    jp   nc, ui_grid_menu_input_loop__4B0E_
+    ld   [ui_grid_menu_selected_icon__RAM_D06E_], a
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
@@ -3081,10 +3089,10 @@ _LABEL_4C1A_:
 _LABEL_4C47_:
     xor  a
     ld   [_RAM_D05C_], a    ; _RAM_D05C_ = $D05C
-    ld   a, [maybe_mainmenu_selected_app__RAM_D06E_]
+    ld   a, [ui_grid_menu_selected_icon__RAM_D06E_]
     sub  $04
-    jp   c, maybe_mainmenu_input_loop__4B0E_
-    ld   [maybe_mainmenu_selected_app__RAM_D06E_], a
+    jp   c, ui_grid_menu_input_loop__4B0E_
+    ld   [ui_grid_menu_selected_icon__RAM_D06E_], a
     ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
@@ -3095,17 +3103,21 @@ _LABEL_4C47_:
     call _LABEL_4CD1_
     jp   _LABEL_4B78_
 
-mainmenu_keypressed_printscreen__4C70_:
+ui_grid_menu_keypressed_printscreen__4C70_:
     call maybe_call_printscreen_in_32k_bank_2__522_
-    jp   maybe_mainmenu_input_loop__4B0E_
+    jp   ui_grid_menu_input_loop__4B0E_
 
-mainmenu_keypressed_escape__4C76_:
-    ld   a, [_RAM_D06C_]    ; _RAM_D06C_ = $D06C
+ui_grid_menu_keypressed_escape__4C76_:
+    ld   a, [ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_]
     and  a
-    jp   z, maybe_mainmenu_input_loop__4B0E_
-    ld   a, [_RAM_D06D_]
-    ld   [maybe_mainmenu_selected_app__RAM_D06E_], a
-maybe_mainmenu_keypressed_enter__4C83_:
+    ; If a == MENU_ESCAPE_KEY_RUNS_LAST_ICON_FALSE
+    ; then ignore escape key and continue poling for input
+    jp   z, ui_grid_menu_input_loop__4B0E_
+    ; If a == MENU_ESCAPE_KEY_RUNS_LAST_ICON_TRUE
+    ; Then load last icon as icon pressed and fall through to Enter key processing
+    ld   a, [ui_grid_menu_icon_count__RAM_D06D_]
+    ld   [ui_grid_menu_selected_icon__RAM_D06E_], a
+ui_grid_menu_keypressed_enter__4C83_:
     call _LABEL_4D19_
     ret
 
@@ -3455,7 +3467,7 @@ _LABEL_4D6F_:
         ld   [shadow_rtc_dayofweek__RAM_D054_], a
 
         ld   a, [de]
-        ld   [_RAM_D06D_], a
+        ld   [ui_grid_menu_icon_count__RAM_D06D_], a
 
         ld   e, a
         ld   d, $00
@@ -3466,7 +3478,7 @@ _LABEL_4D6F_:
         or   l
         ld   [_RAM_D03A_], a
         xor  a
-        ld   [maybe_mainmenu_selected_app__RAM_D06E_], a
+        ld   [ui_grid_menu_selected_icon__RAM_D06E_], a
         ld   a, $07
         ld   [_tilemap_pos_y__RAM_C8CA_], a
     _LABEL_4EAB_:
@@ -3492,14 +3504,14 @@ _LABEL_4D6F_:
         cp   $01
         jr   nz, _LABEL_4F29_
         ld   a, [_tilemap_pos_y__RAM_C8CA_]
-        ld   [maybe_mainmenu_selected_app__RAM_D06E_ + 2], a    ; maybe_mainmenu_selected_app__RAM_D06E_ + 2 = $D070
+        ld   [ui_grid_menu_selected_icon__RAM_D06E_ + 2], a    ; ui_grid_menu_selected_icon__RAM_D06E_ + 2 = $D070
         add  $02
         sla  a
         sla  a
         sla  a
         ld   [_tilemap_pos_y__RAM_C8CA_], a
         ld   a, [_tilemap_pos_x__RAM_C8CB_]
-        ld   [maybe_mainmenu_selected_app__RAM_D06E_ + 1], a    ; maybe_mainmenu_selected_app__RAM_D06E_ + 1 = $D06F
+        ld   [ui_grid_menu_selected_icon__RAM_D06E_ + 1], a    ; ui_grid_menu_selected_icon__RAM_D06E_ + 1 = $D06F
         add  $04
         sla  a
         sla  a
@@ -3514,16 +3526,16 @@ _LABEL_4D6F_:
         ld   [_RAM_D05F_], a    ; _RAM_D05F_ = $D05F
         ld   a, [_tilemap_pos_y__RAM_C8CA_]
         ld   b, a
-        ld   a, [maybe_mainmenu_selected_app__RAM_D06E_ + 2]    ; maybe_mainmenu_selected_app__RAM_D06E_ + 2 = $D070
+        ld   a, [ui_grid_menu_selected_icon__RAM_D06E_ + 2]    ; ui_grid_menu_selected_icon__RAM_D06E_ + 2 = $D070
         ld   [_tilemap_pos_y__RAM_C8CA_], a
         ld   a, b
-        ld   [maybe_mainmenu_selected_app__RAM_D06E_ + 2], a    ; maybe_mainmenu_selected_app__RAM_D06E_ + 2 = $D070
+        ld   [ui_grid_menu_selected_icon__RAM_D06E_ + 2], a    ; ui_grid_menu_selected_icon__RAM_D06E_ + 2 = $D070
         ld   a, [_tilemap_pos_x__RAM_C8CB_]
         ld   b, a
-        ld   a, [maybe_mainmenu_selected_app__RAM_D06E_ + 1]    ; maybe_mainmenu_selected_app__RAM_D06E_ + 1 = $D06F
+        ld   a, [ui_grid_menu_selected_icon__RAM_D06E_ + 1]    ; ui_grid_menu_selected_icon__RAM_D06E_ + 1 = $D06F
         ld   [_tilemap_pos_x__RAM_C8CB_], a
         ld   a, b
-        ld   [maybe_mainmenu_selected_app__RAM_D06E_ + 1], a    ; maybe_mainmenu_selected_app__RAM_D06E_ + 1 = $D06F
+        ld   [ui_grid_menu_selected_icon__RAM_D06E_ + 1], a    ; ui_grid_menu_selected_icon__RAM_D06E_ + 1 = $D06F
     _LABEL_4F29_:
         call _LABEL_532F_
         cp   $00
@@ -3572,7 +3584,7 @@ _LABEL_4D6F_:
         sla  a
         sla  a
         sla  a
-        ld   [maybe_mainmenu_selected_app__RAM_D06E_ + 3], a    ; maybe_mainmenu_selected_app__RAM_D06E_ + 3 = $D071
+        ld   [ui_grid_menu_selected_icon__RAM_D06E_ + 3], a    ; ui_grid_menu_selected_icon__RAM_D06E_ + 3 = $D071
         ld   a, [_tilemap_pos_y__RAM_C8CA_]
         add  $02
         sla  a
@@ -3683,12 +3695,12 @@ _LABEL_4D6F_:
     _LABEL_5059_:
         xor  a
         ld   [_RAM_D05E_], a    ; _RAM_D05E_ = $D05E
-        ld   a, [maybe_mainmenu_selected_app__RAM_D06E_]
+        ld   a, [ui_grid_menu_selected_icon__RAM_D06E_]
         inc  a
-        ld   hl, _RAM_D06D_
+        ld   hl, ui_grid_menu_icon_count__RAM_D06D_
         cp   [hl]
         jr   nc, _LABEL_5096_
-        ld   [maybe_mainmenu_selected_app__RAM_D06E_], a
+        ld   [ui_grid_menu_selected_icon__RAM_D06E_], a
         ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
         ld   [maybe_vram_data_to_write__RAM_C8CC_], a
         call _LABEL_953_
@@ -3714,10 +3726,10 @@ _LABEL_4D6F_:
         ld   [maybe_vram_data_to_write__RAM_C8CC_], a
         call oam_free_slot_and_clear__89B_
         xor  a
-        ld   [maybe_mainmenu_selected_app__RAM_D06E_], a
-        ld   a, [maybe_mainmenu_selected_app__RAM_D06E_ + 1]    ; maybe_mainmenu_selected_app__RAM_D06E_ + 1 = $D06F
+        ld   [ui_grid_menu_selected_icon__RAM_D06E_], a
+        ld   a, [ui_grid_menu_selected_icon__RAM_D06E_ + 1]    ; ui_grid_menu_selected_icon__RAM_D06E_ + 1 = $D06F
         ld   [_tilemap_pos_x__RAM_C8CB_], a
-        ld   a, [maybe_mainmenu_selected_app__RAM_D06E_ + 2]    ; maybe_mainmenu_selected_app__RAM_D06E_ + 2 = $D070
+        ld   a, [ui_grid_menu_selected_icon__RAM_D06E_ + 2]    ; ui_grid_menu_selected_icon__RAM_D06E_ + 2 = $D070
         ld   [_tilemap_pos_y__RAM_C8CA_], a
     _LABEL_50AF_:
         ld   a, $80
@@ -3732,11 +3744,11 @@ _LABEL_4D6F_:
     _LABEL_50C3_:
         xor  a
         ld   [_RAM_D05D_], a    ; _RAM_D05D_ = $D05D
-        ld   a, [maybe_mainmenu_selected_app__RAM_D06E_]
+        ld   a, [ui_grid_menu_selected_icon__RAM_D06E_]
         dec  a
         cp   $FF
         jr   z, _LABEL_5100_
-        ld   [maybe_mainmenu_selected_app__RAM_D06E_], a
+        ld   [ui_grid_menu_selected_icon__RAM_D06E_], a
         ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
         ld   [maybe_vram_data_to_write__RAM_C8CC_], a
         call _LABEL_953_
@@ -3761,10 +3773,10 @@ _LABEL_4D6F_:
         ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
         ld   [maybe_vram_data_to_write__RAM_C8CC_], a
         call oam_free_slot_and_clear__89B_
-        ld   a, [_RAM_D06D_]
+        ld   a, [ui_grid_menu_icon_count__RAM_D06D_]
         dec  a
-        ld   [maybe_mainmenu_selected_app__RAM_D06E_], a
-        ld   a, [maybe_mainmenu_selected_app__RAM_D06E_ + 3]    ; maybe_mainmenu_selected_app__RAM_D06E_ + 3 = $D071
+        ld   [ui_grid_menu_selected_icon__RAM_D06E_], a
+        ld   a, [ui_grid_menu_selected_icon__RAM_D06E_ + 3]    ; ui_grid_menu_selected_icon__RAM_D06E_ + 3 = $D071
         ld   [_tilemap_pos_x__RAM_C8CB_], a
         ld   a, [_RAM_D072_]
         ld   [_tilemap_pos_y__RAM_C8CA_], a
@@ -3777,19 +3789,19 @@ _LABEL_4D6F_:
         ld   [maybe_vram_data_to_write__RAM_C8CC_], a
         call _LABEL_953_
         call oam_free_slot_and_clear__89B_
-        ld   a, [maybe_mainmenu_selected_app__RAM_D06E_]
+        ld   a, [ui_grid_menu_selected_icon__RAM_D06E_]
         add  $07
-        ld   hl, _RAM_D06D_
+        ld   hl, ui_grid_menu_icon_count__RAM_D06D_
         cp   [hl]
         jr   nc, _LABEL_5148_
-        ld   [maybe_mainmenu_selected_app__RAM_D06E_], a
+        ld   [ui_grid_menu_selected_icon__RAM_D06E_], a
         ld   a, [_tilemap_pos_y__RAM_C8CA_]
         add  $10
         ld   [_tilemap_pos_y__RAM_C8CA_], a
         jp   _LABEL_50AF_
 
     _LABEL_5148_:
-        ld   a, [maybe_mainmenu_selected_app__RAM_D06E_]
+        ld   a, [ui_grid_menu_selected_icon__RAM_D06E_]
         ld   e, a
         ld   d, $00
         ld   h, $07
@@ -3801,7 +3813,7 @@ _LABEL_4D6F_:
         sub  e
         ld   [_tilemap_pos_y__RAM_C8CA_], a
         ld   a, l
-        ld   [maybe_mainmenu_selected_app__RAM_D06E_], a
+        ld   [ui_grid_menu_selected_icon__RAM_D06E_], a
         jp   _LABEL_50AF_
 
     _LABEL_5167_:
@@ -3811,19 +3823,19 @@ _LABEL_4D6F_:
         ld   [maybe_vram_data_to_write__RAM_C8CC_], a
         call _LABEL_953_
         call oam_free_slot_and_clear__89B_
-        ld   a, [maybe_mainmenu_selected_app__RAM_D06E_]
+        ld   a, [ui_grid_menu_selected_icon__RAM_D06E_]
         sub  $07
         jr   c, _LABEL_518C_
-        ld   [maybe_mainmenu_selected_app__RAM_D06E_], a
+        ld   [ui_grid_menu_selected_icon__RAM_D06E_], a
         ld   a, [_tilemap_pos_y__RAM_C8CA_]
         sub  $10
         ld   [_tilemap_pos_y__RAM_C8CA_], a
         jp   _LABEL_50AF_
 
     _LABEL_518C_:
-        ld   a, [maybe_mainmenu_selected_app__RAM_D06E_]
+        ld   a, [ui_grid_menu_selected_icon__RAM_D06E_]
         ld   b, $00
-        ld   hl, _RAM_D06D_
+        ld   hl, ui_grid_menu_icon_count__RAM_D06D_
     _LABEL_5194_:
         add  $07
         cp   [hl]
@@ -3833,7 +3845,7 @@ _LABEL_4D6F_:
 
     _LABEL_519C_:
         sub  $07
-        ld   [maybe_mainmenu_selected_app__RAM_D06E_], a
+        ld   [ui_grid_menu_selected_icon__RAM_D06E_], a
         ld   a, $10
         call multiply_a_x_b__result_in_de__4853_
         ld   a, [_tilemap_pos_y__RAM_C8CA_]
@@ -3848,7 +3860,7 @@ _LABEL_4D6F_:
         ld   a, [_tilemap_pos_x__RAM_C8CB_]
         cp   $A0
         jp   z, _LABEL_4F95_
-        ld   a, [maybe_mainmenu_selected_app__RAM_D06E_]
+        ld   a, [ui_grid_menu_selected_icon__RAM_D06E_]
         inc  a
         ld   e, a
         ld   d, $00
@@ -4395,7 +4407,7 @@ _LABEL_557B_:
 
 _LABEL_5599_:
     ldh  a, [rLCDC]
-    and  $FD
+    and  ~LCDCF_OBJ16  ; $FD  ; Turn off 8x16 sprites -> 8x8 sprites
     ldh  [rLCDC], a
     ret
 
@@ -4710,10 +4722,10 @@ _LABEL_57C9_:
 ; TODO: Maybe something about setting the time
 ; Could be the clock/calendar application
 _LABEL_57D5_:
-    xor  a
-    ld   [_RAM_D06C_], a    ; _RAM_D06C_ = $D06C
+    xor  a  ; MENU_ESCAPE_KEY_RUNS_LAST_ICON_FALSE
+    ld   [ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_], a
     ldh  a, [rLCDC]
-    and  $FD
+    and  ~LCDCF_OBJ16  ; $FD  ; Turn off 8x16 sprites -> 8x8 sprites
     ldh  [rLCDC], a
     call _LABEL_5774_
 
@@ -4879,8 +4891,8 @@ _LABEL_5919_:
     ld   a, [input_key_pressed__RAM_D025_]
     cp   SYS_CHAR_RIGHT  ; $3F
     jr   nz, _LABEL_593C_
-    xor  a
-    ld   [_RAM_D06C_], a    ; _RAM_D06C_ = $D06C
+    xor  a  ; MENU_ESCAPE_KEY_RUNS_LAST_ICON_FALSE
+    ld   [ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_], a
     ld   a, [_RAM_D03A_]
     inc  a
     cp   $05
@@ -4895,8 +4907,8 @@ _LABEL_5931_:
 _LABEL_593C_:
     cp   SYS_CHAR_LEFT  ; $3E
     jr   nz, _LABEL_5950_
-    xor  a
-    ld   [_RAM_D06C_], a    ; _RAM_D06C_ = $D06C
+    xor  a  ; MENU_ESCAPE_KEY_RUNS_LAST_ICON_FALSE
+    ld   [ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_], a
     ld   a, [_RAM_D03A_]
     dec  a
     cp   $FF
@@ -4918,13 +4930,13 @@ _LABEL_5950_:
     ld   a, [hl]
     ld   hl, shadow_rtc_buf_start_and_year__RAM_D051_
     call add_a_to_hl__486E_
-    ld   a, [_RAM_D06C_]    ; _RAM_D06C_ = $D06C
-    cp   $00
+    ld   a, [ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_]
+    cp   MENU_ESCAPE_KEY_RUNS_LAST_ICON_FALSE  ; $00
     jr   nz, _LABEL_5975_
     ld   [hl], $00
 _LABEL_5975_:
-    ld   a, $01
-    ld   [_RAM_D06C_], a    ; _RAM_D06C_ = $D06C
+    ld   a, MENU_ESCAPE_KEY_RUNS_LAST_ICON_TRUE  ; $01
+    ld   [ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_], a
     ld   a, [hl]
     swap a
     and  $F0
@@ -5356,8 +5368,9 @@ clock_app_message__invalid_date_time__then_ret__5B12_:
         jr   nz, .wait_salida_esc_key_loop__5B33_
 
     xor  a
-    ld   [_RAM_D03A_], a  ; TODO not sure what these are for... maybe sets "copy new rtc data" = FALSE?
-    ld   [_RAM_D06C_], a  ; TODO
+    ld   [_RAM_D03A_], a  ; TODO not sure what this is for, maybe "copy new rtc data" = FALSE?
+    ;     a == MENU_ESCAPE_KEY_RUNS_LAST_ICON_FALSE
+    ld   [ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_], a
 
     ; After user presses key, clear the message off the screen
     ; Starting at Tile Row #15 write 3 rows of blank tiles
@@ -5758,7 +5771,7 @@ db $96, $84, $89, $83
 
 _LABEL_5E55_:
     ldh  a, [rLCDC]
-    and  $FD
+    and  ~LCDCF_OBJ16  ; $FD  ; Turn off 8x16 sprites -> 8x8 sprites
     ldh  [rLCDC], a
     call _LABEL_620A_
     ld   hl, $8800
@@ -6406,9 +6419,9 @@ db $BE, $BE, $90, $81, $8C, $81, $82, $92, $81, $00, $84, $85, $93, $83, $8F, $8
 db $8F, $83, $89, $84, $81, $00
 
 _LABEL_6328_:
-    xor  a
-    ld   [_RAM_D06C_], a    ; _RAM_D06C_ = $D06C
-    ld   [_RAM_D06D_], a
+    xor  a  ; MENU_ESCAPE_KEY_RUNS_LAST_ICON_FALSE
+    ld   [ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_], a
+    ld   [ui_grid_menu_icon_count__RAM_D06D_], a
     ld   a, $01
     ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
     ld   hl, $0018
@@ -6649,8 +6662,8 @@ _LABEL_6507_:
 
 ; TODO: (called from end of drawing app help menu)
 _LABEL_6510_:
-    ld   a, $D9
-    ld   hl, _RAM_D06C_ ; _RAM_D06C_ = $D06C
+    ld   a, $D9  ; Unknown value, have not seen elsewhere. Maybe behaves like MENU_ESCAPE_KEY_RUNS_LAST_ICON_TRUE
+    ld   hl, ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_
     add  [hl]
     ld   hl, _RAM_D192_
     add  [hl]
@@ -6869,17 +6882,17 @@ _LABEL_66D1_:
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
     call _LABEL_953_
     call oam_free_slot_and_clear__89B_
-    ld   a, [_RAM_D06D_]
+    ld   a, [ui_grid_menu_icon_count__RAM_D06D_]
     cp   $00
     ld   a, $03
     jr   z, _LABEL_66F8_
-    ld   a, [_RAM_D06D_]
+    ld   a, [ui_grid_menu_icon_count__RAM_D06D_]
     cp   $03
     ld   a, $06
     jr   z, _LABEL_66F8_
     xor  a
 _LABEL_66F8_:
-    ld   [_RAM_D06D_], a
+    ld   [ui_grid_menu_icon_count__RAM_D06D_], a
     add  $DB
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
     xor  a
@@ -6896,7 +6909,7 @@ _LABEL_6710_:
     push de
     call _LABEL_953_
     call oam_free_slot_and_clear__89B_
-    ld   hl, _RAM_D06D_
+    ld   hl, ui_grid_menu_icon_count__RAM_D06D_
     ld   a, $DB
     add  [hl]
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
@@ -6917,17 +6930,17 @@ _LABEL_6739_:
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
     call _LABEL_953_
     call oam_free_slot_and_clear__89B_
-    ld   a, [_RAM_D06C_]    ; _RAM_D06C_ = $D06C
-    cp   $00
+    ld   a, [ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_]
+    cp   MENU_ESCAPE_KEY_RUNS_LAST_ICON_FALSE  ; $00
     ld   a, $03
     jr   z, _LABEL_6758_
-    ld   a, [_RAM_D06C_]    ; _RAM_D06C_ = $D06C
-    cp   $03
+    ld   a, [ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_]
+    cp   $03  ; Unknown value MENU_ESCAPE_KEY_RUNS_LAST_ICON_...? TODO
     ld   a, $06
     jr   z, _LABEL_6758_
-    xor  a
+    xor  a  ; MENU_ESCAPE_KEY_RUNS_LAST_ICON_FALSE
 _LABEL_6758_:
-    ld   [_RAM_D06C_], a    ; _RAM_D06C_ = $D06C
+    ld   [ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_], a
     call _LABEL_6510_
     call maybe_input_wait_for_keys__4B84
     call _LABEL_6765_
@@ -7137,7 +7150,7 @@ _LABEL_689D_:
     ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
     sub  $04
     ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
-    ld   hl, _RAM_D06D_
+    ld   hl, ui_grid_menu_icon_count__RAM_D06D_
     ld   a, $DB
     add  [hl]
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
@@ -8364,60 +8377,71 @@ drawing_app_help_menu_show__6FED_:
 
 
 
-_LABEL_711A_:
+; Sets up Piano sub-menu with icons
+piano_app_icon_menu_init__711A_:
         ; GFX Loading 128 Tiles (but 45 are valid at start, then a whole separate block, then some code at the end)
         ; Seems to load at least some garbage tiles...
         call wait_until_vbl__92C_
         call display_screen_off__94C_
-        ld   hl, _TILEDATA9000                     ; Dest
-        ld   de, tile_data_0x40ba_720_bytes__40BA_ ; $40BA
-        ld   bc, (128 * TILE_SZ_BYTES)             ; Copy size: 128 tiles (2048 bytes)
+        ld   hl, _TILEDATA9000                                          ; Dest
+        ld   de, tile_data_0x40ba_720_bytes_paino_app_menu_icons__40BA_ ; $40BA
+        ld   bc, (128 * TILE_SZ_BYTES)                                  ; Copy size: 128 tiles (2048 bytes)
         call memcopy_in_RAM__C900_
 
         ; Load Tile Data for the main menu font
         call wait_until_vbl__92C_
         call display_screen_off__94C_
         ld   hl, _TILEDATA8800                         ; Dest
-        ld   de, gfx_tile_data__main_menu_font__2F2A_   ; Source
+        ld   de, gfx_tile_data__main_menu_font__2F2A_  ; Source
         ld   bc, (MENU_FONT_128_TILES * TILE_SZ_BYTES) ; Copy size: 128 tiles (2048 bytes)
         call memcopy_in_RAM__C900_
 
+        ; Draw the Icon grid menu and run it
         xor  a
         ld   [_RAM_D03B_ + 1], a
         ld   [_RAM_D03B_ + 2], a
         ld   [_RAM_D03B_ + 3], a
         ld   [_RAM_D03F_], a
-        ld   a, $01
-        ld   [_RAM_D06C_], a    ; _RAM_D06C_ = $D06C
-        ld   a, $05
-        ld   [_RAM_D06D_], a
-        call maybe_mainmenu_run__4A7B_
-        ld   a, [maybe_mainmenu_selected_app__RAM_D06E_]
-        cp   $00
+        ld   a, MENU_ESCAPE_KEY_RUNS_LAST_ICON_TRUE  ; $01
+        ld   [ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_], a
+        ld   a, PIANO_MENU_NUM_ICONS  ; $05
+        ld   [ui_grid_menu_icon_count__RAM_D06D_], a
+        call ui_icon_menu_draw_and_run__4A7B_
+
+        ld   a, [ui_grid_menu_selected_icon__RAM_D06E_]
+        cp   PIANO_APP_FREEPLAY  ; $00
         push af
-        call z, _LABEL_7185_
+        call z, piano_freeplay_app__7185_
         pop  af
-        cp   $01
+
+        cp   PIANO_APP_LEARN_SONG  ; $01
         push af
-        call z, _LABEL_720B_
+        call z, piano_learn_song_app__720B_
         pop  af
-        cp   $02
+
+        cp   PIANO_APP_PRERECORDED  ; $02
         push af
-        call z, _LABEL_7226_
+        call z, piano_prerecorded_app__7226_
         pop  af
-        cp   $03
+
+        cp   PIANO_APP_RECORD_AND_PLAYBACK  ; $03
         push af
-        call z, _LABEL_741D_
+        call z, piano_app_record_and_playback__741D_
         pop  af
-        cp   $04
+
+        cp   PIANO_APP_BACK_TO_MAIN_MENU  ; $04
         ret  nc
+
+        ; TODO: Why is it clearing Serial IO registers here?
+        ; Haven't seen this behavior elsewhere so far
         xor  a
         ldh  [rSB], a
         ldh  [rSC], a
-        call _LABEL_784F_
-        jp   _LABEL_711A_
+        call audio_init__784F_
+        jp   piano_app_icon_menu_init__711A_
 
-_LABEL_7185_:
+
+piano_freeplay_app__7185_:
         ; Load Tile Data for the main menu font
         call wait_until_vbl__92C_
         call display_screen_off__94C_
@@ -8444,51 +8468,53 @@ _LABEL_7185_:
         ld   [_RAM_D04B_], a
         ld   a, $FF
         ld   [_RAM_D079_], a
-_LABEL_71BB_:
-        call timer_wait_tick_AND_TODO__289_
-        call input_read_keys__C8D_
-        ld   a, [input_key_pressed__RAM_D025_]
-        cp   SYS_CHAR_SALIDA  ; $2A
-        jr   z, _LABEL_7207_
-        cp   SYS_CHAR_PRINTSCREEN  ; $2F
-        jr   nz, _LABEL_71D1_
-        call maybe_call_printscreen_in_32k_bank_2__522_
-        jr   _LABEL_71BB_
+    .input_loop__71BB_:
+            call timer_wait_tick_AND_TODO__289_
+            call input_read_keys__C8D_
+            ld   a, [input_key_pressed__RAM_D025_]
+            cp   SYS_CHAR_SALIDA  ; $2A
+            jr   z, .done_exit__7207_
 
-_LABEL_71D1_:
-        cp   $18
-        jr   nc, _LABEL_71F6_
-        ld   hl, _RAM_D079_
-        cp   [hl]
-        jr   nz, _LABEL_71E2_
-        ld   a, $F9
-        ld   [_RAM_CC23_], a    ; _RAM_CC23_ = $CC23
-        jr   _LABEL_71BB_
+            cp   SYS_CHAR_PRINTSCREEN  ; $2F
+            jr   nz, .check_if_other_keys__71D1_
 
-_LABEL_71E2_:
-        ld   [hl], a
-        sla  a
-        ld   [_RAM_D03A_], a
-        ld   hl, $7980
-        call add_a_to_hl__486E_
-        call _LABEL_2A2_
-        call _LABEL_77D3_
-        jr   _LABEL_71BB_
+            call maybe_call_printscreen_in_32k_bank_2__522_
+            jr   .input_loop__71BB_
 
-_LABEL_71F6_:
-        ld   a, $FF
-        ld   [_RAM_D079_], a
-        call _LABEL_77B0_
-        xor  a
-        ld   [_RAM_CC00_], a    ; _RAM_CC00_ = $CC00
-        call _LABEL_787C_
-        jr   _LABEL_71BB_
+    .check_if_other_keys__71D1_:
+            cp   $18  ; Unknown SYS_CHAR_
+            jr   nc, ._LABEL_71F6_
+            ld   hl, _RAM_D079_
+            cp   [hl]
+            jr   nz, ._LABEL_71E2_
+            ld   a, $F9
+            ld   [_RAM_CC23_], a    ; _RAM_CC23_ = $CC23
+            jr   .input_loop__71BB_
 
-_LABEL_7207_:
-        call _LABEL_77B0_
-        ret
+    ._LABEL_71E2_:
+            ld   [hl], a
+            sla  a
+            ld   [_RAM_D03A_], a
+            ld   hl, $7980
+            call add_a_to_hl__486E_
+            call _LABEL_2A2_
+            call _LABEL_77D3_
+            jr   .input_loop__71BB_
 
-_LABEL_720B_:
+    ._LABEL_71F6_:
+            ld   a, SYS_CHAR_NO_DATA_OR_KEY  ; $FF
+            ld   [_RAM_D079_], a
+            call _LABEL_77B0_
+            xor  a
+            ld   [_RAM_CC00_], a    ; _RAM_CC00_ = $CC00
+            call audio_off_on_reset_max_vol__787C_
+            jr   .input_loop__71BB_
+
+    .done_exit__7207_:
+            call _LABEL_77B0_
+            ret
+
+piano_learn_song_app__720B_:
         ld   b, $00
         call _LABEL_7242_
         ret  z
@@ -8499,9 +8525,9 @@ _LABEL_720B_:
         xor  a
         ld   [_RAM_D07B_], a
         call _LABEL_7310_
-        jr   _LABEL_720B_
+        jr   piano_learn_song_app__720B_
 
-_LABEL_7226_:
+piano_prerecorded_app__7226_:
         ld   b, $01
         call _LABEL_7242_
         ret  z
@@ -8512,8 +8538,9 @@ _LABEL_7226_:
         ld   a, $01
         ld   [_RAM_D07B_], a
         call _LABEL_7310_
-        jr   _LABEL_7226_
+        jr   piano_prerecorded_app__7226_
 
+; TODO: This might be drawing the Piano app screens (keyboard at bottom, some tall text above iirc)
 _LABEL_7242_:
         push bc
 
@@ -8650,7 +8677,7 @@ _LABEL_7326_:
 _LABEL_7334_:
         xor  a
         ld   [_RAM_CC00_], a    ; _RAM_CC00_ = $CC00
-        call _LABEL_787C_
+        call audio_off_on_reset_max_vol__787C_
         pop  hl
         ld   a, [hl]
         and  $F0
@@ -8729,7 +8756,7 @@ _LABEL_73A4_:
         jp   z, _LABEL_7334_
         xor  a
         ld   [_RAM_CC00_], a    ; _RAM_CC00_ = $CC00
-        call _LABEL_787C_
+        call audio_off_on_reset_max_vol__787C_
         jr   _LABEL_738C_
 
 _LABEL_73C5_:
@@ -8770,7 +8797,7 @@ _LABEL_7407_:
         call _LABEL_76E0_
 _LABEL_740D_:
         call _LABEL_77B0_
-        call _LABEL_784F_
+        call audio_init__784F_
         call maybe_input_wait_for_keys__4B84
         ret
 
@@ -8779,7 +8806,7 @@ _LABEL_7417_:
         call _LABEL_7704_
         jr   _LABEL_740D_
 
-_LABEL_741D_:
+piano_app_record_and_playback__741D_:
         ; Load Tile Data for the main menu font
         call wait_until_vbl__92C_
         call display_screen_off__94C_
@@ -8923,7 +8950,7 @@ _LABEL_7532_:
         ld   [_RAM_D07C_], a
         xor  a
         ld   [_RAM_CC00_], a    ; _RAM_CC00_ = $CC00
-        call _LABEL_787C_
+        call audio_off_on_reset_max_vol__787C_
         ld   [_RAM_D07F_], a
         ld   a, $FF
         ld   [_RAM_D180_], a
@@ -8953,7 +8980,7 @@ _LABEL_756E_:
         call _LABEL_77B0_
         xor  a
         ld   [_RAM_CC00_], a    ; _RAM_CC00_ = $CC00
-        call _LABEL_787C_
+        call audio_off_on_reset_max_vol__787C_
         ld   a, [_RAM_D079_]
         cp   $3C
         ld   [_RAM_D07E_], a
@@ -9288,7 +9315,7 @@ _LABEL_77D3_:
         ld   a, [_RAM_D03A_]
         cp   $78
         jr   nz, _LABEL_77E4_
-        call _LABEL_787C_
+        call audio_off_on_reset_max_vol__787C_
         ret
 
 _LABEL_77E4_:
@@ -9351,7 +9378,7 @@ _LABEL_7833_:
         jr   nz, _LABEL_7833_
         ret
 
-_LABEL_784F_:
+audio_init__784F_:
         xor  a
         ldh  [rAUDENA], a
         xor  a
@@ -9360,11 +9387,12 @@ _LABEL_784F_:
         ldh  [rAUD3LEN], a
         ld   a, $55
         ld   bc, $0800 | LOW(_AUD3WAVERAM_LAST) ; | _PORT_3F_
-_LABEL_785E_:
-        ldh  [c], a
-        dec  c
-        dec  b
-        jr   nz, _LABEL_785E_
+        .waveram_load_loop__785E_:
+                ldh  [c], a
+                dec  c
+                dec  b
+                jr   nz, .waveram_load_loop__785E_
+
         ld   a, AUDENA_ON  ; $80
         ldh  [rAUDENA], a
         ld   a, (AUDVOL_LEFT_MAX | AUDVOL_RIGHT_MAX)  ; $77  ; Set rAUDVOL to Max Left/Right volume, with VIN off for left and right
@@ -9379,7 +9407,7 @@ _LABEL_785E_:
         call timer_wait_tick_AND_TODO__289_
         ret
 
-_LABEL_787C_:
+audio_off_on_reset_max_vol__787C_:
         xor  a
         ldh  [rAUDENA], a
         ld   a, AUDENA_ON  ; $80
