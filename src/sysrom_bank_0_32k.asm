@@ -15,13 +15,13 @@ _RST__08_:
     ei
     call maybe_mainmenu_run__4A7B_
     di
-    jp   _switch_bank_return_to_saved_bank_RAM__C940_
+    jp   switch_bank_return_to_saved_bank_RAM__C940_
 
 _RST_10_serial_io_send_command_and_buffer__0010_:
     ei
     call serial_io_send_command_and_buffer__A34_
     di
-    jp   _switch_bank_return_to_saved_bank_RAM__C940_
+    jp   switch_bank_return_to_saved_bank_RAM__C940_
 
 _RST__18_:
     jp   _GB_ENTRY_POINT_100_
@@ -326,7 +326,7 @@ _GB_ENTRY_POINT_100_:
         ld   hl, _RST__08_  ; _RST__08_ = $0008
         res  7, h
         ld   a, $01
-        call _switch_bank_jump_hl_RAM__C920_
+        call switch_bank_in_a_jump_hl_RAM__C920_
         ei
         jr   main_system_loop__15C_
 
@@ -337,7 +337,7 @@ _GB_ENTRY_POINT_100_:
         ld   hl, $0010
         res  7, h
         ld   a, $01
-        call _switch_bank_jump_hl_RAM__C920_
+        call switch_bank_in_a_jump_hl_RAM__C920_
         ei
         jr   main_system_loop__15C_
 
@@ -345,12 +345,12 @@ _GB_ENTRY_POINT_100_:
         cp   MAINMENU_APP_SPELLCHECKER  ; $04
         jr   nz, .check_app_games__1EA_
         di
-            ld   hl, _RST__18_  ; _RST__18_ = $0018
-            res  7, h
-            ld   a, $01
-            call _switch_bank_jump_hl_RAM__C920_
-            ei
-            jp   main_system_loop__15C_
+        ld   hl, _RST__18_  ; _RST__18_ = $0018
+        res  7, h
+        ld   a, $01
+        call switch_bank_in_a_jump_hl_RAM__C920_
+        ei
+        jp   main_system_loop__15C_
 
     .check_app_games__1EA_:
         cp   MAINMENU_APP_GAMES  ; $05
@@ -359,7 +359,7 @@ _GB_ENTRY_POINT_100_:
         ld   hl, _RST__20_  ; _RST__20_ = $0020
         res  7, h
         ld   a, $01
-        call _switch_bank_jump_hl_RAM__C920_
+        call switch_bank_in_a_jump_hl_RAM__C920_
         ei
         jp   main_system_loop__15C_
 
@@ -382,7 +382,7 @@ _GB_ENTRY_POINT_100_:
         ld   hl, $0010
         res  7, h
         ld   a, $02
-        call _switch_bank_jump_hl_RAM__C920_
+        call switch_bank_in_a_jump_hl_RAM__C920_
         call _LABEL_54B_
         ei
         jp   main_system_loop__15C_
@@ -401,7 +401,7 @@ _GB_ENTRY_POINT_100_:
         ld   hl, $0008
         res  7, h
         ld   a, $02
-        call _switch_bank_jump_hl_RAM__C920_
+        call switch_bank_in_a_jump_hl_RAM__C920_
         call _LABEL_54B_
         ei
         jp   main_system_loop__15C_
@@ -878,13 +878,13 @@ joypad_and_buttons_read__4F9_:
 ;           - TX: 3 x 0x09, RX: checks non-zero
 ;           ... then a lot more code
 ;     - ei
-;     - jp C940 Likely: _switch_bank_return_to_saved_bank_RAM__C940_
+;     - jp C940 Likely: switch_bank_return_to_saved_bank_RAM__C940_
 maybe_call_printscreen_in_32k_bank_2__522_:
     di
     ld   hl, $0030  ; RST 30
     res  7, h
     ld   a, $02  ; Bank 2
-    call _switch_bank_jump_hl_RAM__C920_
+    call switch_bank_in_a_jump_hl_RAM__C920_
     ei
     ret
 
@@ -1198,22 +1198,22 @@ vram_init__752_:
         call _memcpy_32_bytes__7CA_
 
         ; HL now at 0x9C20
-        ; (_switch_bank_jump_hl_RAM__C920_)
-        ld   de, _switch_bank_jump_hl_ROM__82C_
+        ; (switch_bank_in_a_jump_hl_RAM__C920_)
+        ld   de, switch_bank_in_a_jump_hl_ROM__82C_
         call _memcpy_32_bytes__7CA_
 
         ; HL now at 0x9C40
-        ; (_switch_bank_return_to_saved_bank_RAM__C940_)
-        ld   de, _switch_bank_return_to_saved_ROM__841_
+        ; (switch_bank_return_to_saved_bank_RAM__C940_)
+        ld   de, switch_bank_return_to_saved_ROM__841_
         call _memcpy_32_bytes__7CA_
 
         ; HL now at 0x9C60
-        ; (_switch_bank_memcopy_hl_to_de_len_bc_RAM__C960_)
-        ld   de, _switch_bank_memcopy_hl_to_de_len_bc_ROM__7EF_
+        ; (switch_bank_memcopy_hl_to_de_len_bc_RAM__C960_)
+        ld   de, switch_bank_memcopy_hl_to_de_len_bc_ROM__7EF_
         call _memcpy_32_bytes__7CA_
 
         ; HL now at 0x9C80
-        ld   de, _switch_bank_read_byte_at_hl_ROM__80C_
+        ld   de, switch_bank_read_byte_at_hl_ROM__80C_
         call _memcpy_32_bytes__7CA_
 
         ; Load OAM DMA Copy routine into HRAM
@@ -6043,7 +6043,7 @@ _LABEL_5F7A_:
         ld   hl, $0028
         res  7, h
         ld   a, $01
-        call _switch_bank_jump_hl_RAM__C920_
+        call switch_bank_in_a_jump_hl_RAM__C920_
         ei
     _LABEL_6044_:
         ld   a, [_RAM_D717_]
@@ -6072,7 +6072,7 @@ _LABEL_5F7A_:
         ld   hl, $0028
         res  7, h
         ld   a, $01
-        call _switch_bank_jump_hl_RAM__C920_
+        call switch_bank_in_a_jump_hl_RAM__C920_
         ei
     _LABEL_6080_:
         ld   a, $10
@@ -6085,7 +6085,7 @@ _LABEL_5F7A_:
         ld   hl, $0028
         res  7, h
         ld   a, $01
-        call _switch_bank_jump_hl_RAM__C920_
+        call switch_bank_in_a_jump_hl_RAM__C920_
         ei
         ld   a, $01
         ld   [_RAM_D20D_], a
@@ -6162,10 +6162,10 @@ _LABEL_611B_:
     pop  de
     ld   hl, $9000
     ld   bc, $0800
-    call _switch_bank_memcopy_hl_to_de_len_bc_RAM__C960_
+    call switch_bank_memcopy_hl_to_de_len_bc_RAM__C960_
     pop  hl
     push hl
-    call _switch_bank_read_byte_at_hl_RAM__C980_
+    call switch_bank_read_byte_at_hl_RAM__C980_
     call wait_until_vbl__92C_
     call display_screen_off__94C_
     ld   a, [_rombank_readbyte_result__D6E7_]
@@ -6173,7 +6173,7 @@ _LABEL_611B_:
     jr   z, _LABEL_615A_
     ld   hl, $8800
     ld   bc, $0340
-    call _switch_bank_memcopy_hl_to_de_len_bc_RAM__C960_
+    call switch_bank_memcopy_hl_to_de_len_bc_RAM__C960_
 _LABEL_615A_:
     pop  hl
     inc  hl
@@ -6181,12 +6181,12 @@ _LABEL_615A_:
     ld   b, $10
     call multiply_a_x_b__result_in_de__4853_
     add  hl, de
-    call _switch_bank_read_byte_at_hl_RAM__C980_
+    call switch_bank_read_byte_at_hl_RAM__C980_
     ld   a, [_rombank_readbyte_result__D6E7_]
     ld   [_RAM_D03A_], a
     ld   b, a
     inc  hl
-    call _switch_bank_read_byte_at_hl_RAM__C980_
+    call switch_bank_read_byte_at_hl_RAM__C980_
     ld   a, [_rombank_readbyte_result__D6E7_]
     ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
     call multiply_a_x_b__result_in_de__4853_
@@ -6196,7 +6196,7 @@ _LABEL_615A_:
     push hl
     pop  de
     ld   hl, $D800
-    call _switch_bank_memcopy_hl_to_de_len_bc_RAM__C960_
+    call switch_bank_memcopy_hl_to_de_len_bc_RAM__C960_
     ld   a, [_RAM_D03A_]
     ld   b, a
     ld   a, $14
@@ -6414,7 +6414,7 @@ _LABEL_6328_:
     ld   hl, $0018
     res  7, h
     ld   a, $02
-    call _switch_bank_jump_hl_RAM__C920_
+    call switch_bank_in_a_jump_hl_RAM__C920_
     ei
     ld   a, [_RAM_D1A7_]    ; _RAM_D1A7_ = $D1A7
     cp   $03
@@ -6844,7 +6844,7 @@ _LABEL_667F_:
     ld   hl, _RST__18_  ; _RST__18_ = $0018
     res  7, h
     ld   a, $02
-    call _switch_bank_jump_hl_RAM__C920_    ; Possibly invalid
+    call switch_bank_in_a_jump_hl_RAM__C920_    ; Possibly invalid
     ei
     ld   a, [_RAM_D1A7_]    ; _RAM_D1A7_ = $D1A7
     cp   $03

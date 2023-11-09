@@ -168,10 +168,10 @@ _rombank_saved__C8D8_: ds $28
 
 SECTION "wram_functions_start_c900", WRAM0[$c900]
 memcopy_in_RAM__C900_:                           ds $20
-_switch_bank_jump_hl_RAM__C920_:                  ds $20
-_switch_bank_return_to_saved_bank_RAM__C940_:     ds $20
-_switch_bank_memcopy_hl_to_de_len_bc_RAM__C960_:  ds $20
-_switch_bank_read_byte_at_hl_RAM__C980_:          ds $20
+switch_bank_in_a_jump_hl_RAM__C920_:                  ds $20  ; Copied to RAM from: switch_bank_in_a_jump_hl_ROM__82C_
+switch_bank_return_to_saved_bank_RAM__C940_:     ds $20
+switch_bank_memcopy_hl_to_de_len_bc_RAM__C960_:  ds $20
+switch_bank_read_byte_at_hl_RAM__C980_:          ds $20
 
 
 SECTION "wram_cc00", WRAM0[$cc00]
@@ -396,7 +396,7 @@ _RAM_D6E5_: db
 _rombank_switch_to__D6E6_: db
 
 SECTION "wram_d6e7", WRAMX[$D6E7]
-_rombank_readbyte_result__D6E7_: db  ; Read by calling _switch_bank_read_byte_at_hl_ROM__80C_ / _RAM_C980_
+_rombank_readbyte_result__D6E7_: db  ; Read by calling switch_bank_read_byte_at_hl_ROM__80C_ / _RAM_C980_
 
 SECTION "wram_d6f0", WRAMX[$D6F0]
 _RAM_D6F0_: db    ; maybe 16 bytes, maybe used for strings
