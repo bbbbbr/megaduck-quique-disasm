@@ -1,6 +1,10 @@
 
+; Actually in 32K Bank 0 Upper 16K, but 32K banking not supported in RGBDS
+; SECTION "rom0_calendar_app_4D6F", ROMX[$4D6F], BANK[$1]
 
-calendar_app_init__4D6F_:
+
+
+calendar_app_init__4D6F_::
     ld   a, [_RAM_DBFB_]    ; _RAM_DBFB_ = $DBFB
     bit  2, a
     jr   nz, ._LABEL_4D7F_
@@ -111,7 +115,7 @@ calendar_app_init__4D6F_:
             ld   c, $00
             ld   [maybe_vram_data_to_write__RAM_C8CC_], a
             push de
-            call maybe__vram_write_byte_2rows_addr_in_hl_preset_data__5494_
+            call maybe__vram_write_byte_2rows_addr_in_hl_preset_data__549D_
             pop  de
             inc  hl
             dec  b
@@ -131,20 +135,20 @@ calendar_app_init__4D6F_:
         ; ? Otherwise year is assumed to be in 2000+ range
         ld   a, $02
         ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-        call maybe__vram_write_byte_2rows_addr_in_hl_preset_data__5494_
+        call maybe__vram_write_byte_2rows_addr_in_hl_preset_data__549D_
         ld   a, $12
         jr   ._LABEL_4E48_
 
     .maybe_year_is_1990_1999__4E3E_:
         ld   a, $04
         ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-        call maybe__vram_write_byte_2rows_addr_in_hl_preset_data__5494_
+        call maybe__vram_write_byte_2rows_addr_in_hl_preset_data__549D_
         ld   a, $00
 
     ._LABEL_4E48_:
         inc  hl
         ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-        call maybe__vram_write_byte_2rows_addr_in_hl_preset_data__5494_
+        call maybe__vram_write_byte_2rows_addr_in_hl_preset_data__549D_
         ld   a, $10
         ld   [_tilemap_pos_x__RAM_C8CB_], a
         ld   a, $02
@@ -320,7 +324,7 @@ calendar_app_init__4D6F_:
         ld   [_RAM_D03A_], a
         call _display_bg_sprites_on__627_
 
-    ._LABEL_4F95_:
+    .maybe_calendar_app_main_input_loop__4F95_:
         call timer_wait_tick_AND_TODO__289_
         call input_read_keys__C8D_
         ld   a, [_RAM_D074_ + 1]
@@ -363,7 +367,7 @@ calendar_app_init__4D6F_:
         ld   [_RAM_D074_ + 2], a
         pop  af
         ld   [_RAM_D074_ + 1], a
-        jr   ._LABEL_4F95_
+        jr   .maybe_calendar_app_main_input_loop__4F95_
 
     ._LABEL_4FEE_:
         ; Alias SYS_CHAR_GPAD_SELECT
@@ -393,7 +397,7 @@ calendar_app_init__4D6F_:
         ld   [_RAM_D05C_], a    ; _RAM_D05C_ = $D05C
         call delay_quarter_msec__BD6_
         call delay_quarter_msec__BD6_
-        jp   ._LABEL_4F95_
+        jp   .maybe_calendar_app_main_input_loop__4F95_
 
     ._LABEL_5022_:
         ld   a, [buttons_new_pressed__RAM_D006_]
@@ -417,7 +421,7 @@ calendar_app_init__4D6F_:
         ld   a, [_RAM_D05B_]    ; _RAM_D05B_ = $D05B
         cp   $01
         jp   z, ._LABEL_511F_
-        jp   ._LABEL_4F95_
+        jp   .maybe_calendar_app_main_input_loop__4F95_
 
     ._LABEL_5059_:
         xor  a
@@ -466,7 +470,7 @@ calendar_app_init__4D6F_:
         ld   [_RAM_D05F_], a    ; _RAM_D05F_ = $D05F
         ld   a, $03
         call _LABEL_4A72_
-        jp   ._LABEL_4F95_
+        jp   .maybe_calendar_app_main_input_loop__4F95_
 
     ._LABEL_50C3_:
         xor  a
@@ -586,7 +590,7 @@ calendar_app_init__4D6F_:
         call _LABEL_953_
         ld   a, [_tilemap_pos_x__RAM_C8CB_]
         cp   $A0
-        jp   z, ._LABEL_4F95_
+        jp   z, .maybe_calendar_app_main_input_loop__4F95_
         ld   a, [ui_grid_menu_selected_icon__RAM_D06E_]
         inc  a
         ld   e, a
@@ -624,12 +628,12 @@ calendar_app_init__4D6F_:
         call _LABEL_5401_
         ld   a, $03
         call _LABEL_4A72_
-        jp   ._LABEL_4F95_
+        jp   .maybe_calendar_app_main_input_loop__4F95_
 
     ._LABEL_5206_:
         ld   a, [_RAM_DBFF_]    ; _RAM_DBFF_ = $DBFF
         cp   $1E
-        jp   nc, ._LABEL_4F95_
+        jp   nc, .maybe_calendar_app_main_input_loop__4F95_
         inc  a
         ld   [_RAM_DBFF_], a    ; _RAM_DBFF_ = $DBFF
         ld   de, shadow_rtc_buf_start_and_year__RAM_D051_ ; shadow_rtc_buf_start_and_year__RAM_D051_ = $D051
@@ -645,7 +649,7 @@ calendar_app_init__4D6F_:
         call _LABEL_52F5_
         ld   a, $03
         call _LABEL_4A72_
-        jp   ._LABEL_4F95_
+        jp   .maybe_calendar_app_main_input_loop__4F95_
 
     ._LABEL_522B_:
         ld   hl, _RAM_D029_ ; _RAM_D029_ = $D029
@@ -661,7 +665,7 @@ calendar_app_init__4D6F_:
     ._LABEL_5240_:
         dec  a
         cp   $5C
-        jp   c, ._LABEL_4F95_
+        jp   c, .maybe_calendar_app_main_input_loop__4F95_
         call _LABEL_5379_
         ld   [buffer__RAM_D028_], a
         ld   a, $12
@@ -694,7 +698,7 @@ calendar_app_init__4D6F_:
     ._LABEL_5286_:
         inc  a
         cp   $70
-        jp   z, ._LABEL_4F95_
+        jp   z, .maybe_calendar_app_main_input_loop__4F95_
         call _LABEL_5379_
         ld   [buffer__RAM_D028_], a
         ld   a, $01
@@ -744,3 +748,272 @@ calendar_app_init__4D6F_:
         ld   a, [_RAM_D074_ + 3]
         ld   [buffer__RAM_D028_ + 2], a    ; buffer__RAM_D028_ + 2 = $D02A
         ret
+
+
+; ===== Appears to be support code for Calendar App =====
+
+
+_LABEL_52F5_:
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
+    add  $02
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
+    ld   hl, _TILEMAP0; $9800
+    call calc_vram_addr_of_tile_xy_base_in_hl__4932_
+    ld   a, [shadow_rtc_day__RAM_D053_]    ; shadow_rtc_day__RAM_D053_ = $D053
+    swap a
+    and  $0F
+    jr   z, ._LABEL_5310_
+    add  $F1
+    jr   ._LABEL_5312_
+
+    ._LABEL_5310_:
+        ld   a, $BE
+    ._LABEL_5312_:
+        ld   [maybe_vram_data_to_write__RAM_C8CC_], a
+        call wait_until_vbl__92C_
+        ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
+        ldi  [hl], a
+        ld   a, [_tilemap_pos_x__RAM_C8CB_]
+        inc  a
+        ld   [_tilemap_pos_x__RAM_C8CB_], a
+        ld   a, [shadow_rtc_day__RAM_D053_]    ; shadow_rtc_day__RAM_D053_ = $D053
+        and  $0F
+        add  $F1
+        ld   [maybe_vram_data_to_write__RAM_C8CC_], a
+        ld   [hl], a
+        ret
+
+_LABEL_532F_:
+    ld   hl, $DBA0
+    ld   a, [shadow_rtc_dayofweek__RAM_D054_]    ; shadow_rtc_dayofweek__RAM_D054_ = $D054
+    cp   $06
+    jr   z, ._LABEL_5359_
+    ld   a, [_RAM_DBFF_]    ; _RAM_DBFF_ = $DBFF
+    and  a
+    jr   z, ._LABEL_5357_
+    ld   b, a
+
+    ._LABEL_5340_:
+        ld   de, shadow_rtc_buf_start_and_year__RAM_D051_ ; shadow_rtc_buf_start_and_year__RAM_D051_ = $D051
+        ld   c, $03
+
+    ._LABEL_5345_:
+        ld   a, [de]
+        cp   [hl]
+        jr   nz, ._LABEL_5350_
+        inc  hl
+        inc  de
+        dec  c
+        jr   nz, ._LABEL_5345_
+        jr   ._LABEL_5359_
+
+    ._LABEL_5350_:
+        ld   a, c
+        call add_a_to_hl__486E_
+        dec  b
+        jr   nz, ._LABEL_5340_
+
+    ._LABEL_5357_:
+        xor  a
+        ret
+
+    ._LABEL_5359_:
+        ld   a, $01
+        ret
+
+_LABEL_535C_:
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
+    srl  a
+    srl  a
+    srl  a
+    sub  $04
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
+    ld   a, [_tilemap_pos_y__RAM_C8CA_]
+    srl  a
+    srl  a
+    srl  a
+    sub  $02
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
+    ret
+
+_LABEL_5379_:
+    ld   e, a
+    ld   d, $00
+    ld   h, $0A
+    call divide_de_by_h_result_in_bc_remainder_in_l__4832_
+    ld   a, c
+    cp   $0A
+    jr   c, _LABEL_5388_
+    sub  $0A
+
+    _LABEL_5388_:
+        swap a
+        or   l
+        ret
+
+_LABEL_538C_:
+    ld   a, [_RAM_D073_]    ; _RAM_D073_ = $D073
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
+    ld   a, [_RAM_D074_]
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
+    ld   a, [_RAM_D04A_]    ; _RAM_D04A_ = $D04A
+    inc  a
+    ld   [_RAM_D04A_], a    ; _RAM_D04A_ = $D04A
+    and  $0F
+    jr   z, ._LABEL_53CC_
+    cp   $08
+    jr   nz, ._LABEL_53CB_
+    ld   a, [buffer__RAM_D028_ + 2]    ; buffer__RAM_D028_ + 2 = $D02A
+    ld   [shadow_rtc_day__RAM_D053_], a    ; shadow_rtc_day__RAM_D053_ = $D053
+    ld   a, [buffer__RAM_D028_ + 3]    ; buffer__RAM_D028_ + 3 = $D02B
+    dec  a
+    ld   [shadow_rtc_dayofweek__RAM_D054_], a    ; shadow_rtc_dayofweek__RAM_D054_ = $D054
+    cp   $06
+    jr   z, ._LABEL_53C1_
+    call _LABEL_532F_
+    ld   hl, buffer__RAM_D028_ + 2 ; buffer__RAM_D028_ + 2 = $D02A
+    and  a
+    jr   z, ._LABEL_53C6_
+
+    ._LABEL_53C1_:
+        call _LABEL_52F5_
+        jr   ._LABEL_53CB_
+
+    ._LABEL_53C6_:
+        ld   c, $02
+        call _LABEL_5401_
+    ._LABEL_53CB_:
+        ret
+
+    ._LABEL_53CC_:
+        ld   a, [_tilemap_pos_x__RAM_C8CB_]
+        add  $02
+        ld   [_tilemap_pos_x__RAM_C8CB_], a
+        ld   a, $BE
+        ld   [maybe_vram_data_to_write__RAM_C8CC_], a
+        push af
+        push bc
+        push de
+        push hl
+        call wait_until_vbl__92C_
+        ld   a, SELECT_TILEMAP_0  ; $00
+        call write_tilemap_in_a_preset_xy_and_data_8FB_
+        pop  hl
+        pop  de
+        pop  bc
+        pop  af
+        ld   a, [_tilemap_pos_x__RAM_C8CB_]
+        inc  a
+        ld   [_tilemap_pos_x__RAM_C8CB_], a
+        push af
+        push bc
+        push de
+        push hl
+        call wait_until_vbl__92C_
+        ld   a, SELECT_TILEMAP_0  ; $00
+        call write_tilemap_in_a_preset_xy_and_data_8FB_
+        pop  hl
+        pop  de
+        pop  bc
+        pop  af
+        ret
+
+_LABEL_5401_:
+    ld   a, [_tilemap_pos_x__RAM_C8CB_]
+    add  $02
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
+    ldi  a, [hl]
+    ld   b, a
+    swap a
+    and  $0F
+    bit  0, c
+    jr   z, ._LABEL_542E_
+    sla  a
+    add  $00
+    bit  1, c
+    jr   z, ._LABEL_5427_
+    set  7, a
+    bit  2, c
+    jr   z, ._LABEL_5427_
+    cp   $80
+    jr   nz, ._LABEL_5427_
+    ld   a, $98
+    ._LABEL_5427_:
+        push hl
+        push bc
+        call _LABEL_5480_
+        jr   ._LABEL_544F_
+
+    ._LABEL_542E_:
+        add  $C0
+        cp   $C0
+        jr   nz, ._LABEL_543A_
+        bit  2, c
+        jr   nz, ._LABEL_543A_
+        ld   a, $BE
+
+    ._LABEL_543A_:
+        ld   [maybe_vram_data_to_write__RAM_C8CC_], a
+        push hl
+        push bc
+        bit  0, c
+        jr   nz, ._LABEL_544C_
+        bit  1, c
+        jr   nz, ._LABEL_544C_
+        call wait_vbl_write_byte_tilemap0_preset_xy_and_data__612_
+        jr   ._LABEL_544F_
+
+    ._LABEL_544C_:
+        call wait_vbl_write_byte_tilemap0_preset_xy_and_data__612_
+    ._LABEL_544F_:
+        ld   a, [_tilemap_pos_x__RAM_C8CB_]
+        inc  a
+        ld   [_tilemap_pos_x__RAM_C8CB_], a
+        pop  bc
+        ld   a, b
+        and  $0F
+        bit  0, c
+        jr   z, ._LABEL_5472_
+        sla  a
+        add  $00
+        bit  1, c
+        jr   z, ._LABEL_5468_
+        set  7, a
+    ._LABEL_5468_:
+        call _LABEL_5480_
+        jr   ._LABEL_547E_
+
+    ._LABEL_546D_:
+        call wait_vbl_write_byte_tilemap0_preset_xy_and_data__612_
+        jr   ._LABEL_547E_
+
+    ._LABEL_5472_:
+        add  $C0
+        ld   [maybe_vram_data_to_write__RAM_C8CC_], a
+        bit  1, c
+        jr   nz, ._LABEL_546D_
+        call wait_vbl_write_byte_tilemap0_preset_xy_and_data__612_
+
+    ._LABEL_547E_:
+        pop  hl
+        ret
+
+_LABEL_5480_:
+    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
+    push bc
+    push hl
+    push de
+    bit  1, c
+    ld   hl, _TILEMAP0; $9800
+    jr   z, ._LABEL_5490_
+    ld   hl, _TILEMAP0; $9800
+
+    ._LABEL_5490_:
+        call calc_vram_addr_of_tile_xy_base_in_hl__4932_
+        call wait_until_vbl__92C_
+        call maybe__vram_write_byte_2rows_addr_in_hl_preset_data__549D_
+        pop  de
+        pop  hl
+        pop  bc
+        ret
+
