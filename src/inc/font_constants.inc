@@ -131,14 +131,14 @@ DEF FONT_UPPER_TILDE_LAST     EQU FONT_U_TILDE
     ; Misc char
     FONT_OFFSET          FONT_JOT_UNDERBAR_MAYBE,      91 ; $DB
     ; Lower case Tilde Letters
-    FONT_OFFSET          FONT_n_TILDE,                 92 ; $DC
-    FONT_OFFSET          FONT_a_TILDE,                 93 ; $DD
-    FONT_OFFSET          FONT_e_TILDE,                 94 ; $DE
-    FONT_OFFSET          FONT_i_TILDE,                 95 ; $DF
-    FONT_OFFSET          FONT_o_TILDE,                 96 ; $E0
-    FONT_OFFSET          FONT_u_TILDE,                 97 ; $E1
-DEF FONT_LOWER_TILDE_FIRST    EQU FONT_n_TILDE
-DEF FONT_LOWER_TILDE_LAST     EQU FONT_u_TILDE
+    FONT_OFFSET          FONT_N_TILDE_LOWER,                 92 ; $DC
+    FONT_OFFSET          FONT_A_TILDE_LOWER,                 93 ; $DD
+    FONT_OFFSET          FONT_E_TILDE_LOWER,                 94 ; $DE
+    FONT_OFFSET          FONT_I_TILDE_LOWER,                 95 ; $DF
+    FONT_OFFSET          FONT_O_TILDE_LOWER,                 96 ; $E0
+    FONT_OFFSET          FONT_U_TILDE_LOWER,                 97 ; $E1
+DEF FONT_LOWER_TILDE_FIRST    EQU FONT_N_TILDE_LOWER
+DEF FONT_LOWER_TILDE_LAST     EQU FONT_U_TILDE_LOWER
     ; Misc char
     FONT_OFFSET          FONT_DOT_BETWEEN_BARS_MAYBE,  98 ; $E2
     ; End of Spanish symbols
@@ -163,6 +163,7 @@ DEF FONT_NUMBERS_INV_LAST         EQU FONT_9_INV
     FONT_OFFSET          FONT_FINGER_ICON3, 112 ; $F0
     ; Slash character
     FONT_OFFSET          FONT_SLASH,        113 ; $F1
+
     ; Textbox drawing (Top)
     FONT_OFFSET          FONT_TEXTBOX_TOP_LEFT, 114 ; $F2
     FONT_OFFSET          FONT_TEXTBOX_TOP_MID,  115 ; $F3
@@ -176,4 +177,8 @@ DEF FONT_NUMBERS_INV_LAST         EQU FONT_9_INV
     FONT_OFFSET          FONT_TEXTBOX_BOT_MID,  121 ; $F9
     FONT_OFFSET          FONT_TEXTBOX_BOT_RIGHT,122 ; $FA
 DEF FONT_TEXTBOX_START        EQU FONT_TEXTBOX_TOP_LEFT
-    FONT_OFFSET          FONT_COLON, 126            ; $FE
+
+    FONT_OFFSET          FONT_DOWN_SOLID_BLACK, 123 ; $FB  ; Might be text cursor
+    FONT_OFFSET          FONT_HASH,             124 ; $FC
+    FONT_OFFSET          FONT_DOWN_ARROW,       125 ; $FD
+    FONT_OFFSET          FONT_COLON,            126 ; $FE

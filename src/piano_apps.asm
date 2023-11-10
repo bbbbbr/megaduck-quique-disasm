@@ -87,7 +87,7 @@ piano_freeplay_app__7185_:
         ld   bc, (128 * TILE_SZ_BYTES)                        ; Copy size: 128 tiles (2048 bytes)
         call memcopy_in_RAM__C900_
 
-        call gfx_load_tile_map_20x6_at_438a__7691_
+        call piano_app__gfx_load_tile_map_20x6_at_438a__7691_
         call _LABEL_761F_
         call _display_bg_sprites_on__627_
         xor  a
@@ -124,7 +124,7 @@ piano_freeplay_app__7185_:
             ld   hl, $7980
             call add_a_to_hl__486E_
             call _LABEL_2A2_
-            call _LABEL_77D3_
+            call maybe_piano_app__display_keyboard_note__77D3_
             jr   .input_loop__71BB_
 
     ._LABEL_71F6_:
@@ -144,7 +144,7 @@ piano_learn_song_app__720B_:
         ld   b, $00
         call _LABEL_7242_
         ret  z
-        call gfx_load_tile_map_20x6_at_438a__7691_
+        call piano_app__gfx_load_tile_map_20x6_at_438a__7691_
         call _LABEL_761F_
         call _LABEL_765B_
         call _display_bg_sprites_on__627_
@@ -157,7 +157,7 @@ piano_prerecorded_app__7226_:
         ld   b, $01
         call _LABEL_7242_
         ret  z
-        call gfx_load_tile_map_20x6_at_438a__7691_
+        call piano_app__gfx_load_tile_map_20x6_at_438a__7691_
         call _LABEL_761F_
         call _LABEL_766D_
         call _display_bg_sprites_on__627_
@@ -203,14 +203,16 @@ _LABEL_7242_:
             call _LABEL_766D_
     _LABEL_7280_:
             call _display_bg_sprites_on__627_
-            ld   de, _DATA_78FF_
+            ld   de, string_message__piano_app__select_melody__78FF_
             ld   hl, $0109
             ld   c, PRINT_NORMAL  ; $01
             call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
+
             ld   de, _DATA_7912_
             ld   hl, $030B
             ld   c, PRINT_NORMAL  ; $01
             call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
+
             xor  a
             ld   [_RAM_D03A_], a
             ld   [_RAM_D03B_], a
@@ -297,7 +299,7 @@ _LABEL_7322_:
 _LABEL_7326_:
         push hl
         call _LABEL_7704_
-        call _LABEL_76D4_
+        call piano_app__show_message__begin_playing__76D4_
         call maybe_input_wait_for_keys__4B84
         xor  a
         ld   [_RAM_D04B_], a
@@ -334,15 +336,15 @@ _LABEL_7354_:
         and  a
         jr   nz, _LABEL_7375_
 
-input_repeat_key_until_released__7366_:
-        call input_read_keys__C8D_
-        ld   a, [input_key_modifier_flags__RAM_D027_]
-        bit  SYS_KBD_FLAG_KEY_REPEAT_BIT, a  ; 0, a
-        jr   z, _LABEL_7375_
+    input_repeat_key_until_released__7366_:
+            call input_read_keys__C8D_
+            ld   a, [input_key_modifier_flags__RAM_D027_]
+            bit  SYS_KBD_FLAG_KEY_REPEAT_BIT, a  ; 0, a
+            jr   z, _LABEL_7375_
 
-        ; delay before Key Repeat test
-        call timer_wait_tick_AND_TODO__289_
-        jr   input_repeat_key_until_released__7366_
+            ; delay before Key Repeat test
+            call timer_wait_tick_AND_TODO__289_
+            jr   input_repeat_key_until_released__7366_
 
 _LABEL_7375_:
         pop  bc
@@ -357,7 +359,7 @@ _LABEL_7377_:
         ld   [_RAM_D07A_], a
         xor  a
         ld   [_RAM_D400_], a
-        call _LABEL_77D3_
+        call maybe_piano_app__display_keyboard_note__77D3_
 _LABEL_738C_:
         call timer_wait_tick_AND_TODO__289_
         call input_read_keys__C8D_
@@ -421,7 +423,7 @@ _LABEL_73E8_:
 
 _LABEL_7407_:
         call _LABEL_7704_
-        call _LABEL_76E0_
+        call piano_app__show_message__stop_playing__76E0_
 _LABEL_740D_:
         call _LABEL_77B0_
         call audio_init__784F_
@@ -453,7 +455,7 @@ piano_app_record_and_playback__741D_:
         ld   bc, (128 * TILE_SZ_BYTES)                        ; Copy size: 128 tiles (2048 bytes)
         call memcopy_in_RAM__C900_
 
-        call gfx_load_tile_map_20x6_at_438a__7691_
+        call piano_app__gfx_load_tile_map_20x6_at_438a__7691_
         call _LABEL_7631_
         call _LABEL_7704_
         call _LABEL_767F_
@@ -491,7 +493,7 @@ _LABEL_747B_:
         cp   $30
         jr   nz, _LABEL_74A6_
         call _LABEL_7704_
-        call _LABEL_76F8_
+        call piano_app__show_message__begin_recording__76F8_
         call maybe_input_wait_for_keys__4B84
         ld   a, $03
         ld   [_RAM_D07F_], a
@@ -503,15 +505,19 @@ _LABEL_747B_:
         jp   _LABEL_7470_
 
 _LABEL_74A6_:
-        cp   $31
+        cp   SYS_CHAR_F2  ; $31
         jp   z, _LABEL_75F0_
-        cp   $2E
+
+        cp   SYS_CHAR_ENTRA_CR  ; $2E
         jp   z, _LABEL_75BD_
-        cp   $32
+
+        cp   SYS_CHAR_F3  ; $32
         jp   z, _LABEL_75A3_
-        cp   $2D
+
+        cp   SYS_CHAR_AYUDA  ; $2D
         jp   nz, _LABEL_74BD_
-        call _LABEL_7733_
+        call piano_freeplay_app__show_help_menu__7733_
+
 _LABEL_74BD_:
         ld   a, [_RAM_D07F_]
         and  a
@@ -549,7 +555,7 @@ _LABEL_74EF_:
         ld   hl, $7980
         call add_a_to_hl__486E_
         call _LABEL_2A2_
-        call _LABEL_77D3_
+        call maybe_piano_app__display_keyboard_note__77D3_
         ld   a, $01
         ld   [_RAM_D07F_], a
 _LABEL_750C_:
@@ -572,7 +578,7 @@ _LABEL_750C_:
         jp   _LABEL_7465_
 
 _LABEL_7532_:
-        call _LABEL_76BC_
+        call piano_app__show_message__memory_full__76BC_
         ld   a, $01
         ld   [_RAM_D07C_], a
         xor  a
@@ -640,7 +646,7 @@ _LABEL_75A3_:
 _LABEL_75BD_:
         call _LABEL_75CF_
         call _LABEL_7704_
-        call _LABEL_76B0_
+        call piano_app__show_message__stop_recording__76B0_
         call _LABEL_77B0_
         call maybe_input_wait_for_keys__4B84
         jp   _LABEL_7465_
@@ -679,7 +685,7 @@ _LABEL_75F0_:
 
 _LABEL_760A_:
         call _LABEL_7704_
-        call _LABEL_76EC_
+        call piano_app__show_message__melody_not_recorded__76EC_
         call _LABEL_77B0_
         ld   e, $00
         xor  a
@@ -751,7 +757,7 @@ _LABEL_767F_:
         ret
 
 
-gfx_load_tile_map_20x6_at_438a__7691_:
+piano_app__gfx_load_tile_map_20x6_at_438a__7691_:
     call display_clear_screen_with_space_char__4875_
     ; Load a tile map for ... ? TODO
     ld   de, tile_map_0x438a_20x6_120_bytes__438a_
@@ -771,15 +777,15 @@ gfx_load_tile_map_20x6_at_438a__7691_:
     ret
 
 
-_LABEL_76B0_:
-        ld   de, _DATA_7918_
+piano_app__show_message__stop_recording__76B0_:
+        ld   de, string_message__piano_app__stop_recording__7918_
         ld   hl, $0107
         ld   c, PRINT_NORMAL  ; $01
         call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
         ret
 
-_LABEL_76BC_:
-        ld   de, _DATA_7927_
+piano_app__show_message__memory_full__76BC_:
+        ld   de, string_message__piano_app__memory_full__7927_
         ld   hl, $0107
         ld   c, PRINT_NORMAL  ; $01
         call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
@@ -792,29 +798,29 @@ _LABEL_76C8_:
         call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
         ret
 
-_LABEL_76D4_:
-        ld   de, string_message__piano_app__comienza_a_tocar__795A_
+piano_app__show_message__begin_playing__76D4_:
+        ld   de, string_message__piano_app__begin_playing__795A_
         ld   hl, $0107
         ld   c, PRINT_NORMAL  ; $01
         call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
         ret
 
-_LABEL_76E0_:
-        ld   de, string_message__piano_app__deja_de_tocar__796B_
+piano_app__show_message__stop_playing__76E0_:
+        ld   de, string_message__piano_app__stop_playing__796B_
         ld   hl, $0107
         ld  c, PRINT_NORMAL  ; $01
         call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
         ret
 
-_LABEL_76EC_:
-        ld   de, _DATA_7935_
+piano_app__show_message__melody_not_recorded__76EC_:
+        ld   de, string_message__piano_app__melody_not_recorded__7935_
         ld   hl, $0107
         ld  c, PRINT_NORMAL  ; $01
         call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
         ret
 
-_LABEL_76F8_:
-        ld   de, _DATA_7948_
+piano_app__show_message__begin_recording__76F8_:
+        ld   de, string_message__piano_app__begin_recording__7948_
         ld   hl, $0107
         ld  c, PRINT_NORMAL  ; $01
         call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
@@ -850,7 +856,8 @@ _LABEL_7721_:
         jr   z, _LABEL_7721_
         ret
 
-_LABEL_7733_:
+
+piano_freeplay_app__show_help_menu__7733_:
         ; Load Tile Data for the main menu font
         call wait_until_vbl__92C_
         call display_screen_off__94C_
@@ -876,18 +883,21 @@ _LABEL_7751_:
         ld   a, $F2
         ld   hl, _TILEMAP0; $9800
         call display_textbox_draw_xy_in_bc_wh_in_de_st_id_in_a__48EB_
-        ld   de, _DATA_7888_
+
+        ld   de, string_message__piano_freeplay_help__7888_
         ld   hl, $0707
         ld   c, PRINT_NORMAL  ; $01
         call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
-        ld   de, _DATA_788E_
-        ld   hl, main_system_loop__15C_.app_paint_done__1FD_  ; _DATA_20A_
+
+        ld   de, string_message__piano_freeplay_help_text__788E_
+        ld   hl, $020A
         ld   b, $04
         ld   c, PRINT_NORMAL  ; $01
 _LABEL_777C_:
         push bc
         push hl
         call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
+
         pop  hl
         pop  bc
         inc  l
@@ -936,74 +946,75 @@ _LABEL_77C2_:
         jr   nz, _LABEL_77C2_
         ret
 
-_LABEL_77D3_:
+maybe_piano_app__display_keyboard_note__77D3_:
         call _LABEL_77B0_
-        ld   hl, _DATA_79B2_
+        ld   hl, piano_app__keyboard_note_names_LUT__79B2_
         ld   a, [_RAM_D03A_]
         cp   $78
-        jr   nz, _LABEL_77E4_
+        jr   nz, ._LABEL_77E4_
         call audio_off_on_reset_max_vol__787C_
         ret
 
-_LABEL_77E4_:
-        push bc
-        srl  a
-        ld   b, $06
-        call multiply_a_x_b__result_in_de__4853_
-        add  hl, de
-        pop  bc
-        ldi  a, [hl]
-        ld   [_tilemap_pos_x__RAM_C8CB_], a
-        ldi  a, [hl]
-        ld   [_tilemap_pos_y__RAM_C8CA_], a
-        ld   a, $80
-        ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-        ld   a, [_tilemap_pos_y__RAM_C8CA_]
-        cp   $90
-        jr   z, _LABEL_7807_
-        ld   a, $FD
-        ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-_LABEL_7807_:
-        xor  a
-        ld   [_RAM_C8CD_], a    ; _RAM_C8CD_ = $C8CD
-        push hl
-        call _LABEL_623_
-        pop  hl
-        ld   a, b
-        ld   [_RAM_D04B_], a
-        ld   a, [_tilemap_pos_x__RAM_C8CB_]
-        sub  $06
-        ld   [_tilemap_pos_x__RAM_C8CB_], a
-        ld   a, [_tilemap_pos_y__RAM_C8CA_]
-        add  $08
-        cp   $98
-        jr   z, _LABEL_7827_
-        sub  $10
-_LABEL_7827_:
-        ld   [_tilemap_pos_y__RAM_C8CA_], a
-        xor  a
-        ld   [_RAM_C8CD_], a    ; _RAM_C8CD_ = $C8CD
-        ld   b, $04
-        ld   de, _RAM_D03B_ + 1 ; _RAM_D03B_ + 1 = $D03C
-_LABEL_7833_:
-        ldi  a, [hl]
-        ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-        push bc
-        push de
-        push hl
-        call _LABEL_623_
-        pop  hl
-        pop  de
-        ld   a, b
-        ld   [de], a
-        inc  de
-        pop  bc
-        ld   a, [_tilemap_pos_x__RAM_C8CB_]
-        add  $07
-        ld   [_tilemap_pos_x__RAM_C8CB_], a
-        dec  b
-        jr   nz, _LABEL_7833_
-        ret
+    ._LABEL_77E4_:
+            push bc
+            srl  a
+            ld   b, $06
+            call multiply_a_x_b__result_in_de__4853_
+            add  hl, de
+            pop  bc
+            ldi  a, [hl]
+            ld   [_tilemap_pos_x__RAM_C8CB_], a
+            ldi  a, [hl]
+            ld   [_tilemap_pos_y__RAM_C8CA_], a
+            ld   a, $80
+
+            ld   [maybe_vram_data_to_write__RAM_C8CC_], a
+            ld   a, [_tilemap_pos_y__RAM_C8CA_]
+            cp   $90
+            jr   z, ._LABEL_7807_
+            ld   a, $FD
+            ld   [maybe_vram_data_to_write__RAM_C8CC_], a
+    ._LABEL_7807_:
+            xor  a
+            ld   [_RAM_C8CD_], a    ; _RAM_C8CD_ = $C8CD
+            push hl
+            call _LABEL_623_
+            pop  hl
+            ld   a, b
+            ld   [_RAM_D04B_], a
+            ld   a, [_tilemap_pos_x__RAM_C8CB_]
+            sub  $06
+            ld   [_tilemap_pos_x__RAM_C8CB_], a
+            ld   a, [_tilemap_pos_y__RAM_C8CA_]
+            add  $08
+            cp   $98
+            jr   z, ._LABEL_7827_
+            sub  $10
+    ._LABEL_7827_:
+            ld   [_tilemap_pos_y__RAM_C8CA_], a
+            xor  a
+            ld   [_RAM_C8CD_], a    ; _RAM_C8CD_ = $C8CD
+            ld   b, $04
+            ld   de, _RAM_D03B_ + 1 ; _RAM_D03B_ + 1 = $D03C
+    ._LABEL_7833_:
+            ldi  a, [hl]
+            ld   [maybe_vram_data_to_write__RAM_C8CC_], a
+            push bc
+            push de
+            push hl
+            call _LABEL_623_
+            pop  hl
+            pop  de
+            ld   a, b
+            ld   [de], a
+            inc  de
+            pop  bc
+            ld   a, [_tilemap_pos_x__RAM_C8CB_]
+            add  $07
+            ld   [_tilemap_pos_x__RAM_C8CB_], a
+            dec  b
+            jr   nz, ._LABEL_7833_
+            ret
 
 audio_init__784F_:
         xor  a
@@ -1043,18 +1054,26 @@ audio_off_on_reset_max_vol__787C_:
         ldh  [rAUDVOL], a
         ret
 
-; TODO: Some of data below may be encoded string data
 
 ; Data from 7888 to 788D (6 bytes)
-_DATA_7888_:
+string_message__piano_freeplay_help__7888_:
+; "AYUDA" (Help)
     db $81, $99, $95, $84, $81, $00
 
+
 ; Data from 788E to 78C2 (53 bytes)
-_DATA_788E_:
-    db $86, $C1, $BE, $FE, $BE, $87, $92, $81, $82, $81, $83, $89, $8F, $8E, $00, $86
-    db $C2, $BE, $FE, $BE, $94, $8F, $83, $81, $00, $86, $C3, $BE, $FE, $BE, $82, $8F
-    db $92, $92, $81, $00, $85, $8E, $94, $92, $81, $BE, $FE, $BE, $83, $8F, $8E, $86
-    db $89, $92, $8D, $81, $00
+string_message__piano_freeplay_help_text__788E_:
+    ; "F1 : GRABACION" (Record)
+    db $86, $C1, $BE, $FE, $BE, $87, $92, $81, $82, $81, $83, $89, $8F, $8E, $00
+    ; "F2 : TOCA" (Play Back)
+    db $86, $C2, $BE, $FE, $BE, $94, $8F, $83, $81, $00
+    ; "F3 : BORRA" (Erase)
+    db $86, $C3, $BE, $FE, $BE, $82, $8F, $92, $92, $81, $00
+    ; "ENTRA : CONFIRMA" (Confirm)
+    db $85, $8E, $94, $92, $81, $BE, $FE, $BE, $83, $8F, $8E, $86, $89, $92, $8D, $81, $00
+
+
+; Maybe some sprite or tile id map data below
 
 ; Data from 78C3 to 78D6 (20 bytes)
 _DATA_78C3_:
@@ -1082,44 +1101,48 @@ _DATA_78EC_:
 _DATA_78F6_:
     db $26, $3C, $1A, $1C, $1A, $1E, $2A, $36, $34
 
+
 ; Data from 78FF to 7911 (19 bytes)
-_DATA_78FF_:
-    db $93, $85, $8C, $85, $83, $83, $89, $8F, $8E, $81, $BE, $8D, $85, $8C, $8F, $84
-    db $89, $81, $00
+string_message__piano_app__select_melody__78FF_:
+; "SELECCIONA MELODIA" (Select melody)
+    db $93, $85, $8C, $85, $83, $83, $89, $8F, $8E, $81, $BE, $8D, $85, $8C, $8F, $84, $89, $81, $00
 
 ; Data from 7912 to 7917 (6 bytes)
 _DATA_7912_:
     db $C1, $BE, $CB, $BE, $C9, $00
 
 ; Data from 7918 to 7926 (15 bytes)
-_DATA_7918_:
+; "DEJA DE GRABAR" (Stop Recording)
+string_message__piano_app__stop_recording__7918_:
     db $84, $85, $8A, $81, $BE, $84, $85, $BE, $87, $92, $81, $82, $81, $92, $00
 
 ; Data from 7927 to 7934 (14 bytes)
-_DATA_7927_:
+string_message__piano_app__memory_full__7927_:
+; "MEMORIA LLENA" (Memory Full)
     db $8D, $85, $8D, $8F, $92, $89, $81, $BE, $8C, $8C, $85, $8E, $81, $00
 
 ; Data from 7935 to 7947 (19 bytes)
-_DATA_7935_:
-    db $8D, $85, $8C, $8F, $84, $89, $81, $BE, $8E, $8F, $BE, $87, $92, $81, $82, $81
-    db $84, $81, $00
+string_message__piano_app__melody_not_recorded__7935_:
+; "MELODIA NO GRABADA" (Melody Not Recorded)
+    db $8D, $85, $8C, $8F, $84, $89, $81, $BE, $8E, $8F, $BE, $87, $92, $81, $82, $81, $84, $81, $00
 
 ; Data from 7948 to 7959 (18 bytes)
-_DATA_7948_:
-    db $83, $8F, $8D, $89, $85, $8E, $9A, $81, $BE, $81, $BE, $87, $92, $81, $82, $81
-    db $92, $00
+string_message__piano_app__begin_recording__7948_:
+; "COMIENZA A GRABAR" (Begin Recording)
+    db $83, $8F, $8D, $89, $85, $8E, $9A, $81, $BE, $81, $BE, $87, $92, $81, $82, $81, $92, $00
 
 ; Data from 795A to 796A (17 bytes)
-string_message__piano_app__comienza_a_tocar__795A_:
-; "COMIENZA A TOCAR"
+string_message__piano_app__begin_playing__795A_:
+; "COMIENZA A TOCAR" (Begin Playing)
     db $83, $8F, $8D, $89, $85, $8E, $9A, $81, $BE, $81, $BE, $94, $8F, $83, $81, $92
     db $00
 
 ; Data from 796B to 7978 (14 bytes)
-string_message__piano_app__deja_de_tocar__796B_:
-; "DEJA DE TOCAR"
+string_message__piano_app__stop_playing__796B_:
+; "DEJA DE TOCAR" (Stop Playing)
     db $84, $85, $8A, $81, $BE, $84, $85, $BE, $94, $8F, $83, $81, $92, $00
 
+; TODO: Something encoded as a string that gets printed
 ; Data from 7979 to 79B1 (57 bytes)
 _DATA_7979_:
     db $82, $8F, $92, $92, $81, $92, $00, $18, $F9, $19, $F9, $1A, $F9, $1B, $F9, $1C
@@ -1128,14 +1151,33 @@ _DATA_7979_:
     db $F9, $2D, $F9, $2E, $F9, $2F, $F9, $54, $F9
 
 ; Data from 79B2 to 7FFF (1614 bytes)
-_DATA_79B2_:
-    db $1C, $90, $84, $8F, $BE, $BE, $20, $58, $84, $8F, $FC, $BE, $24, $90, $92, $85
-    db $BE, $BE, $28, $58, $92, $85, $FC, $BE, $2C, $90, $8D, $89, $BE, $BE, $34, $90
-    db $86, $81, $BE, $BE, $38, $58, $86, $81, $FC, $BE, $3C, $90, $93, $8F, $8C, $BE
-    db $40, $58, $93, $8F, $8C, $FC, $44, $90, $8C, $81, $BE, $BE, $48, $58, $8C, $81
-    db $FC, $BE, $4C, $90, $93, $89, $BE, $BE, $54, $90, $84, $8F, $BE, $BE, $58, $58
-    db $84, $8F, $FC, $BE, $5C, $90, $92, $85, $BE, $BE, $60, $58, $92, $85, $FC, $BE
-    db $64, $90, $8D, $89, $BE, $BE, $6C, $90, $86, $81, $BE, $BE, $70, $58, $86, $81
-    db $FC, $BE, $74, $90, $93, $8F, $8C, $BE, $78, $58, $93, $8F, $8C, $FC, $7C, $90
-    db $8C, $81, $BE, $BE, $80, $58, $8C, $81, $FC, $BE, $84, $90, $93, $89, $BE, $BE
+; 6 x 24 table of encoded note / keyboard key strings
+piano_app__keyboard_note_names_LUT__79B2_:
+;       X   Y    |------Name------|
+    db $1C, $90, $84, $8F, $BE, $BE   ; DO
+    db $20, $58, $84, $8F, $FC, $BE   ; DO_SHARP
+    db $24, $90, $92, $85, $BE, $BE   ; RE
+    db $28, $58, $92, $85, $FC, $BE   ; RE_SHARP
+    db $2C, $90, $8D, $89, $BE, $BE   ; MI
+    db $34, $90, $86, $81, $BE, $BE   ; FA
+    db $38, $58, $86, $81, $FC, $BE   ; FA_SHARP
+    db $3C, $90, $93, $8F, $8C, $BE   ; SOL
+    db $40, $58, $93, $8F, $8C, $FC   ; SOL_SHARP
+    db $44, $90, $8C, $81, $BE, $BE   ; LA
+    db $48, $58, $8C, $81, $FC, $BE   ; LA_SHARP
+    db $4C, $90, $93, $89, $BE, $BE   ; SI
+    db $54, $90, $84, $8F, $BE, $BE   ; DO_2
+    db $58, $58, $84, $8F, $FC, $BE   ; DO_2_SHARP
+    db $5C, $90, $92, $85, $BE, $BE   ; RE_2
+    db $60, $58, $92, $85, $FC, $BE   ; RE_2_SHARP
+    db $64, $90, $8D, $89, $BE, $BE   ; MI_2
+    db $6C, $90, $86, $81, $BE, $BE   ; FA_2
+    db $70, $58, $86, $81, $FC, $BE   ; FA_2_SHARP
+    db $74, $90, $93, $8F, $8C, $BE   ; SOL_2
+    db $78, $58, $93, $8F, $8C, $FC   ; SOL_2_SHARP
+    db $7C, $90, $8C, $81, $BE, $BE   ; LA_2
+    db $80, $58, $8C, $81, $FC, $BE   ; LA_2_SHARP
+    db $84, $90, $93, $89, $BE, $BE   ; SI_2
+
+; Unused space
 ds 1470, $00

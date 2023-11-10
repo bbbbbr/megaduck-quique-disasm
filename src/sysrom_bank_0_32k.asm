@@ -371,9 +371,9 @@ ENDC
         call _LABEL_52F_
         call _LABEL_6328_
         call _LABEL_54B_
-        ; Data from 20A to 20C (3 bytes)
-        ; db $C3, $5C, $01
-        .app_paint_done__1FD_:
+
+        ; Note: Strangely the Piano app 
+        .app_paint_done__20A_:
         jp   main_system_loop__15C_
 
     .check_app_basic__20D_:
@@ -5186,7 +5186,7 @@ _LABEL_60F3_:
     ld   de, _DATA_62ED_
     ld   c, $50
     ld   b, $02
-    ld   hl, main_system_loop__15C_.app_paint_done__1FD_ - 1 ;  _DATA_20A_  ; TODO: Is that a valid address? It's misaligned with the jp
+    ld   hl, $020A - 1
     call _LABEL_4944_
     ret
 
