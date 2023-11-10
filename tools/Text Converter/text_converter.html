@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>MegaDuck Super QuiQue System ROM text converter</title>
+  <script>
+    function convertStringToHex() {
+	  var BASE_A_VALUE = 0x81 - 0x41; // Megaduck "A" - ascii "A"
+      var inputString = document.getElementById("instring").value;
+      inputString = inputString.toUpperCase();
+      var hexCodes = [];
+      for (var i = 0; i < inputString.length; i++) {
+        var charCode = inputString.charCodeAt(i) + BASE_A_VALUE;
+        // replace spaces with zero
+		if (inputString.charCodeAt(i) === " ".charCodeAt(0)) charCode = 0xBE;
+		if (inputString.charCodeAt(i) === "/".charCodeAt(0)) charCode = 0xF1;
+        hexCodes.push(charCode);
+      }
+      var hexCodes = hexCodes.map(function (charCode) {
+        return charCode.toString(16).toUpperCase().padStart(2, "0");
+      });
+      document.getElementById("outstring").value = hexCodes.join("");
+      document.getElementById("outstring_spaced").value = hexCodes.join(" ");
+      document.getElementById("outstring_asm_spaced").value = hexCodes.join(", $");
+    }
+
+
+	function convertHexStringToAscii() {
+	  var BASE_A_VALUE = 0x81 - 0x41; // Megaduck "A" - ascii "A"
+
+	  var inputString = document.getElementById("instring_fromhex").value;
+	  inputString = inputString.replace(/\$/g, "");
+	  inputString = inputString.replace(/0x/g, "");
+	  inputString = inputString.replace(/0x/g, "");
+
+	  var hexValues = inputString.split(/[\s,]+/);
+      var asciiCodes = [];
+	  var asciiCodes = hexValues.map(function (hexValue) {
+        // console.log(hexValue);
+        
+        if (!hexValue) return "";
+		else if (hexValue == "DB") return " "; // ASM keyword
+        else if (hexValue == "db") return " "; // ASM keyword
+
+        else if (hexValue == "BE") return " ";
+
+        else if (hexValue == "9B") return "Ä";
+        else if (hexValue == "9C") return "Ö";
+        else if (hexValue == "9D") return "Ü";
+
+        else if (hexValue == "9E") return ",";
+        else if (hexValue == "9F") return "·";
+        else if (hexValue == "A0") return "_";
+
+        else if (hexValue == "BB") return "ä";
+        else if (hexValue == "BC") return "ö";
+        else if (hexValue == "BD") return "ü";
+
+        else if (hexValue == "BF") return "?";
+
+        else if (hexValue == "C0") return "0";
+        else if (hexValue == "C1") return "1";
+        else if (hexValue == "C2") return "2";
+        else if (hexValue == "C3") return "3";
+        else if (hexValue == "C4") return "4";
+        else if (hexValue == "C5") return "5";
+        else if (hexValue == "C6") return "6";
+        else if (hexValue == "C7") return "7";
+        else if (hexValue == "C8") return "8";
+        else if (hexValue == "C9") return "9";
+
+        else if (hexValue == "CA") return "+";
+        else if (hexValue == "CB") return "-";
+        else if (hexValue == "CC") return "×";
+        else if (hexValue == "CD") return "/";
+        else if (hexValue == "CE") return "=";
+        else if (hexValue == "CF") return "[SQRT]";
+
+        else if (hexValue == "D0") return "¿";
+        else if (hexValue == "D1") return "¡";
+        else if (hexValue == "D2") return "(";
+        else if (hexValue == "D3") return ")";
+        else if (hexValue == "D4") return "[!=]";
+
+        else if (hexValue == "D5") return "Ñ";
+        else if (hexValue == "D6") return "Ã";
+        else if (hexValue == "D7") return "[~E]";
+        else if (hexValue == "D8") return "[~I]";
+        else if (hexValue == "D9") return "Õ";
+        else if (hexValue == "DA") return "[~U]";
+
+        else if (hexValue == "DB") return "[JOT UNDERBAR]";
+
+        else if (hexValue == "DC") return "ñ";
+        else if (hexValue == "DD") return "ã";
+        else if (hexValue == "DE") return "[~E]";
+        else if (hexValue == "DF") return "[~I]";
+        else if (hexValue == "E0") return "õ";
+        else if (hexValue == "E1") return "[~U]";
+
+        else if (hexValue == "E2") return "[DOT IN BAR]";
+
+        // Inverted color numbers
+        else if (hexValue == "E3") return "0";
+        else if (hexValue == "E4") return "1";
+        else if (hexValue == "E5") return "2";
+        else if (hexValue == "E6") return "3";
+        else if (hexValue == "E7") return "4";
+        else if (hexValue == "E8") return "5";
+        else if (hexValue == "E9") return "6";
+        else if (hexValue == "EA") return "7";
+        else if (hexValue == "EB") return "8";
+        else if (hexValue == "EC") return "9";
+
+        else if (hexValue == "F1") return "/";
+        else if (hexValue == "FC") return "#";
+        else if (hexValue == "FD") return "[DOWN ARROW]";
+        else if (hexValue == "FE") return ":";
+
+		else return String.fromCharCode(parseInt(hexValue, 16) - BASE_A_VALUE);
+	  });
+	  document.getElementById("outstring_fromhex").value = asciiCodes.join("");
+	  document.getElementById("outstring_fromhex_dotspaces").value = (asciiCodes.join("")).replace(/ /g, ".");
+	}
+  </script>
+</head>
+<body>
+  <label for="instring">Input String (in text):</label>
+  <br>
+  <input type="text" id="instring" size="100" />
+  <br>
+  <br>
+  <label for="outstring">Converted output (to upper, ascii +offset, spaces -> 0, in hex):</label>
+  <br>
+  <input type="text" id="outstring" size="100"/>
+  <br>
+  <input type="text" id="outstring_spaced" size="100"/>
+  <br>
+  <input type="text" id="outstring_asm_spaced" size="100"/>
+
+  <br>
+  <br>
+  <button onclick="convertStringToHex()">Convert to Hex</button>
+
+  <hr>
+
+  <label for="instring_fromhex">Input String (in spaced hex text):</label>
+  <br>
+  <textarea id="instring_fromhex" cols="50" rows="6"/></textarea>
+  <br>
+  <br>
+  <button onclick="convertHexStringToAscii()">Convert from Hex</button>
+  <br>  
+  <label for="outstring_fromhex">Converted output (ascii - offset, 0 -> spaces):</label>
+  <br>
+  <textarea id="outstring_fromhex" cols="50" rows="30"/></textarea>
+  <textarea id="outstring_fromhex_dotspaces" cols="50" rows="30"/></textarea>
+  <br>
+  <br>
+</body>
+</html>
