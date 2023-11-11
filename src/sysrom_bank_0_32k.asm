@@ -308,7 +308,7 @@ ENDC
         ld   a, [ui_grid_menu_selected_icon__RAM_D06E_]
         cp   MAIN_MENU_APP_CLOCK  ; $00
         jr   nz, .check_app_calendar__1A3_
-        call _LABEL_54AE_
+        call clock_app_init__54AE_
         jr   main_system_loop__15C_
 
     .check_app_calendar__1A3_:
@@ -3321,47 +3321,47 @@ maybe__vram_write_byte_2rows_addr_in_hl_preset_data__549D_::
     ret
 
 
-_LABEL_54AE_:
+clock_app_init__54AE_:
     ld   a, [_RAM_D059_]
     and  $F0
     cp   $C0
     jr   z, _LABEL_54BC_
     ld   a, $C0
     ld   [_RAM_D059_], a
-_LABEL_54BC_:
-    xor  a
-    ld   [_RAM_D05A_], a
-    call wait_until_vbl__92C_
-    call display_screen_off__94C_
-    ld   de, $1FFA
-    ld   bc, $0000
-    ld   hl, _TILEDATA9000  ; $9000
-    ld   a, $80
-    call copy_a_x_tile_patterns_from_de_add_bx16_to_hl_add_cx16__48CD_
+    _LABEL_54BC_:
+        xor  a
+        ld   [_RAM_D05A_], a
+        call wait_until_vbl__92C_
+        call display_screen_off__94C_
+        ld   de, $1FFA
+        ld   bc, $0000
+        ld   hl, _TILEDATA9000  ; $9000
+        ld   a, $80
+        call copy_a_x_tile_patterns_from_de_add_bx16_to_hl_add_cx16__48CD_
 
-    ld   de, $1BFA
-    ld   bc, $0000
-    ld   hl, _TILEDATA8000  ; $8000
-    ld   a, $80
-    call copy_a_x_tile_patterns_from_de_add_bx16_to_hl_add_cx16__48CD_
-    call wait_until_vbl__92C_
-    call display_screen_off__94C_
+        ld   de, $1BFA
+        ld   bc, $0000
+        ld   hl, _TILEDATA8000  ; $8000
+        ld   a, $80
+        call copy_a_x_tile_patterns_from_de_add_bx16_to_hl_add_cx16__48CD_
+        call wait_until_vbl__92C_
+        call display_screen_off__94C_
 
-    ld   a, SELECT_TILEMAP_0  ; $00
-    ld   de, _DATA_266A_
-    call write_tilemap_20x18_from_de_mapselect_in_a__8c4_
-    call wait_until_vbl__92C_
-    call display_screen_off__94C_
+        ld   a, SELECT_TILEMAP_0  ; $00
+        ld   de, _DATA_266A_
+        call write_tilemap_20x18_from_de_mapselect_in_a__8c4_
+        call wait_until_vbl__92C_
+        call display_screen_off__94C_
 
-    ld   hl, $9980
-_LABEL_54F9_:
-    xor  a
-    ldi  [hl], a
-    ld   a, h
-    cp   $9C
-    jr   nz, _LABEL_54F9_
-    ld   a, SYS_CMD_RTC_GET_DATE_AND_TIME  ; $0C
-    ld   [serial_rx_cmd_to_send__RAM_D036_], a
+        ld   hl, $9980
+    _LABEL_54F9_:
+        xor  a
+        ldi  [hl], a
+        ld   a, h
+        cp   $9C
+        jr   nz, _LABEL_54F9_
+        ld   a, SYS_CMD_RTC_GET_DATE_AND_TIME  ; $0C
+        ld   [serial_rx_cmd_to_send__RAM_D036_], a
 
     receive_loop_wait_valid_reply__5505_:
         call serial_io_send_command_and_receive_buffer__AEF_
@@ -3370,78 +3370,78 @@ _LABEL_54F9_:
         cp   SYS_CHAR_SERIAL_RX_SUCCESS  ; $F9
         jr   nz, receive_loop_wait_valid_reply__5505_
 
-    ldh  a, [rLCDC]
-    or   $02
-    ldh  [rLCDC], a
-    xor  a
-    ld   [_tilemap_pos_x__RAM_C8CB_], a
-    ld   a, $03
-    ld   [_tilemap_pos_y__RAM_C8CA_], a
-    ld   [_RAM_D20C_], a
-    ld   a, $5F
-    call _LABEL_57BC_
-    call _display_bg_sprites_on__627_
-    ld   hl, _RAM_D03C_    ; _RAM_D03C_ = $D03C
-    ld   b, $0C
-    xor  a
-_LABEL_5532_:
-    ldi  [hl], a
-    dec  b
-    jr   nz, _LABEL_5532_
-    call memcopy_8_bytes_from_serial_rx_RAM_D028_to_shadow_rtc_RAM_D051__5D50_
-    call _LABEL_5B5F_
-    call _LABEL_55A0_
-    xor  a
-    ld   [_RAM_D068_], a
-    ld   [_RAM_D03B_], a
-    ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
-_LABEL_5549_:
-    ld   a, [_RAM_D1A7_]    ; _RAM_D1A7_ = $D1A7
-    inc  a
-    ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
-    cp   $04
-    jr   nz, _LABEL_557B_
-    xor  a
-    ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
+        ldh  a, [rLCDC]
+        or   $02
+        ldh  [rLCDC], a
+        xor  a
+        ld   [_tilemap_pos_x__RAM_C8CB_], a
+        ld   a, $03
+        ld   [_tilemap_pos_y__RAM_C8CA_], a
+        ld   [_RAM_D20C_], a
+        ld   a, $5F
+        call _LABEL_57BC_
+        call _display_bg_sprites_on__627_
+        ld   hl, _RAM_D03C_    ; _RAM_D03C_ = $D03C
+        ld   b, $0C
+        xor  a
+    _LABEL_5532_:
+        ldi  [hl], a
+        dec  b
+        jr   nz, _LABEL_5532_
+        call memcopy_8_bytes_from_serial_rx_RAM_D028_to_shadow_rtc_RAM_D051__5D50_
+        call _LABEL_5B5F_
+        call _LABEL_55A0_
+        xor  a
+        ld   [_RAM_D068_], a
+        ld   [_RAM_D03B_], a
+        ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
+    _LABEL_5549_:
+        ld   a, [_RAM_D1A7_]    ; _RAM_D1A7_ = $D1A7
+        inc  a
+        ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
+        cp   $04
+        jr   nz, _LABEL_557B_
+        xor  a
+        ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
 
-    ; TODO: Maybe Read Hardware RTC and then ...
-    ld   a, SYS_CMD_RTC_GET_DATE_AND_TIME  ; $0C
-    ld   [serial_rx_cmd_to_send__RAM_D036_], a
-    call serial_io_send_command_and_receive_buffer__AEF_
-    ld   a, [input_key_pressed__RAM_D025_]
-    cp   SYS_CHAR_SERIAL_RX_SUCCESS  ; $F9
-    jr   nz, _LABEL_5579_
+        ; TODO: Maybe Read Hardware RTC and then ...
+        ld   a, SYS_CMD_RTC_GET_DATE_AND_TIME  ; $0C
+        ld   [serial_rx_cmd_to_send__RAM_D036_], a
+        call serial_io_send_command_and_receive_buffer__AEF_
+        ld   a, [input_key_pressed__RAM_D025_]
+        cp   SYS_CHAR_SERIAL_RX_SUCCESS  ; $F9
+        jr   nz, _LABEL_5579_
 
-    ; TODO: Maybe then compare Hardware RTC reply data with System Shadow RTC data
-    call _LABEL_5D5F_
-    ld   a, [_RAM_D03A_]
-    and  a
-    jr   z, _LABEL_5579_
-    call memcopy_8_bytes_from_serial_rx_RAM_D028_to_shadow_rtc_RAM_D051__5D50_
-    call _LABEL_5B5F_
-    call _LABEL_55A0_
-_LABEL_5579_:
-    jr   _LABEL_5549_
+        ; TODO: Maybe then compare Hardware RTC reply data with System Shadow RTC data
+        call _LABEL_5D5F_
+        ld   a, [_RAM_D03A_]
+        and  a
+        jr   z, _LABEL_5579_
+        call memcopy_8_bytes_from_serial_rx_RAM_D028_to_shadow_rtc_RAM_D051__5D50_
+        call _LABEL_5B5F_
+        call _LABEL_55A0_
+    _LABEL_5579_:
+        jr   _LABEL_5549_
 
-_LABEL_557B_:
-    call timer_wait_tick_AND_TODO__289_
-    call input_read_keys__C8D_
-    ld   a, [buttons_new_pressed__RAM_D006_]
-    ld   [_RAM_D03B_], a
-    call _LABEL_56CB_
-    ld   a, [_RAM_D05A_]
-    and  a
-    jr   nz, _LABEL_5599_
-    ld   a, [_RAM_D06B_]
-    and  a
-    jp   nz, _LABEL_54BC_
-    jr   _LABEL_5549_
+    _LABEL_557B_:
+        call timer_wait_tick_AND_TODO__289_
+        call input_read_keys__C8D_
+        ld   a, [buttons_new_pressed__RAM_D006_]
+        ld   [_RAM_D03B_], a
+        call _LABEL_56CB_
+        ld   a, [_RAM_D05A_]
+        and  a
+        jr   nz, _LABEL_5599_
+        ld   a, [_RAM_D06B_]
+        and  a
+        jp   nz, _LABEL_54BC_
+        jr   _LABEL_5549_
 
-_LABEL_5599_:
-    ldh  a, [rLCDC]
-    and  ~LCDCF_OBJ16  ; $FD  ; Turn off 8x16 sprites -> 8x8 sprites
-    ldh  [rLCDC], a
-    ret
+    _LABEL_5599_:
+        ldh  a, [rLCDC]
+        and  ~LCDCF_OBJ16  ; $FD  ; Turn off 8x16 sprites -> 8x8 sprites
+        ldh  [rLCDC], a
+        ret
 
 _LABEL_55A0_:
     ld   a, [_RAM_D059_]
@@ -3454,129 +3454,129 @@ _LABEL_55A0_:
     ld   a, $90
     jr   nz, _LABEL_55B3_
     ld   a, $81
-_LABEL_55B3_:
-    ld   [_RAM_D400_], a
-    ld   a, $8D
-    ld   [_RAM_D401_], a
-_LABEL_55BB_:
-    ld   a, $BE
-    ld   [_RAM_D402_], a
-    ld   de, shadow_rtc_hour__RAM_D056_
-    ld   hl, _RAM_D403_
-    call _LABEL_56BC_
-    jr   _LABEL_5600_
+    _LABEL_55B3_:
+        ld   [_RAM_D400_], a
+        ld   a, $8D
+        ld   [_RAM_D401_], a
+    _LABEL_55BB_:
+        ld   a, $BE
+        ld   [_RAM_D402_], a
+        ld   de, shadow_rtc_hour__RAM_D056_
+        ld   hl, _RAM_D403_
+        call _LABEL_56BC_
+        jr   _LABEL_5600_
 
-_LABEL_55CB_:
-    ld   a, $BE
-    ld   [_RAM_D400_], a
-    ld   [_RAM_D401_], a
-    ld   [_RAM_D402_], a
-    ld   a, [shadow_rtc_am_pm__RAM_D055_]
-    and  a
-    jr   z, _LABEL_55BB_
-    ld   a, [shadow_rtc_hour__RAM_D056_]
-    and  $F0
-    ld   b, a
-    ld   a, [shadow_rtc_hour__RAM_D056_]
-    and  $0F
-    add  $02
-    cp   $0A
-    jr   c, _LABEL_55F1_
-    sub  $0A
-    add  $10
-_LABEL_55F1_:
-    add  $10
-    add  b
-    ld   [_RAM_D03A_], a
-    ld   de, _RAM_D03A_
-    ld   hl, _RAM_D403_
-    call _LABEL_56BC_
-_LABEL_5600_:
-    ld   a, $73
-    ld   [_RAM_D405_], a
-    ld   de, shadow_rtc_minute__RAM_D057_
-    ld   hl, _RAM_D406_
-    call _LABEL_56BC_
-    ld   a, $BE
-    ldi  [hl], a
-    ldi  [hl], a
-    ld   de, shadow_rtc_maybe_seconds__RAM_D058_
-    ld   hl, _RAM_D40A_
-    call _LABEL_56BC_
-    xor  a
-    ld   [_RAM_D40C_], a
-    ld   de, _RAM_D400_
-    ld   c, $A0
-    ld   b, $02
-    ld   hl, $030E
-    call _LABEL_4944_
-    ld   a, [shadow_rtc_dayofweek__RAM_D054_]
-    dec  a
-    ld   b, $03
-    call multiply_a_x_b__result_in_de__4853_
-    ld   hl, _DATA_5E19_
-    add  hl, de
-    ldi  a, [hl]
-    ld   [_RAM_D400_], a
-    ldi  a, [hl]
-    ld   [_RAM_D401_], a
-    ldi  a, [hl]
-    ld   [_RAM_D402_], a
-    ld   a, $BE
-    ld   [_RAM_D403_], a
-    ld   de, shadow_rtc_day__RAM_D053_
-    ld   hl, _RAM_D404_
-    call _LABEL_56BC_
-    ld   a, $BE
-    ldi  [hl], a
-    ldi  [hl], a
-    ld   a, [shadow_rtc_month__RAM_D052_]
-    swap a
-    and  $0F
-    ld   b, $0A
-    call multiply_a_x_b__result_in_de__4853_
-    ld   a, [shadow_rtc_month__RAM_D052_]
-    and  $0F
-    add  e
-    dec  a
-    ld   b, $03
-    call multiply_a_x_b__result_in_de__4853_
-    ld   hl, _DATA_5E31_
-    add  hl, de
-    ldi  a, [hl]
-    ld   [_RAM_D408_], a
-    ldi  a, [hl]
-    ld   [_RAM_D409_], a
-    ldi  a, [hl]
-    ld   [_RAM_D40A_], a
-    ld   a, $BE
-    ld   [_RAM_D40B_], a
-    ld   [_RAM_D40C_], a
-    ld   a, [shadow_rtc_buf_start_and_year__RAM_D051_]
-    bit  7, a
-    jr   nz, _LABEL_5697_
-    ld   a, $C2
-    ld   [_RAM_D40D_], a
-    ld   a, $C0
-    jr   _LABEL_569E_
+    _LABEL_55CB_:
+        ld   a, $BE
+        ld   [_RAM_D400_], a
+        ld   [_RAM_D401_], a
+        ld   [_RAM_D402_], a
+        ld   a, [shadow_rtc_am_pm__RAM_D055_]
+        and  a
+        jr   z, _LABEL_55BB_
+        ld   a, [shadow_rtc_hour__RAM_D056_]
+        and  $F0
+        ld   b, a
+        ld   a, [shadow_rtc_hour__RAM_D056_]
+        and  $0F
+        add  $02
+        cp   $0A
+        jr   c, _LABEL_55F1_
+        sub  $0A
+        add  $10
+    _LABEL_55F1_:
+        add  $10
+        add  b
+        ld   [_RAM_D03A_], a
+        ld   de, _RAM_D03A_
+        ld   hl, _RAM_D403_
+        call _LABEL_56BC_
+    _LABEL_5600_:
+        ld   a, $73
+        ld   [_RAM_D405_], a
+        ld   de, shadow_rtc_minute__RAM_D057_
+        ld   hl, _RAM_D406_
+        call _LABEL_56BC_
+        ld   a, $BE
+        ldi  [hl], a
+        ldi  [hl], a
+        ld   de, shadow_rtc_maybe_seconds__RAM_D058_
+        ld   hl, _RAM_D40A_
+        call _LABEL_56BC_
+        xor  a
+        ld   [_RAM_D40C_], a
+        ld   de, _RAM_D400_
+        ld   c, $A0
+        ld   b, $02
+        ld   hl, $030E
+        call _LABEL_4944_
+        ld   a, [shadow_rtc_dayofweek__RAM_D054_]
+        dec  a
+        ld   b, $03
+        call multiply_a_x_b__result_in_de__4853_
+        ld   hl, _DATA_5E19_
+        add  hl, de
+        ldi  a, [hl]
+        ld   [_RAM_D400_], a
+        ldi  a, [hl]
+        ld   [_RAM_D401_], a
+        ldi  a, [hl]
+        ld   [_RAM_D402_], a
+        ld   a, $BE
+        ld   [_RAM_D403_], a
+        ld   de, shadow_rtc_day__RAM_D053_
+        ld   hl, _RAM_D404_
+        call _LABEL_56BC_
+        ld   a, $BE
+        ldi  [hl], a
+        ldi  [hl], a
+        ld   a, [shadow_rtc_month__RAM_D052_]
+        swap a
+        and  $0F
+        ld   b, $0A
+        call multiply_a_x_b__result_in_de__4853_
+        ld   a, [shadow_rtc_month__RAM_D052_]
+        and  $0F
+        add  e
+        dec  a
+        ld   b, $03
+        call multiply_a_x_b__result_in_de__4853_
+        ld   hl, _DATA_5E31_
+        add  hl, de
+        ldi  a, [hl]
+        ld   [_RAM_D408_], a
+        ldi  a, [hl]
+        ld   [_RAM_D409_], a
+        ldi  a, [hl]
+        ld   [_RAM_D40A_], a
+        ld   a, $BE
+        ld   [_RAM_D40B_], a
+        ld   [_RAM_D40C_], a
+        ld   a, [shadow_rtc_buf_start_and_year__RAM_D051_]
+        bit  7, a
+        jr   nz, _LABEL_5697_
+        ld   a, $C2
+        ld   [_RAM_D40D_], a
+        ld   a, $C0
+        jr   _LABEL_569E_
 
-_LABEL_5697_:
-    ld   a, $C1
-    ld   [_RAM_D40D_], a
-    ld   a, $C9
-_LABEL_569E_:
-    ld   [_RAM_D40E_], a
-    ld   de, shadow_rtc_buf_start_and_year__RAM_D051_
-    ld   hl, _RAM_D40F_
-    call _LABEL_56BC_
-    xor  a
-    ld   [_RAM_D411_], a
-    ld   de, _RAM_D400_
-    ld   c, $C8
-    ld   b, $02
-    ld   hl, $0210
-    call _LABEL_4944_
-    ret
+    _LABEL_5697_:
+        ld   a, $C1
+        ld   [_RAM_D40D_], a
+        ld   a, $C9
+    _LABEL_569E_:
+        ld   [_RAM_D40E_], a
+        ld   de, shadow_rtc_buf_start_and_year__RAM_D051_
+        ld   hl, _RAM_D40F_
+        call _LABEL_56BC_
+        xor  a
+        ld   [_RAM_D411_], a
+        ld   de, _RAM_D400_
+        ld   c, $C8
+        ld   b, $02
+        ld   hl, $0210
+        call _LABEL_4944_
+        ret
 
 _LABEL_56BC_:
     ld   a, [de]
@@ -3609,108 +3609,110 @@ _LABEL_56CB_:
     ret
 
 
-; TODO: keycode / button constant labeling
-_LABEL_56EE_:
-    ld   a, [buttons_new_pressed__RAM_D006_]
-    and  $C4
-    ret  z
-    ld   a, [buttons_new_pressed__RAM_D006_]
-    bit  6, a
-    jr   nz, _LABEL_5704_
-    bit  7, a
-    jr   nz, _LABEL_571F_
-    bit  2, a
-    jr   nz, _LABEL_5740_
-    ret
+    ; TODO: keycode / button constant labeling
+    _LABEL_56EE_:
+        ld   a, [buttons_new_pressed__RAM_D006_]
+        and  $C4
+        ret  z
+        ld   a, [buttons_new_pressed__RAM_D006_]
+        bit  6, a
+        jr   nz, _LABEL_5704_
+        bit  7, a
+        jr   nz, _LABEL_571F_
+        bit  2, a
+        jr   nz, _LABEL_5740_
+        ret
 
-_LABEL_5704_:
-    ld   hl, _RAM_D068_
-    ld   a, [_RAM_D20C_]
-    cp   $06
-    jr   nz, _LABEL_5712_
-    ld   [hl], $00
-    jr   _LABEL_571C_
+    _LABEL_5704_:
+        ld   hl, _RAM_D068_
+        ld   a, [_RAM_D20C_]
+        cp   $06
+        jr   nz, _LABEL_5712_
+        ld   [hl], $00
+        jr   _LABEL_571C_
 
-_LABEL_5712_:
-    cp   $09
-    jr   nz, _LABEL_571A_
-    ld   [hl], $01
-    jr   _LABEL_571C_
+    _LABEL_5712_:
+        cp   $09
+        jr   nz, _LABEL_571A_
+        ld   [hl], $01
+        jr   _LABEL_571C_
 
-_LABEL_571A_:
-    ld   [hl], $02
-_LABEL_571C_:
-    jp   _LABEL_5737_
+    _LABEL_571A_:
+        ld   [hl], $02
+    _LABEL_571C_:
+        jp   _LABEL_5737_
 
-_LABEL_571F_:
-    ld   hl, _RAM_D068_
-    ld   a, [_RAM_D20C_]
-    cp   $06
-    jr   nz, _LABEL_572D_
-    ld   [hl], $02
-    jr   _LABEL_5737_
+    _LABEL_571F_:
+        ld   hl, _RAM_D068_
+        ld   a, [_RAM_D20C_]
+        cp   $06
+        jr   nz, _LABEL_572D_
+        ld   [hl], $02
+        jr   _LABEL_5737_
 
-_LABEL_572D_:
-    cp   $03
-    jr   z, _LABEL_5735_
-    ld   [hl], $00
-    jr   _LABEL_5737_
+    _LABEL_572D_:
+        cp   $03
+        jr   z, _LABEL_5735_
+        ld   [hl], $00
+        jr   _LABEL_5737_
 
-_LABEL_5735_:
-    ld   [hl], $01
-_LABEL_5737_:
-    call _LABEL_5792_
-    ld   a, $05
-    call _LABEL_4A72_
-    ret
+    _LABEL_5735_:
+        ld   [hl], $01
+    _LABEL_5737_:
+        call _LABEL_5792_
+        ld   a, $05
+        call _LABEL_4A72_
+        ret
 
-_LABEL_5740_:
-    ld   a, [_RAM_D068_]
-    cp   $00
-    jr   nz, _LABEL_5763_
-    ld   a, [_RAM_D059_]
-    xor  $01
-    ld   [_RAM_D059_], a
-    xor  a
-    ld   [shadow_rtc_month__RAM_D052_], a
-    call timer_wait_tick_AND_TODO__289_
-    call timer_wait_tick_AND_TODO__289_
-    call timer_wait_tick_AND_TODO__289_
-    call timer_wait_tick_AND_TODO__289_
-    call timer_wait_tick_AND_TODO__289_
-    ret
+    _LABEL_5740_:
+        ld   a, [_RAM_D068_]
+        cp   $00
+        jr   nz, _LABEL_5763_
+        ld   a, [_RAM_D059_]
+        xor  $01
+        ld   [_RAM_D059_], a
+        xor  a
+        ld   [shadow_rtc_month__RAM_D052_], a
+        call timer_wait_tick_AND_TODO__289_
+        call timer_wait_tick_AND_TODO__289_
+        call timer_wait_tick_AND_TODO__289_
+        call timer_wait_tick_AND_TODO__289_
+        call timer_wait_tick_AND_TODO__289_
+        ret
 
-_LABEL_5763_:
-    cp   $01
-    jr   nz, _LABEL_576B_
-    call _LABEL_57D5_
-    ret
+    _LABEL_5763_:
+        cp   $01
+        jr   nz, _LABEL_576B_
+        call _LABEL_57D5_
+        ret
 
-_LABEL_576B_:
-    call _LABEL_5774_
-    ld   a, $01
-    ld   [_RAM_D05A_], a
-    ret
+    _LABEL_576B_:
+        call _LABEL_5774_
+        ld   a, $01
+        ld   [_RAM_D05A_], a
+        ret
 
-_LABEL_5774_:
-    ld   hl, _RAM_D05F_ ; _RAM_D05F_ = $D05F
-    ld   b, $02
-    ld   c, $02
-_LABEL_577B_:
-    ldi  a, [hl]
-    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-    push bc
-    push hl
-    call oam_free_slot_and_clear__89B_
-    pop  hl
-    pop  bc
-    dec  b
-    jr   nz, _LABEL_577B_
-    ld   hl, _RAM_D03B_ + 1 ; _RAM_D03B_ + 1 = $D03C
-    ld   b, $0C
-    dec  c
-    jr   nz, _LABEL_577B_
-    ret
+    _LABEL_5774_:
+        ld   hl, _RAM_D05F_ ; _RAM_D05F_ = $D05F
+        ld   b, $02
+        ld   c, $02
+
+        _LABEL_577B_:
+            ldi  a, [hl]
+            ld   [maybe_vram_data_to_write__RAM_C8CC_], a
+            push bc
+            push hl
+            call oam_free_slot_and_clear__89B_
+            pop  hl
+            pop  bc
+            dec  b
+            jr   nz, _LABEL_577B_
+            ld   hl, _RAM_D03B_ + 1 ; _RAM_D03B_ + 1 = $D03C
+            ld   b, $0C
+            dec  c
+            jr   nz, _LABEL_577B_
+
+        ret
 
 _LABEL_5792_:
     xor  a
@@ -3739,16 +3741,17 @@ _LABEL_57BC_:
     ld   c, $02
     call wait_until_vbl__92C_
     pop  af
-_LABEL_57C9_:
-    ldi  [hl], a
-    inc  a
-    ldd  [hl], a
-    inc  a
-    ld   de, $0020
-    add  hl, de
-    dec  c
-    jr   nz, _LABEL_57C9_
-    ret
+
+    _LABEL_57C9_:
+        ldi  [hl], a
+        inc  a
+        ldd  [hl], a
+        inc  a
+        ld   de, $0020
+        add  hl, de
+        dec  c
+        jr   nz, _LABEL_57C9_
+        ret
 
 
 ; TODO: Maybe something about setting the time
@@ -3791,101 +3794,105 @@ _LABEL_57D5_:
     jr   nz, _LABEL_581C_
     xor  a
     ld   [shadow_rtc_hour__RAM_D056_], a
-_LABEL_581C_:
-    ld   de, shadow_rtc_am_pm__RAM_D055_
-    ld   a, [de]
-    inc  de
-    and  a
-    jr   z, _LABEL_5841_
-    ld   a, [de]
-    and  $F0
-    ld   b, a
-    ld   a, [de]
-    and  $0F
-    add  $02
-    cp   $0A
-    jr   c, _LABEL_5835_
-    sub  $0A
-    add  $10
-_LABEL_5835_:
-    add  $10
-    add  b
-    ld   [_RAM_D402_], a
-    ld   [shadow_rtc_hour__RAM_D056_], a
-    ld   de, _RAM_D402_
-_LABEL_5841_:
-    ld   hl, _RAM_D400_
-    call _LABEL_56BC_
-    ld   a, $BE
-    ldi  [hl], a
-    ld   [_RAM_D404_], a
-    ld   a, $73
-    ldi  [hl], a
-    inc  hl
-    ld   de, shadow_rtc_minute__RAM_D057_
-    call _LABEL_56BC_
-    xor  a
-    ldi  [hl], a
-    ld   de, _RAM_D400_
-    ld   c, $D2
-    ld   b, $02
-    ld   hl, $0207
-    call _LABEL_4944_
-    ld   de, shadow_rtc_month__RAM_D052_
-    ld   hl, _RAM_D400_
-    call _LABEL_56BC_
-    ld   a, $BE
-    ldi  [hl], a
-    ldi  [hl], a
-    ld   de, shadow_rtc_day__RAM_D053_
-    call _LABEL_56BC_
-    ld   a, $BE
-    ld   [_RAM_D406_], a
-    ld   [_RAM_D408_], a
-    ld   a, $9E
-    ld   [_RAM_D407_], a
-    ld   de, shadow_rtc_buf_start_and_year__RAM_D051_
-    ld   hl, _RAM_D409_
-    call _LABEL_56BC_
-    xor  a
-    ldi  [hl], a
-    ld   de, _RAM_D400_
-    ld   c, $E6
-    ld   b, $02
-    ld   hl, $020B
-    call _LABEL_4944_
-    call _display_bg_sprites_on__627_
-    xor  a
-    ld   [_RAM_D03A_], a
-    ld   a, $04
-    ld   [_RAM_D03B_], a
-    call _LABEL_58EA_
-_LABEL_58AD_:
-    call input_map_gamepad_buttons_to_keycodes__49C2_
-    call _LABEL_5919_
-    ld   a, [_RAM_D06B_]
-    and  a
-    jr   z, _LABEL_58C3_
-    call _LABEL_58DC_
-    ldh  a, [rLCDC]
-    or   $02
-    ldh  [rLCDC], a
-    ret
 
-_LABEL_58C3_:
-    ld   a, [_RAM_D03B_]
-    inc  a
-    ld   [_RAM_D03B_], a
-    and  $07
-    jr   nz, _LABEL_58D3_
-    call _LABEL_58DC_
-    jr   _LABEL_58AD_
+    _LABEL_581C_:
+        ld   de, shadow_rtc_am_pm__RAM_D055_
+        ld   a, [de]
+        inc  de
+        and  a
+        jr   z, _LABEL_5841_
+        ld   a, [de]
+        and  $F0
+        ld   b, a
+        ld   a, [de]
+        and  $0F
+        add  $02
+        cp   $0A
+        jr   c, _LABEL_5835_
+        sub  $0A
+        add  $10
+    _LABEL_5835_:
+        add  $10
+        add  b
+        ld   [_RAM_D402_], a
+        ld   [shadow_rtc_hour__RAM_D056_], a
+        ld   de, _RAM_D402_
 
-_LABEL_58D3_:
-    cp   $04
-    jr   nz, _LABEL_58AD_
-    call _LABEL_58EA_
-    jr   _LABEL_58AD_
+    _LABEL_5841_:
+        ld   hl, _RAM_D400_
+        call _LABEL_56BC_
+        ld   a, $BE
+        ldi  [hl], a
+        ld   [_RAM_D404_], a
+        ld   a, $73
+        ldi  [hl], a
+        inc  hl
+        ld   de, shadow_rtc_minute__RAM_D057_
+        call _LABEL_56BC_
+        xor  a
+        ldi  [hl], a
+        ld   de, _RAM_D400_
+        ld   c, $D2
+        ld   b, $02
+        ld   hl, $0207
+        call _LABEL_4944_
+        ld   de, shadow_rtc_month__RAM_D052_
+        ld   hl, _RAM_D400_
+        call _LABEL_56BC_
+        ld   a, $BE
+        ldi  [hl], a
+        ldi  [hl], a
+        ld   de, shadow_rtc_day__RAM_D053_
+        call _LABEL_56BC_
+        ld   a, $BE
+        ld   [_RAM_D406_], a
+        ld   [_RAM_D408_], a
+        ld   a, $9E
+        ld   [_RAM_D407_], a
+        ld   de, shadow_rtc_buf_start_and_year__RAM_D051_
+        ld   hl, _RAM_D409_
+        call _LABEL_56BC_
+        xor  a
+        ldi  [hl], a
+        ld   de, _RAM_D400_
+        ld   c, $E6
+        ld   b, $02
+        ld   hl, $020B
+        call _LABEL_4944_
+        call _display_bg_sprites_on__627_
+        xor  a
+        ld   [_RAM_D03A_], a
+        ld   a, $04
+        ld   [_RAM_D03B_], a
+        call _LABEL_58EA_
+
+    _LABEL_58AD_:
+        call input_map_gamepad_buttons_to_keycodes__49C2_
+        call _LABEL_5919_
+        ld   a, [_RAM_D06B_]
+        and  a
+        jr   z, _LABEL_58C3_
+        call _LABEL_58DC_
+        ldh  a, [rLCDC]
+        or   $02
+        ldh  [rLCDC], a
+        ret
+
+    _LABEL_58C3_:
+        ld   a, [_RAM_D03B_]
+        inc  a
+        ld   [_RAM_D03B_], a
+        and  $07
+        jr   nz, _LABEL_58D3_
+        call _LABEL_58DC_
+        jr   _LABEL_58AD_
+
+    _LABEL_58D3_:
+        cp   $04
+        jr   nz, _LABEL_58AD_
+        call _LABEL_58EA_
+        jr   _LABEL_58AD_
+
 
 _LABEL_58DC_:
     ld   a, [_RAM_D069_]
@@ -3930,52 +3937,54 @@ _LABEL_5919_:
     cp   $05
     jr   nz, _LABEL_5931_
     xor  a
-_LABEL_5931_:
-    ld   [_RAM_D03A_], a
-    ld   a, $FF
-    ld   [input_prev_key_pressed__RAM_D181_], a
-    jp   _LABEL_59F1_
 
-_LABEL_593C_:
-    cp   SYS_CHAR_LEFT  ; $3E
-    jr   nz, _LABEL_5950_
-    xor  a  ; MENU_ESCAPE_KEY_RUNS_LAST_ICON_FALSE
-    ld   [ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_], a
-    ld   a, [_RAM_D03A_]
-    dec  a
-    cp   $FF
-    jr   nz, _LABEL_5931_
-    ld   a, $04
-    jr   _LABEL_5931_
+    _LABEL_5931_:
+        ld   [_RAM_D03A_], a
+        ld   a, $FF
+        ld   [input_prev_key_pressed__RAM_D181_], a
+        jp   _LABEL_59F1_
 
-_LABEL_5950_:
-    cp   SYS_CHAR_0  ; $C0
-    jr   c, rtc_set_to_new_date_and_time___5987_
-    cp   (SYS_CHAR_LAST_NUM + 1)  ; $CA
-    jr   nc, rtc_set_to_new_date_and_time___5987_
-    ld   b, $C0
-    sub  b
-    ld   c, a
-    ld   a, [_RAM_D03A_]
-    ld   hl, _DATA_5DA1_
-    call add_a_to_hl__486E_
-    ld   a, [hl]
-    ld   hl, shadow_rtc_buf_start_and_year__RAM_D051_
-    call add_a_to_hl__486E_
-    ld   a, [ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_]
-    cp   MENU_ESCAPE_KEY_RUNS_LAST_ICON_FALSE  ; $00
-    jr   nz, _LABEL_5975_
-    ld   [hl], $00
-_LABEL_5975_:
-    ld   a, MENU_ESCAPE_KEY_RUNS_LAST_ICON_TRUE  ; $01
-    ld   [ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_], a
-    ld   a, [hl]
-    swap a
-    and  $F0
-    or   c
-    ld   [hl], a
-    call _LABEL_59F2_
-    jp   _LABEL_59F1_
+    _LABEL_593C_:
+        cp   SYS_CHAR_LEFT  ; $3E
+        jr   nz, _LABEL_5950_
+        xor  a  ; MENU_ESCAPE_KEY_RUNS_LAST_ICON_FALSE
+        ld   [ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_], a
+        ld   a, [_RAM_D03A_]
+        dec  a
+        cp   $FF
+        jr   nz, _LABEL_5931_
+        ld   a, $04
+        jr   _LABEL_5931_
+
+    _LABEL_5950_:
+        cp   SYS_CHAR_0  ; $C0
+        jr   c, rtc_set_to_new_date_and_time___5987_
+        cp   (SYS_CHAR_LAST_NUM + 1)  ; $CA
+        jr   nc, rtc_set_to_new_date_and_time___5987_
+        ld   b, $C0
+        sub  b
+        ld   c, a
+        ld   a, [_RAM_D03A_]
+        ld   hl, _DATA_5DA1_
+        call add_a_to_hl__486E_
+        ld   a, [hl]
+        ld   hl, shadow_rtc_buf_start_and_year__RAM_D051_
+        call add_a_to_hl__486E_
+        ld   a, [ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_]
+        cp   MENU_ESCAPE_KEY_RUNS_LAST_ICON_FALSE  ; $00
+        jr   nz, _LABEL_5975_
+        ld   [hl], $00
+
+    _LABEL_5975_:
+        ld   a, MENU_ESCAPE_KEY_RUNS_LAST_ICON_TRUE  ; $01
+        ld   [ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_], a
+        ld   a, [hl]
+        swap a
+        and  $F0
+        or   c
+        ld   [hl], a
+        call _LABEL_59F2_
+        jp   _LABEL_59F1_
 
 
 ; Probably being called by Clock App
@@ -4243,7 +4252,9 @@ rtc_validate_shadow_data_and_time__5A2B_:
 ;    + Sum of days for all preceding Months
 ;    + Current day of Month) - 1)% 7
 ;
-rtc_calc_day_of_week_for_current_date__5A9F_:
+; - Used by both Clock and Calendar Apps
+;
+rtc_calc_day_of_week_for_current_date__5A9F_::
 
     ; First step is to get Starting Day of Week by Year as start of Total
 
@@ -4357,7 +4368,10 @@ rtc_calc_day_of_week_for_current_date__5A9F_:
 ; - Resulting BCD value in: A
 ;
 ; Destroys A, B, E (not counting call to multiply)
-convert_bcd2dec_at_hl_result_in_a__5B03_:
+;
+; - Used by both Clock and Calendar Apps
+;
+convert_bcd2dec_at_hl_result_in_a__5B03_::
     ld   a, [hl]
     ; Multiply Upper BCD digit x 10
     swap a
@@ -4441,36 +4455,37 @@ _LABEL_5B5F_:
     cp   $0C
     jr   nz, _LABEL_5B73_
     xor  a
-_LABEL_5B73_:
-    ld   b, $05
-    call multiply_a_x_b__result_in_de__4853_
-    ld   a, e
-    ld   [_RAM_D03A_], a
-    inc  hl
-    call _LABEL_5BB9_
-    ld   d, $00
-    ld   e, a
-    ld   h, $0C
-    call divide_de_by_h_result_in_bc_remainder_in_l__4832_
-    ld   a, [_RAM_D03A_]
-    add  c
-    ld   [_RAM_D049_], a
-    xor  a
-    ld   [_RAM_D048_], a
-    call _LABEL_5BC8_
-    ld   hl, shadow_rtc_minute__RAM_D057_
-    call _LABEL_5BB9_
-    ld   [_RAM_D049_], a
-    ld   a, $01
-    ld   [_RAM_D048_], a
-    call _LABEL_5BC8_
-    ld   hl, shadow_rtc_maybe_seconds__RAM_D058_
-    call _LABEL_5BB9_
-    ld   [_RAM_D049_], a
-    ld   a, $02
-    ld   [_RAM_D048_], a
-    call _LABEL_5BC8_
-    ret
+
+    _LABEL_5B73_:
+        ld   b, $05
+        call multiply_a_x_b__result_in_de__4853_
+        ld   a, e
+        ld   [_RAM_D03A_], a
+        inc  hl
+        call _LABEL_5BB9_
+        ld   d, $00
+        ld   e, a
+        ld   h, $0C
+        call divide_de_by_h_result_in_bc_remainder_in_l__4832_
+        ld   a, [_RAM_D03A_]
+        add  c
+        ld   [_RAM_D049_], a
+        xor  a
+        ld   [_RAM_D048_], a
+        call _LABEL_5BC8_
+        ld   hl, shadow_rtc_minute__RAM_D057_
+        call _LABEL_5BB9_
+        ld   [_RAM_D049_], a
+        ld   a, $01
+        ld   [_RAM_D048_], a
+        call _LABEL_5BC8_
+        ld   hl, shadow_rtc_maybe_seconds__RAM_D058_
+        call _LABEL_5BB9_
+        ld   [_RAM_D049_], a
+        ld   a, $02
+        ld   [_RAM_D048_], a
+        call _LABEL_5BC8_
+        ret
 
 _LABEL_5BB9_:
     ld   a, [hl]
@@ -4486,204 +4501,206 @@ _LABEL_5BB9_:
 _LABEL_5BC8_:
     ld   b, $04
     call _LABEL_5D30_
-_LABEL_5BCD_:
-    ld   a, [hl]
-    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-    xor  a
-    ldi  [hl], a
-    push bc
-    push hl
-    call oam_free_slot_and_clear__89B_
-    pop  hl
-    pop  bc
-    dec  b
-    jr   nz, _LABEL_5BCD_
-    ld   hl, _RAM_D04A_
-    ld   a, [_RAM_D049_]
-    cp   $0F
-    jr   c, _LABEL_5C2B_
-    cp   $1E
-    jr   c, _LABEL_5C49_
-    cp   $2D
-    jr   c, _LABEL_5C0D_
-    ld   [hl], $08
-    sub  $2D
-    ld   [_RAM_D03A_], a
-    sla  a
-    sla  a
-    ld   [_RAM_D037_], a
-    ld   hl, _DATA_5D9F_
-    ldi  a, [hl]
-    sub  $10
-    add  $01
-    ld   [_tilemap_pos_x__RAM_C8CB_], a
-    ldi  a, [hl]
-    sub  $10
-    jr   _LABEL_5C61_
 
-_LABEL_5C0D_:
-    ld   [hl], $04
-    ld   b, a
-    ld   a, $2D
-    sub  b
-    ld   [_RAM_D03A_], a
-    sla  a
-    sla  a
-    ld   [_RAM_D037_], a
-    ld   hl, _DATA_5D9F_
-    ldi  a, [hl]
-    sub  $10
-    add  $01
-    ld   [_tilemap_pos_x__RAM_C8CB_], a
-    ldi  a, [hl]
-    jr   _LABEL_5C61_
+    _LABEL_5BCD_:
+        ld   a, [hl]
+        ld   [maybe_vram_data_to_write__RAM_C8CC_], a
+        xor  a
+        ldi  [hl], a
+        push bc
+        push hl
+        call oam_free_slot_and_clear__89B_
+        pop  hl
+        pop  bc
+        dec  b
+        jr   nz, _LABEL_5BCD_
+        ld   hl, _RAM_D04A_
+        ld   a, [_RAM_D049_]
+        cp   $0F
+        jr   c, _LABEL_5C2B_
+        cp   $1E
+        jr   c, _LABEL_5C49_
+        cp   $2D
+        jr   c, _LABEL_5C0D_
+        ld   [hl], $08
+        sub  $2D
+        ld   [_RAM_D03A_], a
+        sla  a
+        sla  a
+        ld   [_RAM_D037_], a
+        ld   hl, _DATA_5D9F_
+        ldi  a, [hl]
+        sub  $10
+        add  $01
+        ld   [_tilemap_pos_x__RAM_C8CB_], a
+        ldi  a, [hl]
+        sub  $10
+        jr   _LABEL_5C61_
 
-_LABEL_5C2B_:
-    ld   [hl], $01
-    ld   b, a
-    ld   a, $0F
-    sub  b
-    ld   [_RAM_D03A_], a
-    sla  a
-    sla  a
-    ld   [_RAM_D037_], a
-    ld   hl, _DATA_5D9F_
-    ldi  a, [hl]
-    add  $08
-    ld   [_tilemap_pos_x__RAM_C8CB_], a
-    ldi  a, [hl]
-    sub  $10
-    jr   _LABEL_5C61_
+    _LABEL_5C0D_:
+        ld   [hl], $04
+        ld   b, a
+        ld   a, $2D
+        sub  b
+        ld   [_RAM_D03A_], a
+        sla  a
+        sla  a
+        ld   [_RAM_D037_], a
+        ld   hl, _DATA_5D9F_
+        ldi  a, [hl]
+        sub  $10
+        add  $01
+        ld   [_tilemap_pos_x__RAM_C8CB_], a
+        ldi  a, [hl]
+        jr   _LABEL_5C61_
 
-_LABEL_5C49_:
-    ld   [hl], $02
-    sub  $0F
-    ld   [_RAM_D03A_], a
-    sla  a
-    sla  a
-    ld   [_RAM_D037_], a
-    ld   hl, _DATA_5D9F_
-    ldi  a, [hl]
-    add  $08
-    ld   [_tilemap_pos_x__RAM_C8CB_], a
-    ldi  a, [hl]
-_LABEL_5C61_:
-    ld   [_tilemap_pos_y__RAM_C8CA_], a
-    ld   hl, _RAM_D037_
-    ld   a, $00
-    add  [hl]
-    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-    add  $02
-    ld   [_RAM_D037_], a
-    ld   a, [_RAM_D04A_]
-    bit  3, a
-    jr   z, _LABEL_5C7C_
-    xor  a
-    jr   _LABEL_5C8E_
+    _LABEL_5C2B_:
+        ld   [hl], $01
+        ld   b, a
+        ld   a, $0F
+        sub  b
+        ld   [_RAM_D03A_], a
+        sla  a
+        sla  a
+        ld   [_RAM_D037_], a
+        ld   hl, _DATA_5D9F_
+        ldi  a, [hl]
+        add  $08
+        ld   [_tilemap_pos_x__RAM_C8CB_], a
+        ldi  a, [hl]
+        sub  $10
+        jr   _LABEL_5C61_
 
-_LABEL_5C7C_:
-    bit  2, a
-    jr   z, _LABEL_5C84_
-    ld   a, $40
-    jr   _LABEL_5C8E_
+    _LABEL_5C49_:
+        ld   [hl], $02
+        sub  $0F
+        ld   [_RAM_D03A_], a
+        sla  a
+        sla  a
+        ld   [_RAM_D037_], a
+        ld   hl, _DATA_5D9F_
+        ldi  a, [hl]
+        add  $08
+        ld   [_tilemap_pos_x__RAM_C8CB_], a
+        ldi  a, [hl]
+    _LABEL_5C61_:
+        ld   [_tilemap_pos_y__RAM_C8CA_], a
+        ld   hl, _RAM_D037_
+        ld   a, $00
+        add  [hl]
+        ld   [maybe_vram_data_to_write__RAM_C8CC_], a
+        add  $02
+        ld   [_RAM_D037_], a
+        ld   a, [_RAM_D04A_]
+        bit  3, a
+        jr   z, _LABEL_5C7C_
+        xor  a
+        jr   _LABEL_5C8E_
 
-_LABEL_5C84_:
-    bit  1, a
-    jr   z, _LABEL_5C8C_
-    ld   a, $60
-    jr   _LABEL_5C8E_
+    _LABEL_5C7C_:
+        bit  2, a
+        jr   z, _LABEL_5C84_
+        ld   a, $40
+        jr   _LABEL_5C8E_
 
-_LABEL_5C8C_:
-    ld   a, $20
-_LABEL_5C8E_:
-    ld   [_RAM_C8CD_], a    ; _RAM_C8CD_ = $C8CD
-    call _LABEL_623_
-    call _LABEL_5D30_
-    ld   a, b
-    ldi  [hl], a
-    ld   a, [_RAM_D04A_]
-    and  $0C
-    jr   nz, _LABEL_5CA7_
-    ld   a, [_tilemap_pos_x__RAM_C8CB_]
-    sub  $08
-    jr   _LABEL_5CAC_
+    _LABEL_5C84_:
+        bit  1, a
+        jr   z, _LABEL_5C8C_
+        ld   a, $60
+        jr   _LABEL_5C8E_
 
-_LABEL_5CA7_:
-    ld   a, [_tilemap_pos_x__RAM_C8CB_]
-    add  $08
-_LABEL_5CAC_:
-    ld   [_tilemap_pos_x__RAM_C8CB_], a
-    ld   a, [_RAM_D037_]
-    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-    push hl
-    call _LABEL_623_
-    pop  hl
-    ld   a, b
-    ldi  [hl], a
-    ld   a, [_RAM_D048_]
-    and  a
-    jr   z, _LABEL_5D2F_
-    ld   hl, _DATA_5D7F_
-    ld   a, [_RAM_D03A_]
-    call add_a_to_hl__486E_
-    ld   b, [hl]
-    ld   a, [_RAM_D04A_]
-    and  $0C
-    jr   nz, _LABEL_5CD9_
-    ld   a, [_tilemap_pos_x__RAM_C8CB_]
-    add  b
-    jr   _LABEL_5CDD_
+    _LABEL_5C8C_:
+        ld   a, $20
+    _LABEL_5C8E_:
+        ld   [_RAM_C8CD_], a    ; _RAM_C8CD_ = $C8CD
+        call _LABEL_623_
+        call _LABEL_5D30_
+        ld   a, b
+        ldi  [hl], a
+        ld   a, [_RAM_D04A_]
+        and  $0C
+        jr   nz, _LABEL_5CA7_
+        ld   a, [_tilemap_pos_x__RAM_C8CB_]
+        sub  $08
+        jr   _LABEL_5CAC_
 
-_LABEL_5CD9_:
-    ld   a, [_tilemap_pos_x__RAM_C8CB_]
-    sub  b
-_LABEL_5CDD_:
-    ld   [_tilemap_pos_x__RAM_C8CB_], a
-    ld   a, $10
-    call add_a_to_hl__486E_
-    ld   b, [hl]
-    ld   a, [_RAM_D04A_]
-    and  $09
-    jr   nz, _LABEL_5CF3_
-    ld   a, [_tilemap_pos_y__RAM_C8CA_]
-    add  b
-    jr   _LABEL_5CF7_
+    _LABEL_5CA7_:
+        ld   a, [_tilemap_pos_x__RAM_C8CB_]
+        add  $08
+    _LABEL_5CAC_:
+        ld   [_tilemap_pos_x__RAM_C8CB_], a
+        ld   a, [_RAM_D037_]
+        ld   [maybe_vram_data_to_write__RAM_C8CC_], a
+        push hl
+        call _LABEL_623_
+        pop  hl
+        ld   a, b
+        ldi  [hl], a
+        ld   a, [_RAM_D048_]
+        and  a
+        jr   z, _LABEL_5D2F_
+        ld   hl, _DATA_5D7F_
+        ld   a, [_RAM_D03A_]
+        call add_a_to_hl__486E_
+        ld   b, [hl]
+        ld   a, [_RAM_D04A_]
+        and  $0C
+        jr   nz, _LABEL_5CD9_
+        ld   a, [_tilemap_pos_x__RAM_C8CB_]
+        add  b
+        jr   _LABEL_5CDD_
 
-_LABEL_5CF3_:
-    ld   a, [_tilemap_pos_y__RAM_C8CA_]
-    sub  b
-_LABEL_5CF7_:
-    ld   [_tilemap_pos_y__RAM_C8CA_], a
-    ld   a, [_RAM_D037_]
-    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-    call _LABEL_623_
-    call _LABEL_5D30_
-    inc  hl
-    inc  hl
-    ld   a, b
-    ldi  [hl], a
-    ld   a, [_RAM_D04A_]
-    and  $0C
-    jr   nz, _LABEL_5D18_
-    ld   a, [_tilemap_pos_x__RAM_C8CB_]
-    add  $08
-    jr   _LABEL_5D1D_
+    _LABEL_5CD9_:
+        ld   a, [_tilemap_pos_x__RAM_C8CB_]
+        sub  b
+    _LABEL_5CDD_:
+        ld   [_tilemap_pos_x__RAM_C8CB_], a
+        ld   a, $10
+        call add_a_to_hl__486E_
+        ld   b, [hl]
+        ld   a, [_RAM_D04A_]
+        and  $09
+        jr   nz, _LABEL_5CF3_
+        ld   a, [_tilemap_pos_y__RAM_C8CA_]
+        add  b
+        jr   _LABEL_5CF7_
 
-_LABEL_5D18_:
-    ld   a, [_tilemap_pos_x__RAM_C8CB_]
-    sub  $08
-_LABEL_5D1D_:
-    ld   [_tilemap_pos_x__RAM_C8CB_], a
-    ld   a, [_RAM_D037_]
-    sub  $02
-    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-    push hl
-    call _LABEL_623_
-    pop  hl
-    ld   a, b
-    ldi  [hl], a
-_LABEL_5D2F_:
-    ret
+    _LABEL_5CF3_:
+        ld   a, [_tilemap_pos_y__RAM_C8CA_]
+        sub  b
+    _LABEL_5CF7_:
+        ld   [_tilemap_pos_y__RAM_C8CA_], a
+        ld   a, [_RAM_D037_]
+        ld   [maybe_vram_data_to_write__RAM_C8CC_], a
+        call _LABEL_623_
+        call _LABEL_5D30_
+        inc  hl
+        inc  hl
+        ld   a, b
+        ldi  [hl], a
+        ld   a, [_RAM_D04A_]
+        and  $0C
+        jr   nz, _LABEL_5D18_
+        ld   a, [_tilemap_pos_x__RAM_C8CB_]
+        add  $08
+        jr   _LABEL_5D1D_
+
+    _LABEL_5D18_:
+        ld   a, [_tilemap_pos_x__RAM_C8CB_]
+        sub  $08
+    _LABEL_5D1D_:
+        ld   [_tilemap_pos_x__RAM_C8CB_], a
+        ld   a, [_RAM_D037_]
+        sub  $02
+        ld   [maybe_vram_data_to_write__RAM_C8CC_], a
+        push hl
+        call _LABEL_623_
+        pop  hl
+        ld   a, b
+        ldi  [hl], a
+
+    _LABEL_5D2F_:
+        ret
 
 _LABEL_5D30_:
     ld   hl, _RAM_D03C_
