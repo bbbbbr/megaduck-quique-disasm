@@ -2554,7 +2554,7 @@ calc_vram_addr_of_tile_xy_base_in_hl__4932_:
     add  hl, de
     ret
 
-; TODO: Probably render some text at DE to X,y (H,L) to ...
+; TODO: Probably render some text at DE to X,Y (H,L) to ...
 _LABEL_4944_:
     ld   a, h
     ld   [_tilemap_pos_x__RAM_C8CB_], a
@@ -2826,7 +2826,10 @@ _LABEL_4A72_:
 ; Returns selected icon number in: ui_grid_menu_selected_icon__RAM_D06E_
 ;
 ; Icon Tile Data should be pre-loaded at _TILEDATA9000
-ui_icon_menu_draw_and_run__4A7B_:
+;
+; - Used by Main Menu, Piano App, probably games app, etc
+;
+ui_icon_menu_draw_and_run__4A7B_::
 
     ; First set up the Main Menu screen
     call display_clear_screen_with_space_char__4875_
@@ -3428,125 +3431,124 @@ _LABEL_5E9A_:
     call maybe_input_wait_for_keys__4B84
     ret
 
+    _LABEL_5EAE_:
+        cp   SYS_CHAR_PRINTSCREEN  ; $2F
+        jr   nz, _LABEL_5EB7_
+        call maybe_call_printscreen_in_32k_bank_2__522_
+        jr   _LABEL_5E9A_
 
-_LABEL_5EAE_:
-    cp   SYS_CHAR_PRINTSCREEN  ; $2F
-    jr   nz, _LABEL_5EB7_
-    call maybe_call_printscreen_in_32k_bank_2__522_
-    jr   _LABEL_5E9A_
+    _LABEL_5EB7_:
+        cp   SYS_CHAR_PG_ARRIBA  ; $44
+        jp   nz, _LABEL_5ED1_
+        ld   a, [_RAM_D20D_]
+        bit  0, a
+        jp   z, _LABEL_5E9A_
+        cp   $03
+        call z, _LABEL_60E1_
+        ld   a, $0E
+        ld   [_RAM_D717_], a
+        jp   _LABEL_6030_
 
-_LABEL_5EB7_:
-    cp   SYS_CHAR_PG_ARRIBA  ; $44
-    jp   nz, _LABEL_5ED1_
-    ld   a, [_RAM_D20D_]
-    bit  0, a
-    jp   z, _LABEL_5E9A_
-    cp   $03
-    call z, _LABEL_60E1_
-    ld   a, $0E
-    ld   [_RAM_D717_], a
-    jp   _LABEL_6030_
+    _LABEL_5ED1_:
+        cp   SYS_CHAR_PG_ABAJO  ; $45
+        jr   nz, _LABEL_5EEA_
+        ld   a, [_RAM_D20D_]
+        bit  0, a
+        jp   z, _LABEL_5E9A_
+        cp   $03
+        call z, _LABEL_60E1_
+        ld   a, $0D
+        ld   [_RAM_D717_], a
+        jp   _LABEL_6030_
 
-_LABEL_5ED1_:
-    cp   SYS_CHAR_PG_ABAJO  ; $45
-    jr   nz, _LABEL_5EEA_
-    ld   a, [_RAM_D20D_]
-    bit  0, a
-    jp   z, _LABEL_5E9A_
-    cp   $03
-    call z, _LABEL_60E1_
-    ld   a, $0D
-    ld   [_RAM_D717_], a
-    jp   _LABEL_6030_
+    _LABEL_5EEA_:
+        cp   SYS_CHAR_LEFT  ; $3E
+        jr   nz, _LABEL_5F13_
+        ld   a, [maybe_text_buffer__RAM_D6D0_]
+        cp   FONT_BLANKSPACE  ; $BE
+        jp   z, _LABEL_5E9A_
+        ld   a, [_RAM_D03B_]
+        sub  $08
+        ld   [_RAM_D03B_], a
+        cp   $10
+        jp   nz, _LABEL_5F08_
+        ld   a, $18
+        ld   [_RAM_D03B_], a
+    _LABEL_5F08_:
+        call _LABEL_621C_
+        ld   a, $02
+        call _LABEL_4A72_
+        jp   _LABEL_5E9A_
 
-_LABEL_5EEA_:
-    cp   SYS_CHAR_LEFT  ; $3E
-    jr   nz, _LABEL_5F13_
-    ld   a, [maybe_text_buffer__RAM_D6D0_]
-    cp   FONT_BLANKSPACE  ; $BE
-    jp   z, _LABEL_5E9A_
-    ld   a, [_RAM_D03B_]
-    sub  $08
-    ld   [_RAM_D03B_], a
-    cp   $10
-    jp   nz, _LABEL_5F08_
-    ld   a, $18
-    ld   [_RAM_D03B_], a
-_LABEL_5F08_:
-    call _LABEL_621C_
-    ld   a, $02
-    call _LABEL_4A72_
-    jp   _LABEL_5E9A_
+    _LABEL_5F13_:
+        cp   SYS_CHAR_RIGHT  ; $3F
+        jr   nz, _LABEL_5F34_
+        ld   a, [maybe_text_buffer__RAM_D6D0_]
+        cp   FONT_BLANKSPACE  ; $BE
+        jp   z, _LABEL_5E9A_
+        ld   a, [_RAM_D03B_]
+        add  $08
+        ld   [_RAM_D03B_], a
+        cp   $A0
+        jp   nz, _LABEL_5F08_
+        ld   a, $98
+        ld   [_RAM_D03B_], a
+        jp   _LABEL_5F08_
 
-_LABEL_5F13_:
-    cp   SYS_CHAR_RIGHT  ; $3F
-    jr   nz, _LABEL_5F34_
-    ld   a, [maybe_text_buffer__RAM_D6D0_]
-    cp   FONT_BLANKSPACE  ; $BE
-    jp   z, _LABEL_5E9A_
-    ld   a, [_RAM_D03B_]
-    add  $08
-    ld   [_RAM_D03B_], a
-    cp   $A0
-    jp   nz, _LABEL_5F08_
-    ld   a, $98
-    ld   [_RAM_D03B_], a
-    jp   _LABEL_5F08_
+    _LABEL_5F34_:
+        cp   SYS_CHAR_BACKSPACE  ; $2C
+        jr   nz, _LABEL_5F50_
+        ld   a, [_RAM_D03B_]
+        sub  $08
+        cp   $10
+        jp   z, _LABEL_5E9A_
+        ld   [_RAM_D03B_], a
+        ld   a, $BE
+        ld   [input_key_pressed__RAM_D025_], a
+        call _LABEL_621C_
+        jp   _LABEL_5F54_
 
-_LABEL_5F34_:
-    cp   SYS_CHAR_BACKSPACE  ; $2C
-    jr   nz, _LABEL_5F50_
-    ld   a, [_RAM_D03B_]
-    sub  $08
-    cp   $10
-    jp   z, _LABEL_5E9A_
-    ld   [_RAM_D03B_], a
-    ld   a, $BE
-    ld   [input_key_pressed__RAM_D025_], a
-    call _LABEL_621C_
-    jp   _LABEL_5F54_
+    _LABEL_5F50_:
+        cp   SYS_CHAR_BORRAR  ; $3C
+        jr   nz, _LABEL_5F7A_
+    _LABEL_5F54_:
+        ld   a, [_RAM_D03B_]
+        srl  a
+        srl  a
+        srl  a
+        sub  $03
+        ld   hl, $D6D0
+        call add_a_to_hl__486E_
+    _LABEL_5F65_:
+        ld   a, l
+        cp   $DF
+        jr   nz, _LABEL_5F73_
+        ld   a, $BE
+        ld   [hl], a
+        call _LABEL_62BD_
+        jp   _LABEL_5E9A_
 
-_LABEL_5F50_:
-    cp   SYS_CHAR_BORRAR  ; $3C
-    jr   nz, _LABEL_5F7A_
-_LABEL_5F54_:
-    ld   a, [_RAM_D03B_]
-    srl  a
-    srl  a
-    srl  a
-    sub  $03
-    ld   hl, $D6D0
-    call add_a_to_hl__486E_
-_LABEL_5F65_:
-    ld   a, l
-    cp   $DF
-    jr   nz, _LABEL_5F73_
-    ld   a, $BE
-    ld   [hl], a
-    call _LABEL_62BD_
-    jp   _LABEL_5E9A_
+    _LABEL_5F73_:
+        inc  l
+        ld   a, [hl]
+        dec  l
+        ld   [hl], a
+        inc  l
+        jr   _LABEL_5F65_
 
-_LABEL_5F73_:
-    inc  l
-    ld   a, [hl]
-    dec  l
-    ld   [hl], a
-    inc  l
-    jr   _LABEL_5F65_
+    ; TODO Is this font -> keyboard char recoding?
+    _LABEL_5F7A_:
+        cp   SYS_CHAR_ENTRA_CR  ; $2E
+        jp   z, _LABEL_6022_
+        cp   SYS_CHAR_MINUS  ; $CB  ; Maybe also aliased SYS_CHAR_DASH
+        jr   nz, _LABEL_5F93_
+        call maybe_input_wait_for_keys__4B84
+        ld   a, [_RAM_D03B_]
+        cp   $10
+        jp   z, _LABEL_5E9A_
+        ld   a, $CB
+        ld   [input_key_pressed__RAM_D025_], a
 
-
-; TODO Is this font -> keyboard char recoding?
-_LABEL_5F7A_:
-    cp   SYS_CHAR_ENTRA_CR  ; $2E
-    jp   z, _LABEL_6022_
-    cp   SYS_CHAR_MINUS  ; $CB  ; Maybe also aliased SYS_CHAR_DASH
-    jr   nz, _LABEL_5F93_
-    call maybe_input_wait_for_keys__4B84
-    ld   a, [_RAM_D03B_]
-    cp   $10
-    jp   z, _LABEL_5E9A_
-    ld   a, $CB
-    ld   [input_key_pressed__RAM_D025_], a
     _LABEL_5F93_:
         cp   FONT_BLANKSPACE  ; $BE
         jr   nz, char_not_blankspace__5FA1_
@@ -3556,6 +3558,8 @@ _LABEL_5F7A_:
         jp   z, _LABEL_5E9A_
         ld   a, FONT_BLANKSPACE        ; $BE
     char_not_blankspace__5FA1_:
+
+        ; TODO: Check whether constants here should be switched from FONT_* to SYS_CHAR_*
 
         ; if (char < A..Z) [aka is: FONT_UPARROW]
         cp   FONT_UPPERCASE_FIRST      ; $81
