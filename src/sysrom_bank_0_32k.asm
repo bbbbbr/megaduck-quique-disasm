@@ -369,11 +369,8 @@ ENDC
         cp   MAIN_MENU_APP_PAINT  ; $06
         jr   nz, .check_app_basic__20D_
         call _LABEL_52F_
-        call _LABEL_6328_
+        call maybe_paint_app_init__6328_
         call _LABEL_54B_
-
-        ; Note: Strangely the Piano app 
-        .app_paint_done__20A_:
         jp   main_system_loop__15C_
 
     .check_app_basic__20D_:
@@ -411,7 +408,7 @@ ENDC
     .check_app_worddrawings__249_:
         cp   MAIN_MENU_APP_WORDDRAWINGS  ; $0A (10)
         jr   nz, .check_app_run_cartridge__253_
-        call _LABEL_5E55_
+        call maybe_app_worddrawings_init__5E55_
         jp   main_system_loop__15C_
 
     .check_app_run_cartridge__253_:
@@ -889,6 +886,8 @@ maybe_call_printscreen_in_32k_bank_2__522_:
     ei
     ret
 
+
+; TODO: Called right before a couple apps are launched
 _LABEL_52F_:
     ld   a, [_RAM_DBFB_]
     ld   [_RAM_D080_], a
@@ -900,6 +899,7 @@ _LABEL_52F_:
     ld   de, _RAM_D081_
     ld   b, $C0
     jp   memcopy_b_bytes_from_hl_to_de__482B_
+
 
 ; TODO: Maybe this displays a "back to main menu" notice
 _LABEL_54B_:
@@ -917,6 +917,7 @@ _LABEL_54B_:
     ld   de, _RAM_DAD0_
     ld   b, $C0
     jp   memcopy_b_bytes_from_hl_to_de__482B_
+
 
 _LABEL_56E_:
     ; Load Tile Data for the main menu font
@@ -1751,6 +1752,8 @@ SYS_CHAR_SYMBOLS_SHIFT_LUT_AFTER__F45_:
 DEF SYS_CHAR_SYMBOLS_SHIFT_LUT__LEN  EQU ((SYS_CHAR_SYMBOLS_SHIFT_LUT_AFTER__F45_ - SYS_CHAR_SYMBOLS_SHIFT_LUT__F2F_) / 2)
 
 
+; TODO: Maybe data by Piano Apps
+; Could be note tables, pre-recorded songs, etc
 _DATA_F45_:
 db $1F, $04, $24, $08, $1F, $04, $21, $04, $1F, $04
 db $1D, $04, $1F, $04, $1C, $04, $1F, $04, $24, $08, $1F, $04, $21, $04, $1F, $04
@@ -3377,377 +3380,378 @@ db $85, $8E, $85, $86, $85, $82, $8D, $81, $92, $81, $82, $92, $8D, $81, $99, $8
 db $95, $8E, $8A, $95, $8C, $81, $87, $8F, $93, $85, $90, $8F, $83, $94, $8E, $8F
 db $96, $84, $89, $83
 
-_LABEL_5E55_:
+
+maybe_app_worddrawings_init__5E55_:
     ldh  a, [rLCDC]
     and  ~LCDCF_OBJ16  ; $FD  ; Turn off 8x16 sprites -> 8x8 sprites
     ldh  [rLCDC], a
     call _LABEL_620A_
     ld   hl, $8800
-_LABEL_5E61_:
-    xor  a
-    ldi  [hl], a
-    ld   a, h
-    cp   $98
-    jr   nz, _LABEL_5E61_
-
-    ; Load last character (underscore) Tile from the main menu font
-    ; to Tile Num 0x7B in 0x8800 range
-    ld   de, gfx_tile_data__main_menu_font__2F2A_ ; Source
-    ld   b, $7F                                  ; Offset +127 tiles (last char)
-    ld   hl, _TILEDATA8800                       ; Dest
-    ld   c, $7B                                  ; Offset 0x8800 + 0x7B0 = 8FB0
-    ld   a, $01                                  ; Copy Size: 1 tile
-    call copy_a_x_tile_patterns_from_de_add_bx16_to_hl_add_cx16__48CD_
-
-    call _LABEL_60F3_
-    call _display_bg_sprites_on__627_
-    xor  a
-    ld   [_RAM_D20D_], a
-    ld   [_RAM_D04B_], a
-    ld   [_RAM_D03A_], a
-    ld   a, $18
-    ld   [_RAM_D03B_], a
-
-    ld   a, FONT_BLANKSPACE  ; $BE
-    ld   b, $10
-    ld   hl, maybe_text_buffer__RAM_D6D0_
-    .loop_fill_with_spaces__5E93_:
+    _LABEL_5E61_:
+        xor  a
         ldi  [hl], a
-        dec  b
-        jr   nz, .loop_fill_with_spaces__5E93_
+        ld   a, h
+        cp   $98
+        jr   nz, _LABEL_5E61_
 
-    call _LABEL_6240_
+        ; Load last character (underscore) Tile from the main menu font
+        ; to Tile Num 0x7B in 0x8800 range
+        ld   de, gfx_tile_data__main_menu_font__2F2A_ ; Source
+        ld   b, $7F                                  ; Offset +127 tiles (last char)
+        ld   hl, _TILEDATA8800                       ; Dest
+        ld   c, $7B                                  ; Offset 0x8800 + 0x7B0 = 8FB0
+        ld   a, $01                                  ; Copy Size: 1 tile
+        call copy_a_x_tile_patterns_from_de_add_bx16_to_hl_add_cx16__48CD_
 
-
-; TODO: This gets called from a lot of places that process characters
-_LABEL_5E9A_:
-    call input_map_gamepad_buttons_to_keycodes__49C2_
-    call _LABEL_6230_
-    ld   a, [input_key_pressed__RAM_D025_]
-    cp   SYS_CHAR_SALIDA  ; $2A
-    jr   nz, _LABEL_5EAE_
-
-    call _LABEL_6265_
-    call maybe_input_wait_for_keys__4B84
-    ret
-
-    _LABEL_5EAE_:
-        cp   SYS_CHAR_PRINTSCREEN  ; $2F
-        jr   nz, _LABEL_5EB7_
-        call maybe_call_printscreen_in_32k_bank_2__522_
-        jr   _LABEL_5E9A_
-
-    _LABEL_5EB7_:
-        cp   SYS_CHAR_PG_ARRIBA  ; $44
-        jp   nz, _LABEL_5ED1_
-        ld   a, [_RAM_D20D_]
-        bit  0, a
-        jp   z, _LABEL_5E9A_
-        cp   $03
-        call z, _LABEL_60E1_
-        ld   a, $0E
-        ld   [_RAM_D717_], a
-        jp   _LABEL_6030_
-
-    _LABEL_5ED1_:
-        cp   SYS_CHAR_PG_ABAJO  ; $45
-        jr   nz, _LABEL_5EEA_
-        ld   a, [_RAM_D20D_]
-        bit  0, a
-        jp   z, _LABEL_5E9A_
-        cp   $03
-        call z, _LABEL_60E1_
-        ld   a, $0D
-        ld   [_RAM_D717_], a
-        jp   _LABEL_6030_
-
-    _LABEL_5EEA_:
-        cp   SYS_CHAR_LEFT  ; $3E
-        jr   nz, _LABEL_5F13_
-        ld   a, [maybe_text_buffer__RAM_D6D0_]
-        cp   FONT_BLANKSPACE  ; $BE
-        jp   z, _LABEL_5E9A_
-        ld   a, [_RAM_D03B_]
-        sub  $08
-        ld   [_RAM_D03B_], a
-        cp   $10
-        jp   nz, _LABEL_5F08_
-        ld   a, $18
-        ld   [_RAM_D03B_], a
-    _LABEL_5F08_:
-        call _LABEL_621C_
-        ld   a, $02
-        call _LABEL_4A72_
-        jp   _LABEL_5E9A_
-
-    _LABEL_5F13_:
-        cp   SYS_CHAR_RIGHT  ; $3F
-        jr   nz, _LABEL_5F34_
-        ld   a, [maybe_text_buffer__RAM_D6D0_]
-        cp   FONT_BLANKSPACE  ; $BE
-        jp   z, _LABEL_5E9A_
-        ld   a, [_RAM_D03B_]
-        add  $08
-        ld   [_RAM_D03B_], a
-        cp   $A0
-        jp   nz, _LABEL_5F08_
-        ld   a, $98
-        ld   [_RAM_D03B_], a
-        jp   _LABEL_5F08_
-
-    _LABEL_5F34_:
-        cp   SYS_CHAR_BACKSPACE  ; $2C
-        jr   nz, _LABEL_5F50_
-        ld   a, [_RAM_D03B_]
-        sub  $08
-        cp   $10
-        jp   z, _LABEL_5E9A_
-        ld   [_RAM_D03B_], a
-        ld   a, $BE
-        ld   [input_key_pressed__RAM_D025_], a
-        call _LABEL_621C_
-        jp   _LABEL_5F54_
-
-    _LABEL_5F50_:
-        cp   SYS_CHAR_BORRAR  ; $3C
-        jr   nz, _LABEL_5F7A_
-    _LABEL_5F54_:
-        ld   a, [_RAM_D03B_]
-        srl  a
-        srl  a
-        srl  a
-        sub  $03
-        ld   hl, $D6D0
-        call add_a_to_hl__486E_
-    _LABEL_5F65_:
-        ld   a, l
-        cp   $DF
-        jr   nz, _LABEL_5F73_
-        ld   a, $BE
-        ld   [hl], a
-        call _LABEL_62BD_
-        jp   _LABEL_5E9A_
-
-    _LABEL_5F73_:
-        inc  l
-        ld   a, [hl]
-        dec  l
-        ld   [hl], a
-        inc  l
-        jr   _LABEL_5F65_
-
-    ; TODO Is this font -> keyboard char recoding?
-    _LABEL_5F7A_:
-        cp   SYS_CHAR_ENTRA_CR  ; $2E
-        jp   z, _LABEL_6022_
-        cp   SYS_CHAR_MINUS  ; $CB  ; Maybe also aliased SYS_CHAR_DASH
-        jr   nz, _LABEL_5F93_
-        call maybe_input_wait_for_keys__4B84
-        ld   a, [_RAM_D03B_]
-        cp   $10
-        jp   z, _LABEL_5E9A_
-        ld   a, $CB
-        ld   [input_key_pressed__RAM_D025_], a
-
-    _LABEL_5F93_:
-        cp   FONT_BLANKSPACE  ; $BE
-        jr   nz, char_not_blankspace__5FA1_
-
-        ld   a, [_RAM_D03B_]
-        cp   $18
-        jp   z, _LABEL_5E9A_
-        ld   a, FONT_BLANKSPACE        ; $BE
-    char_not_blankspace__5FA1_:
-
-        ; TODO: Check whether constants here should be switched from FONT_* to SYS_CHAR_*
-
-        ; if (char < A..Z) [aka is: FONT_UPARROW]
-        cp   FONT_UPPERCASE_FIRST      ; $81
-        jp   c, _LABEL_5E9A_
-
-        ; if (char < ,._) [aka is: A..Z uppercase]
-        cp   (FONT_UPPERCASE_LAST + 1) ; $9E ; (aka FONT_COMMA)
-        jr   c, maybe_handle_alpha_chars__5FDA_
-
-        ; if (char < a..z) [aka is: ,._]
-        cp   FONT_LOWERCASE_FIRST      ; $A1
-        jp   c, _LABEL_5E9A_
-
-        ; if (char >= ?) [aka is: ?,0-9,and higher (upper 65 chars)]
-        cp   FONT_QUESTIONMARK        ; $BF
-        jp   nc, _LABEL_5FBF_
-
-        cp   FONT_BLANKSPACE  ; $BE
-        jr   z, maybe_handle_alpha_chars__5FDA_
-
-        ; What remains are Lower Case characters
-        ; Convert them to Upper Case
-        ; Save the result
-        sub  FONT_LOWER_TO_UPPER_SUB  ; $20
-        ld   [input_key_pressed__RAM_D025_], a
-        jr   maybe_handle_alpha_chars__5FDA_
-
-    _LABEL_5FBF_:
-        ; Is this a bug that they used $D6 (A-Tilde) instead of the $D5 (N-Tilde) that starts the upper-case tilde chars?
-        ; if (char < uppercase A-Tilde) [aka is: a whole bunch, chars 63 - 85]
-        cp   (FONT_UPPER_TILDE_FIRST + 1) ; $D6
-        jp   c, _LABEL_5E9A_
-
-        ; if (char < jot-underbar) [aka is: upper case tilde]
-        cp   (FONT_UPPER_TILDE_LAST + 1)  ; $DB
-        jr   c, maybe_handle_alpha_chars__5FDA_
-        ; if (char == FONT_JOT_UNDERBAR_MAYBE)
-        jp   z, _LABEL_5E9A_
-
-        ; if (char >= dot between bars) [aka is: dot-bars, color inverted 0-9,and higher
-        cp   FONT_DOT_BETWEEN_BARS_MAYBE  ; $E2
-        jp   nc, _LABEL_5E9A_
-
-        ; if (char < lowercase a-Tilde) skip over lower -> upper adjustment
-        cp   FONT_LOWER_TILDE_FIRST  ; $DC
-        jp   c, maybe_handle_alpha_chars__5FDA_
-
-        ; What remains are Lower Case Tilde characters
-        ; Convert them to Upper Case Tilde characters
-        ; Save the result
-        sub  FONT_TILDE_LOWER_TO_UPPER_SUB  ; $07
-        ld   [input_key_pressed__RAM_D025_], a
-
-    ; Seems to handle A-Z + Tilde + space characters
-    maybe_handle_alpha_chars__5FDA_:
-        ld   a, [_RAM_D20D_]
-        and  a
-        jp   z, _LABEL_6007_
-        ld   a, $18
-        ld   [_RAM_D03B_], a
+        call _LABEL_60F3_
+        call _display_bg_sprites_on__627_
         xor  a
         ld   [_RAM_D20D_], a
-        call _LABEL_621C_
         ld   [_RAM_D04B_], a
+        ld   [_RAM_D03A_], a
+        ld   a, $18
+        ld   [_RAM_D03B_], a
 
-        ; Fill maybe_text_buffer__RAM_D6D0_ with blank spaces (clear it out probably)
         ld   a, FONT_BLANKSPACE  ; $BE
         ld   b, $10
         ld   hl, maybe_text_buffer__RAM_D6D0_
-        .loop_fill_with_spaces__5FF7_:
+        .loop_fill_with_spaces__5E93_:
             ldi  [hl], a
             dec  b
-            jr   nz, .loop_fill_with_spaces__5FF7_
+            jr   nz, .loop_fill_with_spaces__5E93_
 
-        call _LABEL_620A_
-        call _LABEL_62BD_
-        call _LABEL_60F3_
-        call _display_bg_sprites_on__627_
-    _LABEL_6007_:
-        ld   a, [_RAM_D03B_]
-        add  $08
-        cp   $A0
-        jp   z, _LABEL_5E9A_
-        call _LABEL_61D8_
-        ld   a, [_RAM_D03B_]
-        add  $08
-        ld   [_RAM_D03B_], a
+        call _LABEL_6240_
+        ; Does execution fall through here to input processing below?
+
+    ; Is this only used for the "worddrawings" app?
+    _LABEL_5E9A_:
+        call input_map_gamepad_buttons_to_keycodes__49C2_
         call _LABEL_6230_
-        jp   _LABEL_5E9A_
+        ld   a, [input_key_pressed__RAM_D025_]
+        cp   SYS_CHAR_SALIDA  ; $2A
+        jr   nz, _LABEL_5EAE_
 
-    _LABEL_6022_:
-        ld   hl, maybe_text_buffer__RAM_D6D0_
-        ld   a, [hl]
-        cp   FONT_BLANKSPACE  ; $BE
-        jp   z, _LABEL_5E9A_
-        ld   a, $0F
-        ld   [_RAM_D717_], a
-    _LABEL_6030_:
-        call _LABEL_6227_
-        ld   a, $A0
-        cp   $B0
-        jr   z, _LABEL_6044_
-        ld   hl, $0028
-        res  7, h
-        ld   a, $01
-        call switch_bank_in_a_jump_hl_RAM__C920_
-        ei
-    _LABEL_6044_:
-        ld   a, [_RAM_D717_]
-        cp   $0F
-        jr   z, _LABEL_605F_
-
-        ld   b, $10
-        ld   de, _RAM_D6F0_
-        ld   hl, maybe_text_buffer__RAM_D6D0_
-        call memcopy_b_bytes_from_de_to_hl__481F_
-        call _LABEL_62BD_
-        call _display_bg_sprites_on__627_
-        jp   _LABEL_5E9A_
-
-    _LABEL_605F_:
-        ld   a, [_RAM_D6E3_]
-        bit  7, a
-        jr   nz, _LABEL_60B7_
-        xor  a
-        ld   [_RAM_D20D_], a
-        ld   a, $05
-        ld   [_RAM_D717_], a
-        ld   a, $A0
-        cp   $B0
-        jr   z, _LABEL_6080_
-        ld   hl, $0028
-        res  7, h
-        ld   a, $01
-        call switch_bank_in_a_jump_hl_RAM__C920_
-        ei
-    _LABEL_6080_:
-        ld   a, $10
-        ld   [_RAM_D03B_], a
-        call _LABEL_6278_
-        call _LABEL_620A_
-        call _LABEL_60F3_
-        ld   a, $0A
-        ld   [_RAM_D717_], a
-        ld   hl, $0028
-        res  7, h
-        ld   a, $01
-        call switch_bank_in_a_jump_hl_RAM__C920_
-        ei
-        ld   a, $01
-        ld   [_RAM_D20D_], a
-
-        ld   b, $10
-        ld   de, _RAM_D6F0_
-        ld   hl, maybe_text_buffer__RAM_D6D0_
-        call memcopy_b_bytes_from_de_to_hl__481F_
-        call _LABEL_62BD_
-        call _display_bg_sprites_on__627_
-        jp   _LABEL_5E9A_
-
-    _LABEL_60B7_:
-        ld   a, [_RAM_D20D_]
-        cp   $01
-        ld   a, $03
-        jr   z, _LABEL_60CE_
-        ld   a, [_RAM_D20D_]
-        cp   $03
-        jr   z, _LABEL_60CE_
-        ld   a, $18
-        ld   [_RAM_D03B_], a
-        ld   a, $03
-    _LABEL_60CE_:
-        ld   [_RAM_D20D_], a
-        ld   a, $A0
-        cp   $B0
-        jp   z, _LABEL_5E9A_
-        call _LABEL_611B_
+        call _LABEL_6265_
         call maybe_input_wait_for_keys__4B84
-        jp   _LABEL_5E9A_
-
-    _LABEL_60E1_:
-        call _LABEL_620A_
-        call wait_until_vbl__92C_
-        call display_screen_off__94C_
-        call _LABEL_60F3_
-        ld   a, $01
-        ld   [_RAM_D20D_], a
         ret
+
+        _LABEL_5EAE_:
+            cp   SYS_CHAR_PRINTSCREEN  ; $2F
+            jr   nz, _LABEL_5EB7_
+            call maybe_call_printscreen_in_32k_bank_2__522_
+            jr   _LABEL_5E9A_
+
+        _LABEL_5EB7_:
+            cp   SYS_CHAR_PG_ARRIBA  ; $44
+            jp   nz, _LABEL_5ED1_
+            ld   a, [_RAM_D20D_]
+            bit  0, a
+            jp   z, _LABEL_5E9A_
+            cp   $03
+            call z, _LABEL_60E1_
+            ld   a, $0E
+            ld   [_RAM_D717_], a
+            jp   _LABEL_6030_
+
+        _LABEL_5ED1_:
+            cp   SYS_CHAR_PG_ABAJO  ; $45
+            jr   nz, _LABEL_5EEA_
+            ld   a, [_RAM_D20D_]
+            bit  0, a
+            jp   z, _LABEL_5E9A_
+            cp   $03
+            call z, _LABEL_60E1_
+            ld   a, $0D
+            ld   [_RAM_D717_], a
+            jp   _LABEL_6030_
+
+        _LABEL_5EEA_:
+            cp   SYS_CHAR_LEFT  ; $3E
+            jr   nz, _LABEL_5F13_
+            ld   a, [maybe_text_buffer__RAM_D6D0_]
+            cp   FONT_BLANKSPACE  ; $BE
+            jp   z, _LABEL_5E9A_
+            ld   a, [_RAM_D03B_]
+            sub  $08
+            ld   [_RAM_D03B_], a
+            cp   $10
+            jp   nz, _LABEL_5F08_
+            ld   a, $18
+            ld   [_RAM_D03B_], a
+        _LABEL_5F08_:
+            call _LABEL_621C_
+            ld   a, $02
+            call _LABEL_4A72_
+            jp   _LABEL_5E9A_
+
+        _LABEL_5F13_:
+            cp   SYS_CHAR_RIGHT  ; $3F
+            jr   nz, _LABEL_5F34_
+            ld   a, [maybe_text_buffer__RAM_D6D0_]
+            cp   FONT_BLANKSPACE  ; $BE
+            jp   z, _LABEL_5E9A_
+            ld   a, [_RAM_D03B_]
+            add  $08
+            ld   [_RAM_D03B_], a
+            cp   $A0
+            jp   nz, _LABEL_5F08_
+            ld   a, $98
+            ld   [_RAM_D03B_], a
+            jp   _LABEL_5F08_
+
+        _LABEL_5F34_:
+            cp   SYS_CHAR_BACKSPACE  ; $2C
+            jr   nz, _LABEL_5F50_
+            ld   a, [_RAM_D03B_]
+            sub  $08
+            cp   $10
+            jp   z, _LABEL_5E9A_
+            ld   [_RAM_D03B_], a
+            ld   a, $BE
+            ld   [input_key_pressed__RAM_D025_], a
+            call _LABEL_621C_
+            jp   _LABEL_5F54_
+
+        _LABEL_5F50_:
+            cp   SYS_CHAR_BORRAR  ; $3C
+            jr   nz, _LABEL_5F7A_
+        _LABEL_5F54_:
+            ld   a, [_RAM_D03B_]
+            srl  a
+            srl  a
+            srl  a
+            sub  $03
+            ld   hl, $D6D0
+            call add_a_to_hl__486E_
+        _LABEL_5F65_:
+            ld   a, l
+            cp   $DF
+            jr   nz, _LABEL_5F73_
+            ld   a, $BE
+            ld   [hl], a
+            call _LABEL_62BD_
+            jp   _LABEL_5E9A_
+
+        _LABEL_5F73_:
+            inc  l
+            ld   a, [hl]
+            dec  l
+            ld   [hl], a
+            inc  l
+            jr   _LABEL_5F65_
+
+        ; TODO Is this font -> keyboard char recoding?
+        _LABEL_5F7A_:
+            cp   SYS_CHAR_ENTRA_CR  ; $2E
+            jp   z, _LABEL_6022_
+            cp   SYS_CHAR_MINUS  ; $CB  ; Maybe also aliased SYS_CHAR_DASH
+            jr   nz, _LABEL_5F93_
+            call maybe_input_wait_for_keys__4B84
+            ld   a, [_RAM_D03B_]
+            cp   $10
+            jp   z, _LABEL_5E9A_
+            ld   a, $CB
+            ld   [input_key_pressed__RAM_D025_], a
+
+        _LABEL_5F93_:
+            cp   FONT_BLANKSPACE  ; $BE
+            jr   nz, char_not_blankspace__5FA1_
+
+            ld   a, [_RAM_D03B_]
+            cp   $18
+            jp   z, _LABEL_5E9A_
+            ld   a, FONT_BLANKSPACE        ; $BE
+        char_not_blankspace__5FA1_:
+
+            ; TODO: Check whether constants here should be switched from FONT_* to SYS_CHAR_*
+
+            ; if (char < A..Z) [aka is: FONT_UPARROW]
+            cp   FONT_UPPERCASE_FIRST      ; $81
+            jp   c, _LABEL_5E9A_
+
+            ; if (char < ,._) [aka is: A..Z uppercase]
+            cp   (FONT_UPPERCASE_LAST + 1) ; $9E ; (aka FONT_COMMA)
+            jr   c, maybe_handle_alpha_chars__5FDA_
+
+            ; if (char < a..z) [aka is: ,._]
+            cp   FONT_LOWERCASE_FIRST      ; $A1
+            jp   c, _LABEL_5E9A_
+
+            ; if (char >= ?) [aka is: ?,0-9,and higher (upper 65 chars)]
+            cp   FONT_QUESTIONMARK        ; $BF
+            jp   nc, _LABEL_5FBF_
+
+            cp   FONT_BLANKSPACE  ; $BE
+            jr   z, maybe_handle_alpha_chars__5FDA_
+
+            ; What remains are Lower Case characters
+            ; Convert them to Upper Case
+            ; Save the result
+            sub  FONT_LOWER_TO_UPPER_SUB  ; $20
+            ld   [input_key_pressed__RAM_D025_], a
+            jr   maybe_handle_alpha_chars__5FDA_
+
+        _LABEL_5FBF_:
+            ; Is this a bug that they used $D6 (A-Tilde) instead of the $D5 (N-Tilde) that starts the upper-case tilde chars?
+            ; if (char < uppercase A-Tilde) [aka is: a whole bunch, chars 63 - 85]
+            cp   (FONT_UPPER_TILDE_FIRST + 1) ; $D6
+            jp   c, _LABEL_5E9A_
+
+            ; if (char < jot-underbar) [aka is: upper case tilde]
+            cp   (FONT_UPPER_TILDE_LAST + 1)  ; $DB
+            jr   c, maybe_handle_alpha_chars__5FDA_
+            ; if (char == FONT_JOT_UNDERBAR_MAYBE)
+            jp   z, _LABEL_5E9A_
+
+            ; if (char >= dot between bars) [aka is: dot-bars, color inverted 0-9,and higher
+            cp   FONT_DOT_BETWEEN_BARS_MAYBE  ; $E2
+            jp   nc, _LABEL_5E9A_
+
+            ; if (char < lowercase a-Tilde) skip over lower -> upper adjustment
+            cp   FONT_LOWER_TILDE_FIRST  ; $DC
+            jp   c, maybe_handle_alpha_chars__5FDA_
+
+            ; What remains are Lower Case Tilde characters
+            ; Convert them to Upper Case Tilde characters
+            ; Save the result
+            sub  FONT_TILDE_LOWER_TO_UPPER_SUB  ; $07
+            ld   [input_key_pressed__RAM_D025_], a
+
+        ; Seems to handle A-Z + Tilde + space characters
+        maybe_handle_alpha_chars__5FDA_:
+            ld   a, [_RAM_D20D_]
+            and  a
+            jp   z, _LABEL_6007_
+            ld   a, $18
+            ld   [_RAM_D03B_], a
+            xor  a
+            ld   [_RAM_D20D_], a
+            call _LABEL_621C_
+            ld   [_RAM_D04B_], a
+
+            ; Fill maybe_text_buffer__RAM_D6D0_ with blank spaces (clear it out probably)
+            ld   a, FONT_BLANKSPACE  ; $BE
+            ld   b, $10
+            ld   hl, maybe_text_buffer__RAM_D6D0_
+            .loop_fill_with_spaces__5FF7_:
+                ldi  [hl], a
+                dec  b
+                jr   nz, .loop_fill_with_spaces__5FF7_
+
+            call _LABEL_620A_
+            call _LABEL_62BD_
+            call _LABEL_60F3_
+            call _display_bg_sprites_on__627_
+        _LABEL_6007_:
+            ld   a, [_RAM_D03B_]
+            add  $08
+            cp   $A0
+            jp   z, _LABEL_5E9A_
+            call _LABEL_61D8_
+            ld   a, [_RAM_D03B_]
+            add  $08
+            ld   [_RAM_D03B_], a
+            call _LABEL_6230_
+            jp   _LABEL_5E9A_
+
+        _LABEL_6022_:
+            ld   hl, maybe_text_buffer__RAM_D6D0_
+            ld   a, [hl]
+            cp   FONT_BLANKSPACE  ; $BE
+            jp   z, _LABEL_5E9A_
+            ld   a, $0F
+            ld   [_RAM_D717_], a
+        _LABEL_6030_:
+            call _LABEL_6227_
+            ld   a, $A0
+            cp   $B0
+            jr   z, _LABEL_6044_
+            ld   hl, $0028
+            res  7, h
+            ld   a, $01
+            call switch_bank_in_a_jump_hl_RAM__C920_
+            ei
+        _LABEL_6044_:
+            ld   a, [_RAM_D717_]
+            cp   $0F
+            jr   z, _LABEL_605F_
+
+            ld   b, $10
+            ld   de, _RAM_D6F0_
+            ld   hl, maybe_text_buffer__RAM_D6D0_
+            call memcopy_b_bytes_from_de_to_hl__481F_
+            call _LABEL_62BD_
+            call _display_bg_sprites_on__627_
+            jp   _LABEL_5E9A_
+
+        _LABEL_605F_:
+            ld   a, [_RAM_D6E3_]
+            bit  7, a
+            jr   nz, _LABEL_60B7_
+            xor  a
+            ld   [_RAM_D20D_], a
+            ld   a, $05
+            ld   [_RAM_D717_], a
+            ld   a, $A0
+            cp   $B0
+            jr   z, _LABEL_6080_
+            ld   hl, $0028
+            res  7, h
+            ld   a, $01
+            call switch_bank_in_a_jump_hl_RAM__C920_
+            ei
+        _LABEL_6080_:
+            ld   a, $10
+            ld   [_RAM_D03B_], a
+            call _LABEL_6278_
+            call _LABEL_620A_
+            call _LABEL_60F3_
+            ld   a, $0A
+            ld   [_RAM_D717_], a
+            ld   hl, $0028
+            res  7, h
+            ld   a, $01
+            call switch_bank_in_a_jump_hl_RAM__C920_
+            ei
+            ld   a, $01
+            ld   [_RAM_D20D_], a
+
+            ld   b, $10
+            ld   de, _RAM_D6F0_
+            ld   hl, maybe_text_buffer__RAM_D6D0_
+            call memcopy_b_bytes_from_de_to_hl__481F_
+            call _LABEL_62BD_
+            call _display_bg_sprites_on__627_
+            jp   _LABEL_5E9A_
+
+        _LABEL_60B7_:
+            ld   a, [_RAM_D20D_]
+            cp   $01
+            ld   a, $03
+            jr   z, _LABEL_60CE_
+            ld   a, [_RAM_D20D_]
+            cp   $03
+            jr   z, _LABEL_60CE_
+            ld   a, $18
+            ld   [_RAM_D03B_], a
+            ld   a, $03
+        _LABEL_60CE_:
+            ld   [_RAM_D20D_], a
+            ld   a, $A0
+            cp   $B0
+            jp   z, _LABEL_5E9A_
+            call _LABEL_611B_
+            call maybe_input_wait_for_keys__4B84
+            jp   _LABEL_5E9A_
+
+        _LABEL_60E1_:
+            call _LABEL_620A_
+            call wait_until_vbl__92C_
+            call display_screen_off__94C_
+            call _LABEL_60F3_
+            ld   a, $01
+            ld   [_RAM_D20D_], a
+            ret
 
 _LABEL_60F3_:
     ld   de, _DATA_62CF_
@@ -4027,7 +4031,8 @@ _DATA_6312_:
 db $BE, $BE, $90, $81, $8C, $81, $82, $92, $81, $00, $84, $85, $93, $83, $8F, $8E
 db $8F, $83, $89, $84, $81, $00
 
-_LABEL_6328_:
+
+maybe_paint_app_init__6328_:
     xor  a  ; MENU_ESCAPE_KEY_RUNS_LAST_ICON_FALSE
     ld   [ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_], a
     ld   [ui_grid_menu_icon_count__RAM_D06D_], a
@@ -4470,7 +4475,7 @@ _LABEL_667F_:
     ei
     ld   a, [_RAM_D1A7_]    ; _RAM_D1A7_ = $D1A7
     cp   $03
-    jp   nz, _LABEL_6328_
+    jp   nz, maybe_paint_app_init__6328_
     ld   a, [_RAM_D073_]    ; _RAM_D073_ = $D073
     ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
     ld   a, [_RAM_D074_]
