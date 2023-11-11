@@ -12,6 +12,54 @@ See definitions in `src/inc`
 
 # Serial Interface to Peripherals
 
+## Serial Interrupt handler
+```
+_INT_SERIAL__0058_:
+    di
+    call serial_int_handler
+    ei
+    reti
+```
+
+```
+serial_int_handler:
+    serial_rx_data = SB_REG;
+    serial_status = 0x01;
+    call serial_int_disable__A2B_
+```
+
+```
+serial_int_disable:
+    IE_REG &= ~IEF_SERIAL; ~0x08 -> 0xF7
+```
+
+
+
+## Send Byte of Serial Interface
+```
+  // In testing FF60 write appears to be optional, at least when other peripherals haven't been used
+  0xFF60 = 0x00;
+  // Order of SC reg arm then SB load seems non-standard
+  // When tested it also works in normal order (SB load then arm SC)
+  SC_REG = (SERIAL_XFER_ENABLE | SERIAL_CLOCK_INT); // 0x81
+  SB_REG = `Data Byte to Send`;
+  delay_quarter_msec();
+  IF_REG = 0x00;
+  SC_REG = (SERIAL_XFER_ENABLE | SERIAL_CLOCK_EXT); // 0x80
+```
+
+## Receive Byte of Serial Interface
+```
+  // In testing FF60 write appears to be optional, at least when other peripherals haven't been used
+  0xFF60 = 0x00;
+  SC_REG = (SERIAL_XFER_ENABLE | SERIAL_CLOCK_EXT); // 0x80
+
+  IE_REG |= IEF_SERIAL; 0x08
+  IF_REG = 0x00;
+  enable_interrupts();
+```
+
+
 ## Power-On Initialization
   - TODO: needs review and maybe tidyup
 

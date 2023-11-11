@@ -71,7 +71,10 @@ serial_system_init_check__9CF_:
 ; - Turns on Serial interrupt, clears pending interrupts, turns on interrupts
 serial_io_enable_receive_byte__A17_:
     push af
-    ; TODO: What does writing 0 to FF60 do here? Does it select alternate input for the serial control?
+    ; Unclear what writing 0 to FF60 does. Sending and receiving over serial still works
+    ; with the load instruction removed. In 32K Bank 0 it's only used for Serial RX and TX.
+    ; Maybe it's used in other banks to change which peripheral is connected?
+    ;
     ; Set ready to receive an inbound transfer
     ; Enable Serial Interrupt and clear any pending interrupts
     ; Then turn on interrupts
@@ -351,14 +354,18 @@ serial_io_send_command_and_receive_buffer__AEF_:
 ; - Possibly called from keyboard input polling
 serial_io_send_byte__B64_:
     push af
-    ; TODO: What does writing 0 to FF60 do here? Does it select alternate output for the serial control?
-    ; Start an outbound (serial IO?) transfer
+    ; Unclear what writing 0 to FF60 does. Sending and receiving over serial still works
+    ; with the load instruction removed. In 32K Bank 0 it's only used for Serial RX and TX.
+    ; Maybe it's used in other banks to change which peripheral is connected?
+    ;
+    ; Start an outbound Serial transfer
     ; Load byte to send
     ; Wait a quarter msec, then clear pending interrupts
     ; Set ready to receive an inbound transfer
     xor  a
     ldh  [_PORT_60_], a
     ; Why does this start the transfer before the data is loaded into rSB?
+    ; Seems counter to recommended practice. Also, still works if rSC is loaded after rSB.
     ld   a, (SERIAL_XFER_ENABLE | SERIAL_CLOCK_INT) ; $81
     ldh  [rSC], a
 
