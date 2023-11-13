@@ -3140,53 +3140,53 @@ ui_grid_menu_keypressed_enter__4C83_:
 
 _LABEL_4C87_:
     bit  4, a
-    jr   z, _LABEL_4C93_
+    jr   z, ._LABEL_4C93_
     ld   a, [_RAM_D05E_]    ; _RAM_D05E_ = $D05E
     inc  a
     res  7, a
-    jr   _LABEL_4C94_
+    jr   ._LABEL_4C94_
 
-_LABEL_4C93_:
-    xor  a
-_LABEL_4C94_:
-    ld   [_RAM_D05E_], a    ; _RAM_D05E_ = $D05E
-    ld   a, [buttons_new_pressed__RAM_D006_]
-    bit  5, a
-    jr   z, _LABEL_4CA6_
-    ld   a, [_RAM_D05D_]    ; _RAM_D05D_ = $D05D
-    inc  a
-    res  7, a
-    jr   _LABEL_4CA7_
+    ._LABEL_4C93_:
+        xor  a
+    ._LABEL_4C94_:
+        ld   [_RAM_D05E_], a    ; _RAM_D05E_ = $D05E
+        ld   a, [buttons_new_pressed__RAM_D006_]
+        bit  5, a
+        jr   z, ._LABEL_4CA6_
+        ld   a, [_RAM_D05D_]    ; _RAM_D05D_ = $D05D
+        inc  a
+        res  7, a
+        jr   ._LABEL_4CA7_
 
-_LABEL_4CA6_:
-    xor  a
-_LABEL_4CA7_:
-    ld   [_RAM_D05D_], a    ; _RAM_D05D_ = $D05D
-    ld   a, [buttons_new_pressed__RAM_D006_]
-    bit  6, a
-    jr   z, _LABEL_4CB9_
-    ld   a, [_RAM_D05C_]    ; _RAM_D05C_ = $D05C
-    inc  a
-    res  7, a
-    jr   _LABEL_4CBA_
+    ._LABEL_4CA6_:
+        xor  a
+    ._LABEL_4CA7_:
+        ld   [_RAM_D05D_], a    ; _RAM_D05D_ = $D05D
+        ld   a, [buttons_new_pressed__RAM_D006_]
+        bit  6, a
+        jr   z, ._LABEL_4CB9_
+        ld   a, [_RAM_D05C_]    ; _RAM_D05C_ = $D05C
+        inc  a
+        res  7, a
+        jr   ._LABEL_4CBA_
 
-_LABEL_4CB9_:
-    xor  a
-_LABEL_4CBA_:
-    ld   [_RAM_D05C_], a    ; _RAM_D05C_ = $D05C
-    ld   a, [buttons_new_pressed__RAM_D006_]
-    bit  7, a
-    jr   z, _LABEL_4CCC_
-    ld   a, [_RAM_D05B_]    ; _RAM_D05B_ = $D05B
-    inc  a
-    res  7, a
-    jr   _LABEL_4CCD_
+    ._LABEL_4CB9_:
+        xor  a
+    ._LABEL_4CBA_:
+        ld   [_RAM_D05C_], a    ; _RAM_D05C_ = $D05C
+        ld   a, [buttons_new_pressed__RAM_D006_]
+        bit  7, a
+        jr   z, ._LABEL_4CCC_
+        ld   a, [_RAM_D05B_]    ; _RAM_D05B_ = $D05B
+        inc  a
+        res  7, a
+        jr   ._LABEL_4CCD_
 
-_LABEL_4CCC_:
-    xor  a
-_LABEL_4CCD_:
-    ld   [_RAM_D05B_], a    ; _RAM_D05B_ = $D05B
-    ret
+    ._LABEL_4CCC_:
+        xor  a
+    ._LABEL_4CCD_:
+        ld   [_RAM_D05B_], a    ; _RAM_D05B_ = $D05B
+        ret
 
 _LABEL_4CD1_:
     ld   a, $ED
@@ -3195,55 +3195,59 @@ _LABEL_4CD1_:
     ld   [_RAM_C8CD_], a    ; _RAM_C8CD_ = $C8CD
     ld   hl, _RAM_D05F_ ; _RAM_D05F_ = $D05F
     ld   b, $02
-_LABEL_4CDF_:
-    push bc
-    push hl
-    call oam_find_slot_and_load_into__86F
-    pop  hl
-    ld   a, b
-    ldi  [hl], a
-    ld   a, [_tilemap_pos_x__RAM_C8CB_]
-    add  $08
-    ld   [_tilemap_pos_x__RAM_C8CB_], a
-    ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
-    inc  a
-    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-    push hl
-    call oam_find_slot_and_load_into__86F
-    pop  hl
-    ld   a, b
-    ldi  [hl], a
-    pop  bc
-    ld   a, [_tilemap_pos_y__RAM_C8CA_]
-    add  $08
-    ld   [_tilemap_pos_y__RAM_C8CA_], a
-    ld   a, [_tilemap_pos_x__RAM_C8CB_]
-    sub  $08
-    ld   [_tilemap_pos_x__RAM_C8CB_], a
-    ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
-    inc  a
-    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-    dec  b
-    jr   nz, _LABEL_4CDF_
+
+    ._LABEL_4CDF_:
+        push bc
+        push hl
+        call oam_find_slot_and_load_into__86F
+        pop  hl
+        ld   a, b
+        ldi  [hl], a
+        ld   a, [_tilemap_pos_x__RAM_C8CB_]
+        add  $08
+        ld   [_tilemap_pos_x__RAM_C8CB_], a
+        ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
+        inc  a
+        ld   [maybe_vram_data_to_write__RAM_C8CC_], a
+        push hl
+        call oam_find_slot_and_load_into__86F
+        pop  hl
+        ld   a, b
+        ldi  [hl], a
+        pop  bc
+        ld   a, [_tilemap_pos_y__RAM_C8CA_]
+        add  $08
+        ld   [_tilemap_pos_y__RAM_C8CA_], a
+        ld   a, [_tilemap_pos_x__RAM_C8CB_]
+        sub  $08
+        ld   [_tilemap_pos_x__RAM_C8CB_], a
+        ld   a, [maybe_vram_data_to_write__RAM_C8CC_]
+        inc  a
+        ld   [maybe_vram_data_to_write__RAM_C8CC_], a
+        dec  b
+        jr   nz, ._LABEL_4CDF_
     ret
+
 
 ; TODO: is this hiding the OAM/sprite cursor before executing a main menu item?
 _LABEL_4D19_:
     ld   c, $04
     ld   hl, _RAM_D05F_ ; _RAM_D05F_ = $D05F
-_LABEL_4D1E_:
-    ld   a, [hl]
-    ld   [hl], $00
-    inc  hl
-    ld   [maybe_vram_data_to_write__RAM_C8CC_], a
-    push hl
-    push bc
-    call oam_free_slot_and_clear__89B_
-    pop  bc
-    pop  hl
-    dec  c
-    jr   nz, _LABEL_4D1E_
+
+    ._LABEL_4D1E_:
+        ld   a, [hl]
+        ld   [hl], $00
+        inc  hl
+        ld   [maybe_vram_data_to_write__RAM_C8CC_], a
+        push hl
+        push bc
+        call oam_free_slot_and_clear__89B_
+        pop  bc
+        pop  hl
+        dec  c
+        jr   nz, ._LABEL_4D1E_
     ret
+
 
 ; Maps keycode input to D-Pad button presses
 ;
