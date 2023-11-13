@@ -103,8 +103,12 @@ DEF _WEEK_SAT                     EQU  6
 DEF _WEEK_SUN                     EQU  7
 DEF _DAYS_IN_WEEK                 EQU  7
 
+DEF VBL_CMD_1                                   EQU $1
+DEF VBL_CMD_2                                   EQU $2
 DEF VBL_CMD_COPY_16_BYTES_FROM_COPY_BUF_TO_HL   EQU $3
 DEF VBL_CMD_COPY_16_BYTES_FROM_HL_TO_COPY_BUF   EQU $4
+DEF VBL_CMD_5                                   EQU $5
+DEF VBL_CMD_6                                   EQU $6
 
 
 DEF TIMER_FLAG__BIT_TICKED        EQU 2    ; Set by timer interrupt, cleared by...

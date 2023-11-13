@@ -104,7 +104,7 @@ piano_freeplay_app__7185_:
             cp   SYS_CHAR_PRINTSCREEN  ; $2F
             jr   nz, .check_if_other_keys__71D1_
 
-            call maybe_call_printscreen_in_32k_bank_2__522_
+            call call_printscreen_in_32k_bank_2__522_
             jr   .input_loop__71BB_
 
     .check_if_other_keys__71D1_:
@@ -244,7 +244,7 @@ _LABEL_72A0_:
             call _LABEL_72F0_
             ld   a, [_RAM_D03A_]
             push af
-            call maybe_call_printscreen_in_32k_bank_2__522_
+            call call_printscreen_in_32k_bank_2__522_
             pop  af
             ld   [_RAM_D03A_], a
             jr   _LABEL_72A0_
@@ -368,7 +368,7 @@ _LABEL_738C_:
         jp   z, _LABEL_7417_
         cp   SYS_CHAR_PRINTSCREEN ; $2F
         jr   nz, _LABEL_73A4_
-        call maybe_call_printscreen_in_32k_bank_2__522_
+        call call_printscreen_in_32k_bank_2__522_
         jp   _LABEL_738C_
 
 _LABEL_73A4_:
@@ -530,7 +530,7 @@ _LABEL_74CB_:
         ld   a, [input_key_pressed__RAM_D025_]
         cp   SYS_CHAR_PRINTSCREEN  ; $2F
         jp   nz, _LABEL_7467_
-        call maybe_call_printscreen_in_32k_bank_2__522_
+        call call_printscreen_in_32k_bank_2__522_
         jp   _LABEL_7465_
 
 _LABEL_74D9_:
@@ -850,7 +850,7 @@ _LABEL_7721_:
         ld   a, [input_key_pressed__RAM_D025_]
         push af
         cp   SYS_CHAR_PRINTSCREEN  ; $2F
-        call z, maybe_call_printscreen_in_32k_bank_2__522_
+        call z, call_printscreen_in_32k_bank_2__522_
         pop  af
         cp   $FF
         jr   z, _LABEL_7721_

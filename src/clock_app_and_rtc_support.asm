@@ -303,7 +303,7 @@ _LABEL_56CB_:
     jp   z, ._LABEL_576B_
     cp   SYS_CHAR_PRINTSCREEN  ; $2F
     jr   nz, ._LABEL_56EE_
-    call maybe_call_printscreen_in_32k_bank_2__522_
+    call call_printscreen_in_32k_bank_2__522_
     ret
 
 

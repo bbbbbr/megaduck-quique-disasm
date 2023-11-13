@@ -738,7 +738,7 @@ calendar_app_init__4D6F_::
     ._LABEL_52D7_:
         ld   a, [buffer__RAM_D028_ + 3]    ; buffer__RAM_D028_ + 3 = $D02B
         push af
-        call maybe_call_printscreen_in_32k_bank_2__522_
+        call call_printscreen_in_32k_bank_2__522_
         pop  af
         ld   [buffer__RAM_D028_ + 3], a    ; buffer__RAM_D028_ + 3 = $D02B
         ld   a, [_RAM_D074_ + 1]
