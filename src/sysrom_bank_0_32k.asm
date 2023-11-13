@@ -3303,11 +3303,11 @@ input_map_keycodes_to_gamepad_buttons__4D30_:
 
 ; Actually in 32K Bank 0 Upper 16K, but 32K banking not supported in RGBDS
 SECTION "rom0_calendar_app_4D6F", ROMX[$4D6F], BANK[$1]
-include "calendar_app.asm"
+include "app_calendar.asm"
+; Ends 549E
+
 
 SECTION "rom0_after_calendar_app_549D", ROMX[$549D], BANK[$1]
-
-
 ; Writes preset byte to vram HL, then writes (preset byte + 1) at the next row down
 ;
 ; - VRAM Address to write: HL
@@ -3329,16 +3329,13 @@ maybe__vram_write_byte_2rows_addr_in_hl_preset_data__549D_::
 
 ; Actually in 32K Bank 0 Upper 16K, but 32K banking not supported in RGBDS
 SECTION "rom0_clock_app_54AE", ROMX[$54AE], BANK[$1]
-include "clock_app_and_rtc_support.asm"
+include "app_clock_and_rtc_support.asm"
+; Ends 5DA5
 
-SECTION "rom0_after_clock_app_5DA6", ROMX[$5DA6], BANK[$1]
 
-
-; Located at: _5DA6_
-;
+SECTION "rom0_rtc_date_calc_LUTs_5DA6", ROMX[$5DA6], BANK[$1]
 ; Look up Tables used for RTC Date Calculations
 ;
-; Particularly
 ; - rtc_validate_shadow_data_and_time__5A2B_
 ;   - called via: rtc_set_to_new_date_and_time___5987_
 ;
@@ -4062,13 +4059,12 @@ db $8F, $83, $89, $84, $81, $00
 ; Actually in 32K Bank 0 Upper 16K, but 32K banking not supported in RGBDS
 SECTION "rom0_piano_apps_6328", ROMX[$6328], BANK[$1]
 include "app_paint.asm"
-; Ends at $711A
-
+; Ends at $711B
 
 
 ; Actually in 32K Bank 0 Upper 16K, but 32K banking not supported in RGBDS
 SECTION "rom0_piano_apps_711A", ROMX[$711A], BANK[$1]
-include "piano_apps.asm"
+include "apps_piano.asm"
 
 ; Piano app code and data runs to the end of 32K bank 0 (with ~1.5K bytes empty space)
 
