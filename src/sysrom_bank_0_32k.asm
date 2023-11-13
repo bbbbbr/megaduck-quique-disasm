@@ -128,7 +128,7 @@ _VBL_HANDLER__6D_:
     cp   $01
     jr   nz, _VBL_HANDLER_2__88_
 
-    call vbl_routine_1__maybe_drawing_app__6A26_
+    call vbl_routine_1__maybe_paint_app__6A26_
     jr   _VBL_HANDLER_TAIL__AF_
 
     _VBL_HANDLER_2__88_:
@@ -4100,10 +4100,10 @@ maybe_paint_app_init__6328_::
         ld   [_tilemap_pos_y__RAM_C8CA_], a
         ld   a, $58
         ld   [_tilemap_pos_x__RAM_C8CB_], a
-        call drawing_app_some_util__6510_
+        call paint_app_some_util__6510_
 
 
-drawing_app_maybe_main_loop__63A7_:
+paint_app_maybe_main_loop__63A7_:
         xor  a
         ld   [_RAM_D05D_], a
         ld   [_RAM_D05E_], a
@@ -4115,14 +4115,14 @@ input_loop__63B4_:
     call input_read_keys__C8D_
     ld   a, [input_key_pressed__RAM_D025_]
     cp   SYS_CHAR_SALIDA  ; $2A
-    jp   z, drawing_app_key_pressed_esc__6673_
+    jp   z, paint_app_key_pressed_esc__6673_
 
     cp   SYS_CHAR_F1  ; $30
     jr   nz, .check_key_f2__63D1_
 
     ld   a, [_RAM_D19C_]
     ld   [_RAM_D073_], a
-    call drawing_app_set_line_thickness__67A6_
+    call paint_app_set_line_thickness__67A6_
     jr   input_loop__63B4_
 
     .check_key_f2__63D1_:
@@ -4131,27 +4131,27 @@ input_loop__63B4_:
 
         ld   a, [_RAM_D19D_]
         ld   [_RAM_D073_], a
-        call drawing_app_set_draw_color__67AC_
+        call paint_app_set_draw_color__67AC_
         jr   input_loop__63B4_
 
     .check_keys_f3_f4_f5_help__63E0_:
         cp   SYS_CHAR_F3  ; $32
-        jp   z, drawing_app_save__667A_
+        jp   z, paint_app_save__667A_
 
         cp   SYS_CHAR_F4  ; $33
-        jp   z, drawing_app_floodfill__6ACE_
+        jp   z, paint_app_floodfill__6ACE_
 
         cp   SYS_CHAR_F5  ; $34
-        jp   z, drawing_app_erase__66D1_
+        jp   z, paint_app_erase__66D1_
 
         cp   SYS_CHAR_AYUDA  ; $2D
         jp   nz, .check_key_printscreen__6402_
         ld   a, [_RAM_D196_]
         cp   $00
 
-        jp   nz, drawing_app_maybe_main_loop__63A7_
-        call drawing_app_help_menu_show__6FED_
-        jp   drawing_app_maybe_main_loop__63A7_
+        jp   nz, paint_app_maybe_main_loop__63A7_
+        call paint_app_help_menu_show__6FED_
+        jp   paint_app_maybe_main_loop__63A7_
 
     .check_key_printscreen__6402_:
         cp   SYS_CHAR_PRINTSCREEN  ; $2F
@@ -4210,7 +4210,7 @@ input_loop__63B4_:
     ._LABEL_6457_:
         ld   a, [buttons_new_pressed__RAM_D006_]
         and  $F3
-        jp   z, drawing_app_maybe_main_loop__63A7_
+        jp   z, paint_app_maybe_main_loop__63A7_
         ld   a, [_RAM_D196_]
         and  a
         jp   nz, ._LABEL_649E_
@@ -4230,7 +4230,7 @@ input_loop__63B4_:
         ld   b, [hl]
         cp   b
         jr   nz, ._LABEL_6485_
-        call drawing_app_maybe_set_pen__6739_
+        call paint_app_maybe_set_pen__6739_
         jp   input_loop__63B4_
 
     ._LABEL_6485_:
@@ -4239,10 +4239,10 @@ input_loop__63B4_:
         ld   [maybe_vram_data_to_write__RAM_C8CC_], a
         call _LABEL_953_
         call oam_free_slot_and_clear__89B_
-        call drawing_app_some_util__6510_
+        call paint_app_some_util__6510_
         call maybe_input_wait_for_keys__4B84
         call _LABEL_685B_
-        jp   drawing_app_maybe_main_loop__63A7_
+        jp   paint_app_maybe_main_loop__63A7_
 
     ._LABEL_649E_:
         ld   a, [_RAM_D04B_]
@@ -4301,7 +4301,7 @@ input_loop__63B4_:
 
 
 ; TODO: (called from various parts of drawing app code)
-drawing_app_some_util__6510_:
+paint_app_some_util__6510_:
     ld   a, $D9  ; Unknown value, have not seen elsewhere. Maybe behaves like MENU_ESCAPE_KEY_RUNS_LAST_ICON_TRUE
     ld   hl, ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_
     add  [hl]
@@ -4481,13 +4481,13 @@ _LABEL_6627_:
         call _LABEL_851_
         ret
 
-drawing_app_key_pressed_esc__6673_:
+paint_app_key_pressed_esc__6673_:
     ld   a, $03
     ld   [_RAM_D1A7_], a
     jr   _LABEL_667F_
 
 
-drawing_app_save__667A_:
+paint_app_save__667A_:
     ld   a, $02
     ld   [_RAM_D1A7_], a
 _LABEL_667F_:
@@ -4514,16 +4514,16 @@ _LABEL_667F_:
     ld   [_tilemap_pos_x__RAM_C8CB_], a
     ld   a, [_RAM_D074_]
     ld   [_tilemap_pos_y__RAM_C8CA_], a
-    call drawing_app_some_util__6510_
+    call paint_app_some_util__6510_
     ld   de, $18B2
     ld   bc, $0000
     ld   hl, $8C40
     ld   a, $1E
     call copy_a_x_tile_patterns_from_de_add_bx16_to_hl_add_cx16__48CD_
-    jp   drawing_app_maybe_main_loop__63A7_
+    jp   paint_app_maybe_main_loop__63A7_
 
 
-drawing_app_erase__66D1_:
+paint_app_erase__66D1_:
     ld   a, [_RAM_D196_]
     cp   $00
     jp   z, _LABEL_689D_
@@ -4578,7 +4578,7 @@ drawing_app_erase__66D1_:
         jp   input_loop__63B4_
 
 
-drawing_app_maybe_set_pen__6739_:
+paint_app_maybe_set_pen__6739_:
     ld   a, [_RAM_D04B_]
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
@@ -4595,7 +4595,7 @@ drawing_app_maybe_set_pen__6739_:
 
     ._LABEL_6758_:
         ld   [ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_], a
-        call drawing_app_some_util__6510_
+        call paint_app_some_util__6510_
         call maybe_input_wait_for_keys__4B84
         call _LABEL_6765_
         ret
@@ -4641,12 +4641,12 @@ _LABEL_6788_:
         ld   [hl], a
         ret
 
-drawing_app_set_line_thickness__67A6_:
+paint_app_set_line_thickness__67A6_:
     xor  a
     ld   [_RAM_D19B_], a
     jr   _LABEL_67B1_
 
-drawing_app_set_draw_color__67AC_:
+paint_app_set_draw_color__67AC_:
     ld   a, $01
     ld   [_RAM_D19B_], a
 _LABEL_67B1_:
@@ -4788,7 +4788,7 @@ _LABEL_685B_:
         ld   [_tilemap_pos_x__RAM_C8CB_], a
 
     ._LABEL_688A_:
-        call drawing_app_some_util__6510_
+        call paint_app_some_util__6510_
         ret
 
 
@@ -4808,7 +4808,7 @@ _LABEL_688E_:
 _LABEL_689D_:
     ld   a, [_RAM_D196_]
     bit  0, a
-    jp   nz, drawing_app_maybe_main_loop__63A7_
+    jp   nz, paint_app_maybe_main_loop__63A7_
     ld   a, [_RAM_D04B_]
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
@@ -4846,7 +4846,7 @@ _LABEL_689D_:
         ld   [_RAM_D192_], a    ; _RAM_D192_ = $D192
         ld   a, $03
         call _LABEL_4A72_
-        jp   drawing_app_maybe_main_loop__63A7_
+        jp   paint_app_maybe_main_loop__63A7_
 
 _LABEL_68F3_:
     ld   a, [_RAM_D197_]    ; _RAM_D197_ = $D197
@@ -4922,10 +4922,10 @@ _LABEL_694E_:
         ld   a, [_tilemap_pos_y__RAM_C8CA_]
         add  $04
         ld   [_tilemap_pos_y__RAM_C8CA_], a
-        call drawing_app_some_util__6510_
+        call paint_app_some_util__6510_
         ld   a, $0A
         call _LABEL_4A72_
-        jp   drawing_app_maybe_main_loop__63A7_
+        jp   paint_app_maybe_main_loop__63A7_
 
 
 _LABEL_6992_:
@@ -5020,7 +5020,7 @@ _LABEL_69D0_:
 
 ; Called by VBL when vbl_action_select__RAM_D195_ == 0x01
 ; Used in drawing app, maybe for rendering pixels bitmapped style
-vbl_routine_1__maybe_drawing_app__6A26_:
+vbl_routine_1__maybe_paint_app__6A26_:
         ld   a, [_RAM_D19C_]
         ld   [_RAM_D1A7_], a
         ld   a, [_tilemap_pos_x__RAM_C8CB_]
@@ -5046,7 +5046,7 @@ vbl_routine_1__maybe_drawing_app__6A26_:
         and  $07
         sla  a
         call add_a_to_hl__486E_
-        call maybe_drawing_app_util__6AAD_
+        call maybe_paint_app_util__6AAD_
         pop  hl
         ld   a, [_RAM_D1A7_]    ; _RAM_D1A7_ = $D1A7
         dec  a
@@ -5068,7 +5068,7 @@ vbl_routine_1__maybe_drawing_app__6A26_:
         and  $07
         sla  a
         call add_a_to_hl__486E_
-        call maybe_drawing_app_util__6AAD_
+        call maybe_paint_app_util__6AAD_
         pop  hl
         ld   a, [_RAM_D1A7_]    ; _RAM_D1A7_ = $D1A7
         dec  a
@@ -5088,7 +5088,7 @@ vbl_routine_1__maybe_drawing_app__6A26_:
         jr   ._LABEL_6A6E_
 
 
-maybe_drawing_app_util__6A9B_:
+maybe_paint_app_util__6A9B_:
         ld   a, [_RAM_D19D_]    ; _RAM_D19D_ = $D19D
         cp   $03
         jr   nz, ._LABEL_6AA6_
@@ -5102,8 +5102,8 @@ maybe_drawing_app_util__6A9B_:
     .done__6AAC_:
         ret
 
-maybe_drawing_app_util__6AAD_:
-    call maybe_drawing_app_util__6A9B_
+maybe_paint_app_util__6AAD_:
+    call maybe_paint_app_util__6A9B_
     bit  0, a
     jr   nz, ._LABEL_6ABA_
     ld   a, $FF
@@ -5117,7 +5117,7 @@ maybe_drawing_app_util__6AAD_:
 
     ._LABEL_6ABC_:
         ldi  [hl], a
-        call maybe_drawing_app_util__6A9B_
+        call maybe_paint_app_util__6A9B_
         bit  1, a
         jr   nz, ._LABEL_6ACA_
         ld   a, $FF
@@ -5133,10 +5133,10 @@ maybe_drawing_app_util__6AAD_:
         ldi  [hl], a
         ret
 
-drawing_app_floodfill__6ACE_:
+paint_app_floodfill__6ACE_:
     ld   a, [_RAM_D196_]
     cp   $00
-    jp   nz, drawing_app_maybe_main_loop__63A7_
+    jp   nz, paint_app_maybe_main_loop__63A7_
     ld   a, [_RAM_D04B_]
     ld   [maybe_vram_data_to_write__RAM_C8CC_], a
     call _LABEL_953_
@@ -5200,8 +5200,8 @@ drawing_app_floodfill__6ACE_:
         ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
         xor  a
         ld   [_RAM_D192_], a
-        call drawing_app_some_util__6510_
-        jp   drawing_app_maybe_main_loop__63A7_
+        call paint_app_some_util__6510_
+        jp   paint_app_maybe_main_loop__63A7_
 
 _LABEL_6B5F_:
     ld   a, [_RAM_D1A7_ + 1]
@@ -5976,8 +5976,8 @@ maybe_calc_pixelxy_tile_pattern_addr_something__6FA0_:
 ; so it's probably launched via a banked call from another bank
 ;
 ; Display Drawing App Help Menu Text
-; drawing_app_help_menu_show__6FED_:
-drawing_app_help_menu_show__6FED_:
+; paint_app_help_menu_show__6FED_:
+paint_app_help_menu_show__6FED_:
         ld   a, [_RAM_D04B_]
         ld   [maybe_vram_data_to_write__RAM_C8CC_], a
         call _LABEL_953_
@@ -6018,13 +6018,13 @@ drawing_app_help_menu_show__6FED_:
         call display_textbox_draw_xy_in_bc_wh_in_de_st_id_in_a__48EB_
 
         ; Draw Top of Help Menu text (AYUDA) on top of text box
-        ld   de, _string_message__drawing_app_help_header__709F_ ; $709F
+        ld   de, _string_message__paint_app_help_header__709F_ ; $709F
         ld   hl, $0804    ; Start at 8,4 (x,y) in tiles
         ld   c, PRINT_NORMAL  ; $01
         call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
 
         ; Draw 10 lines of help text
-        ld   de, _string_message__drawing_app_help_text__70A5_ ; $70A5
+        ld   de, _string_message__paint_app_help_text__70A5_ ; $70A5
         ld   hl, $0206   ; Start at 2,6 (x,y) in tiles
         ld   b, 10       ; $0A ; Loop for 10 lines
         ld   c, PRINT_NORMAL  ; $01
@@ -6077,17 +6077,17 @@ drawing_app_help_menu_show__6FED_:
         ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
         ld   a, [_RAM_D074_]
         ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
-        call drawing_app_some_util__6510_
+        call paint_app_some_util__6510_
         ret
 
 
         ; Strings for Drawing App Help Menu
-        ; Used by drawing_app_help_menu_show__6FED_
-        _string_message__drawing_app_help_header__709F_:
+        ; Used by paint_app_help_menu_show__6FED_
+        _string_message__paint_app_help_header__709F_:
         ; "AYUDA" (Help)
         db $81, $99, $95, $84, $81, $00
 
-        _string_message__drawing_app_help_text__70A5_:
+        _string_message__paint_app_help_text__70A5_:
         ; "F1: GROSOR" (Thickness ...)
         db $86, $C1, $FE, $BE, $87, $92, $8F, $93, $8F, $92, $00
         ; "    TRAZO" (... Stroke)
