@@ -3365,20 +3365,41 @@ db $8E, $81, $92, $00
 
 ; Data from 5E08 to 5E18 (17 bytes)
 ; Text string "   ESCAPE SALIDA" (escape/salida key)
-rom_str____ESCAPE_SALIDA__5E08_:
+rom_str___ESCAPE_SALIDA__5E08_:
 db $BE, $BE, $BE, $85, $93, $83, $81, $90, $85, $BE, $93, $81, $8C, $89, $84, $81
 db $00
 
 ; Data from 5E19 to 5E30 (24 bytes)
-_DATA_5E19_:
-db $8C, $95, $8E, $8D, $81, $92, $8D, $89, $D7, $8A, $95, $85, $96, $89, $85, $93
-db $D6, $82, $84, $8F, $8D, $8C, $95, $8E
+; 8 x 3 Look Up Table for 3 Letter Day of Week abbreviations (2 entries for Monday)
+string_table_day_of_week_3_letter_abbrev__5E19_:
+; Text string (commas not in data)  "LUN,MAR,MIÉ,JUE,VIE,SÃB,DOM,LUN"
+;                                   (Mon,Tue,Wed,Thu,Fri,Sat,Sun,Mon)
+db $8C, $95, $8E
+db $8D, $81, $92
+db $8D, $89, $D7
+db $8A, $95, $85
+db $96, $89, $85
+db $93, $D6, $82
+db $84, $8F, $8D
+db $8C, $95, $8E
 
 ; Data from 5E31 to 5E54 (36 bytes)
-_DATA_5E31_:
-db $85, $8E, $85, $86, $85, $82, $8D, $81, $92, $81, $82, $92, $8D, $81, $99, $8A
-db $95, $8E, $8A, $95, $8C, $81, $87, $8F, $93, $85, $90, $8F, $83, $94, $8E, $8F
-db $96, $84, $89, $83
+; 12 x 3 Look Up Table for 3 Letter Month abbreviations
+string_table_month_3_letter_abbrev__5E31_:
+; Text string (commas not in data) "ENE,FEB,MAR,ABR,MAY,JUN,JUL,AGO,SEP,OCT,NOV,DIC"
+;                                  (Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec)
+db $85, $8E, $85
+db $86, $85, $82
+db $8D, $81, $92
+db $81, $82, $92
+db $8D, $81, $99
+db $8A, $95, $8E
+db $8A, $95, $8C
+db $81, $87, $8F
+db $93, $85, $90
+db $8F, $83, $94
+db $8E, $8F, $96
+db $84, $89, $83
 
 
 maybe_app_worddrawings_init__5E55_:
@@ -3754,17 +3775,17 @@ maybe_app_worddrawings_init__5E55_:
             ret
 
 _LABEL_60F3_:
-    ld   de, _DATA_62CF_
+    ld   de, rom_str__ESCRIBIR_LA_PALABRA__62CF_
     ld   c, $00
     ld   b, $02
     ld   hl, $0103
     call _LABEL_4944_
-    ld   de, _DATA_62E3_
+    ld   de, rom_str__CLAVE__62E3_
     ld   c, $28
     ld   b, $02
     ld   hl, $0606
     call _LABEL_4944_
-    ld   de, _DATA_62ED_
+    ld   de, rom_str__PRESIONAR_ENTRADA__62ED_
     ld   c, $50
     ld   b, $02
     ld   hl, $020A - 1
@@ -3968,11 +3989,11 @@ _LABEL_6278_:
     call wait_until_vbl__92C_
     call display_screen_off__94C_
     call _LABEL_62BD_
-    ld   de, _DATA_6312_
+    ld   de, rom_str__PALABRA_DESCONOCIDA_6312_
     ld   a, [_RAM_D6E3_]
     bit  7, a
     jr   nz, _LABEL_6291_
-    ld   de, _DATA_62FF_
+    ld   de, ENTRADA_NO_VALIDA__62FF_
 _LABEL_6291_:
     ld   c, $00
     ld   b, $02
@@ -4008,26 +4029,31 @@ _LABEL_62BD_:
     ret
 
 ; Data from 62CF to 62E2 (20 bytes)
-_DATA_62CF_:
+rom_str__ESCRIBIR_LA_PALABRA__62CF_:
+; "ESCRIBIR LA PALABRA" (Write the word)
 db $85, $93, $83, $92, $89, $82, $89, $92, $BE, $8C, $81, $BE, $90, $81, $8C, $81
 db $82, $92, $81, $00
 
 ; Data from 62E3 to 62EC (10 bytes)
-_DATA_62E3_:
+rom_str__CLAVE__62E3_:
+; Text string "Clave" (Clue)
 db $64, $83, $8C, $81, $96, $85, $64, $BE, $99, $00
 
 ; Data from 62ED to 62FE (18 bytes)
-_DATA_62ED_:
+rom_str__PRESIONAR_ENTRADA__62ED_:
+; Text string  "PRESIONAR ENTRADA" (Press Enter)
 db $90, $92, $85, $93, $89, $8F, $8E, $81, $92, $BE, $85, $8E, $94, $92, $81, $84
 db $81, $00
 
 ; Data from 62FF to 6311 (19 bytes)
-_DATA_62FF_:
+ENTRADA_NO_VALIDA__62FF_:
+; Text string  "ENTRADA NO VALIDA" (Entry is not valid)
 db $BE, $85, $8E, $94, $92, $81, $84, $81, $00, $8E, $8F, $BE, $96, $81, $8C, $89
 db $84, $81, $00
 
 ; Data from 6312 to 6327 (22 bytes)
-_DATA_6312_:
+rom_str__PALABRA_DESCONOCIDA_6312_:
+; Text string  "PALABRA DESCONOCIDA" (Unknown word)
 db $BE, $BE, $90, $81, $8C, $81, $82, $92, $81, $00, $84, $85, $93, $83, $8F, $8E
 db $8F, $83, $89, $84, $81, $00
 

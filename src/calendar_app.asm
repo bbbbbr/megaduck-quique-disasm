@@ -95,11 +95,11 @@ calendar_app_init__4D6F_::
         sub  $06
 
     .rtc_month_less_than_10__4DFF_:
-        ; TODO: Probably rendering the month onto the Tilemap
+        ; Look up 3 letter Month abbreviation string and render it
         dec  a
         ld   b, $03
         call multiply_a_x_b__result_in_de__4853_
-        ld   hl, _DATA_5E31_    ; _DATA_5E31_ = $5E31
+        ld   hl, string_table_month_3_letter_abbrev__5E31_
         add  hl, de
         ld   d, h
         ld   e, l
@@ -159,7 +159,8 @@ calendar_app_init__4D6F_::
         call _LABEL_5401_
         ld   hl, $9880
         ld   b, $07
-        ld   de, _DATA_5E19_    ; _DATA_5E19_ = $5E19
+        ld   de, string_table_day_of_week_3_letter_abbrev__5E19_
+
     ._LABEL_4E69_:
         ld   a, [de]
         inc  de

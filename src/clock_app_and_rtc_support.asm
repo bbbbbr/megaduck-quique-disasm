@@ -212,7 +212,7 @@ _LABEL_55A0_:
         dec  a
         ld   b, $03
         call multiply_a_x_b__result_in_de__4853_
-        ld   hl, _DATA_5E19_
+        ld   hl, string_table_day_of_week_3_letter_abbrev__5E19_
         add  hl, de
         ldi  a, [hl]
         ld   [_RAM_D400_], a
@@ -239,7 +239,7 @@ _LABEL_55A0_:
         dec  a
         ld   b, $03
         call multiply_a_x_b__result_in_de__4853_
-        ld   hl, _DATA_5E31_
+        ld   hl, string_table_month_3_letter_abbrev__5E31_
         add  hl, de
         ldi  a, [hl]
         ld   [_RAM_D408_], a
@@ -1115,7 +1115,7 @@ clock_app_message__invalid_date_time__then_ret__5B12_:
     ld   c, PRINT_NORMAL  ; $01
     call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
 
-    ld   de, rom_str____ESCAPE_SALIDA__5E08_
+    ld   de, rom_str___ESCAPE_SALIDA__5E08_
     ld   hl, $0111        ; X,Y = 1,17
     ld   c, PRINT_NORMAL  ; $01
     call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
