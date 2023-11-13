@@ -368,21 +368,21 @@ ENDC
     .check_app_paint__1FD_:
         cp   MAIN_MENU_APP_PAINT  ; $06
         jr   nz, .check_app_basic__20D_
-        call _LABEL_52F_
+        call main_menu_maybe_save_something__52F_
         call maybe_paint_app_init__6328_
-        call _LABEL_54B_
+        call main_menu_maybe_restore_something__54B_
         jp   main_system_loop__15C_
 
     .check_app_basic__20D_:
         cp   MAIN_MENU_APP_BASIC  ; $07
         jr   nz, .check_app_paino__226_
         di
-        call _LABEL_52F_
+        call main_menu_maybe_save_something__52F_
         ld   hl, _RST_10_  ; _RST_10_ in Bank 2 might launch the Basic Programming App
         res  7, h          ; TODO: What does this even do when H is already 0x00?
         ld   a, $02
         call switch_bank_in_a_jump_hl_RAM__C920_
-        call _LABEL_54B_
+        call main_menu_maybe_restore_something__54B_
         ei
         jp   main_system_loop__15C_
 
@@ -396,12 +396,12 @@ ENDC
         cp   MAIN_MENU_APP_WORD_PROCESSOR  ; $09
         jr   nz, .check_app_worddrawings__249_
         di
-        call _LABEL_52F_
+        call main_menu_maybe_save_something__52F_
         ld   hl, _RST__08_ ; _RST_08_ in Bank 2 might launch the Word Processor App
         res  7, h          ; TODO: What does this even do when H is already 0x00?
         ld   a, $02
         call switch_bank_in_a_jump_hl_RAM__C920_
-        call _LABEL_54B_
+        call main_menu_maybe_restore_something__54B_
         ei
         jp   main_system_loop__15C_
 
@@ -888,7 +888,7 @@ maybe_call_printscreen_in_32k_bank_2__522_:
 
 
 ; TODO: Called right before a couple apps are launched
-_LABEL_52F_:
+main_menu_maybe_save_something__52F_:
     ld   a, [_RAM_DBFB_]
     ld   [_RAM_D080_], a
     ld   hl, _RAM_D740_
@@ -901,8 +901,8 @@ _LABEL_52F_:
     jp   memcopy_b_bytes_from_hl_to_de__482B_
 
 
-; TODO: Maybe this displays a "back to main menu" notice
-_LABEL_54B_:
+; TODO: Called after a launch app has returned
+main_menu_maybe_restore_something__54B_:
     ld   a, [_RAM_D080_]
     and  $02
     ld   b, a
