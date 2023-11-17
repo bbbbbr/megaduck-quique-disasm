@@ -82,41 +82,41 @@ DEF SYS_KBD_CODE_F12                 EQU  $AC
 ; GAP at 0xB4 maybe ON Key?
 
 ; Row 2
-DEF SYS_KBD_CODE_SALIDA              EQU  $81  ; Esc
-DEF SYS_KBD_CODE_1                   EQU  $85
-DEF SYS_KBD_CODE_2                   EQU  $89
-DEF SYS_KBD_CODE_3                   EQU  $8D
-DEF SYS_KBD_CODE_4                   EQU  $91
-DEF SYS_KBD_CODE_5                   EQU  $95
-DEF SYS_KBD_CODE_6                   EQU  $99
-DEF SYS_KBD_CODE_7                   EQU  $9D
-DEF SYS_KBD_CODE_8                   EQU  $A1
-DEF SYS_KBD_CODE_9                   EQU  $A5
-DEF SYS_KBD_CODE_0                   EQU  $A9
-DEF SYS_KBD_CODE_SINGLE_QUOTE        EQU  $AD
-DEF SYS_KBD_CODE_EXCLAMATION_FLIPPED EQU  $B1
-DEF SYS_KBD_CODE_BACKSPACE           EQU  $B5
+DEF SYS_KBD_CODE_ESCAPE              EQU  $81  ; Spanish label: Salida | German label: Esc
+DEF SYS_KBD_CODE_1                   EQU  $85  ; Shift alt: !
+DEF SYS_KBD_CODE_2                   EQU  $89  ; Shift alt: "
+DEF SYS_KBD_CODE_3                   EQU  $8D  ; Shift alt: · (Spanish, mid-dot) | § (German, legal section)
+DEF SYS_KBD_CODE_4                   EQU  $91  ; Shift alt: $
+DEF SYS_KBD_CODE_5                   EQU  $95  ; Shift alt: %
+DEF SYS_KBD_CODE_6                   EQU  $99  ; Shift alt: &
+DEF SYS_KBD_CODE_7                   EQU  $9D  ; Shift alt: /
+DEF SYS_KBD_CODE_8                   EQU  $A1  ; Shift alt: (
+DEF SYS_KBD_CODE_9                   EQU  $A5  ; Shift alt: )
+DEF SYS_KBD_CODE_0                   EQU  $A9  ; Shift alt: \
+DEF SYS_KBD_CODE_SINGLE_QUOTE        EQU  $AD  ; Shift alt: ?  | German version: ß (eszett)
+DEF SYS_KBD_CODE_EXCLAMATION_FLIPPED EQU  $B1  ; Shift alt: ¿ (Spanish) | ` (German)  ; German version: ' (single quote?)
+DEF SYS_KBD_CODE_BACKSPACE           EQU  $B5  ; German label: Lösch
 ; See Continued Row 2 below
 
 ; Row 3
-DEF SYS_KBD_CODE_AYUDA               EQU  $82  ; Help
+DEF SYS_KBD_CODE_HELP                EQU  $82  ; Spanish label: Ayuda | German label: Hilfe
 DEF SYS_KBD_CODE_Q                   EQU  $86
 DEF SYS_KBD_CODE_W                   EQU  $8A
 DEF SYS_KBD_CODE_E                   EQU  $8E
 DEF SYS_KBD_CODE_R                   EQU  $92
 DEF SYS_KBD_CODE_T                   EQU  $96
-DEF SYS_KBD_CODE_Y                   EQU  $9A
+DEF SYS_KBD_CODE_Y                   EQU  $9A  ; German version: z
 DEF SYS_KBD_CODE_U                   EQU  $9E
 DEF SYS_KBD_CODE_I                   EQU  $A2
 DEF SYS_KBD_CODE_O                   EQU  $A6
 DEF SYS_KBD_CODE_P                   EQU  $AA
-DEF SYS_KBD_CODE_BACKTICK            EQU  $AE  ; seems to only trigger if shift is pressed, generating a "["
-DEF SYS_KBD_CODE_RIGHT_SQ_BRACKET    EQU  $B2
-DEF SYS_KBD_CODE_ENTER               EQU  $B6
+DEF SYS_KBD_CODE_BACKTICK            EQU  $AE  ; Shift alt: [ (Spanish, only shift mode works) | German version: Ü
+DEF SYS_KBD_CODE_RIGHT_SQ_BRACKET    EQU  $B2  ; Shift alt: * | German version: · (mid-dot)
+DEF SYS_KBD_CODE_ENTER               EQU  $B6  ; Spanish label: Entra | German label: Ein-gabe
 ; See Continued Row 3 below
 
 ; Row 4
-; GAP at 0x83 maybe CAPS LOCK
+; GAP at 0x83 maybe CAPS LOCK  (Spanish label: Mayuscula, German label: Groß)
 DEF SYS_KBD_CODE_A                   EQU  $87
 DEF SYS_KBD_CODE_S                   EQU  $8B
 DEF SYS_KBD_CODE_D                   EQU  $8F
@@ -126,9 +126,9 @@ DEF SYS_KBD_CODE_H                   EQU  $9B
 DEF SYS_KBD_CODE_J                   EQU  $9F
 DEF SYS_KBD_CODE_K                   EQU  $A3
 DEF SYS_KBD_CODE_L                   EQU  $A7
-DEF SYS_KBD_CODE_N_TILDE             EQU  $AB
-DEF SYS_KBD_CODE_U_UMLAUT            EQU  $AF
-DEF SYS_KBD_CODE_O_OVER_LINE         EQU  $B3
+DEF SYS_KBD_CODE_N_TILDE             EQU  $AB  ; German version: ö
+DEF SYS_KBD_CODE_U_UMLAUT            EQU  $AF  ; German version: ä
+DEF SYS_KBD_CODE_O_OVER_LINE         EQU  $B3  ; Shift alt: [A over line] (Spanish) | ^ (German) | German version: #
 ; ? GAP at 0x87 ?
 
 
@@ -143,7 +143,7 @@ DEF SYS_KBD_CODE_O_OVER_LINE         EQU  $B3
 ; - Row 8: 0xBB
 
 ; Row 5
-DEF SYS_KBD_CODE_Z                   EQU  $B8
+DEF SYS_KBD_CODE_Z                   EQU  $B8  ; German version: y
 DEF SYS_KBD_CODE_X                   EQU  $BC
 DEF SYS_KBD_CODE_C                   EQU  $C0
 DEF SYS_KBD_CODE_V                   EQU  $C4
@@ -152,22 +152,23 @@ DEF SYS_KBD_CODE_N                   EQU  $CC
 DEF SYS_KBD_CODE_M                   EQU  $D0
 DEF SYS_KBD_CODE_COMMA               EQU  $D4
 DEF SYS_KBD_CODE_PERIOD              EQU  $D8
-DEF SYS_KBD_CODE_DASH_OR_UNDERSCORE  EQU  $DC
+DEF SYS_KBD_CODE_DASH                EQU  $DC  ; Shift alt: _ | German version: @
 ; See Continued Row 5 below
 ; Row 6 Continued (from below)
-DEF SYS_KBD_CODE_BORRAR              EQU  $E0  ; *
+DEF SYS_KBD_CODE_DELETE              EQU  $E0  ; *  Spanish label: Borrar | German label: Entf.
+
 
 
 ; Encoding is less orderly below
 
 
 ; Row 6
-DEF SYS_KBD_CODE_SPACE               EQU  $B9
+DEF SYS_KBD_CODE_SPACE               EQU  $B9  ; Spanish label: Espacio | German label (blank)
 ; Continued Row 5
-DEF SYS_KBD_CODE_LESS_THAN           EQU  $BD
+DEF SYS_KBD_CODE_LESS_THAN           EQU  $BD  ; Shift alt: >
 ; Continued Row 6
-DEF SYS_KBD_CODE_PAGE_UP             EQU  $C1
-DEF SYS_KBD_CODE_PAGE_DOWN           EQU  $C5
+DEF SYS_KBD_CODE_PAGE_UP             EQU  $C1  ; Spanish label: Pg Arriba | German label: Zu-rück
+DEF SYS_KBD_CODE_PAGE_DOWN           EQU  $C5  ; Spanish label: Pg Abajo | German label: Wei-ter
 DEF SYS_KBD_CODE_MEMORY_MINUS        EQU  $C9
 ; Continued Row 5
 DEF SYS_KBD_CODE_MEMORY_PLUS         EQU  $CD
@@ -183,7 +184,7 @@ DEF SYS_KBD_CODE_ARROW_LEFT          EQU  $E5
 DEF SYS_KBD_CODE_EQUALS              EQU  $E9
 DEF SYS_KBD_CODE_ARROW_RIGHT         EQU  $ED
 ; Continued Row 2
-DEF SYS_KBD_CODE_DIVIDE              EQU  $E4
+DEF SYS_KBD_CODE_DIVIDE              EQU  $E4  ; German version: :
 DEF SYS_KBD_CODE_ARROW_UP            EQU  $E8
 DEF SYS_KBD_CODE_PLUS                EQU  $EC
 
@@ -201,7 +202,7 @@ DEF SYS_KBD_CODE_PIANO_LA_SHARP      EQU  $CE
 DEF SYS_KBD_CODE_PIANO_DO_2_SHARP    EQU  $D6
 DEF SYS_KBD_CODE_PIANO_RE_2_SHARP    EQU  $DA
 ; Row 6 Continued
-DEF SYS_KBD_CODE_PRINTSCREEN_RIGHT   EQU  $DE  ; * Mixed in with piano keys
+DEF SYS_KBD_CODE_PRINTSCREEN_RIGHT   EQU  $DE  ; German label: Druck (* Mixed in with piano keys)
 ; Row 7 Continued
 DEF SYS_KBD_CODE_PIANO_FA_2_SHARP    EQU  $E2
 DEF SYS_KBD_CODE_PIANO_SOL_2_SHARP   EQU  $E6
