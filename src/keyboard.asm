@@ -94,7 +94,7 @@ input_read_keys__C8D_:
     .done_restore_int__call_TODO_and_return__D06_:
         ld   a, [_rIE_saved_serial__RAM_D078_]
         ldh  [rIE], a
-        call _LABEL_DFC_
+        call input_keys_postprocess_as_syschars__DFC_
         ret
 
 ; Processing of the received Key Codes
@@ -349,13 +349,12 @@ input_process_key_codes_and_flags__D0F_:
 
 
 
-; TODO: Some additional keyboard processing?
-
-_LABEL_DFC_:
+; Keyboard post-processing of the keys as sys_chars
+input_keys_postprocess_as_syschars__DFC_:
     ld   a, [input_key_pressed__RAM_D025_]
-    cp   $65
+    cp   $65  ; See notes about SYS_CHAR_DOT
     jr   nz, _LABEL_E0A_
-    ld   a, $9F
+    ld   a, SYS_CHAR_DOT  ; $9F
     ld   [input_key_pressed__RAM_D025_], a
     jr   _LABEL_E37_
 
@@ -367,16 +366,16 @@ _LABEL_E0A_:
     bit  SYS_KBD_FLAG_SHIFT_BIT, a  ; 2, a
     jr   z, _LABEL_E37_
 
-    ld   a, $D2
+    ld   a, SYS_CHAR_LEFT_SQ_BRACKET  ; $D2
     ld   [input_key_pressed__RAM_D025_], a
     jr   _LABEL_E37_
 
 _LABEL_E1C_:
     ld   a, [input_key_pressed__RAM_D025_]
-    cp   $DC
+    cp   SYS_CHAR_N_TILDE_LOWER  ; $DC
     jr   nz, _LABEL_E37_
 
-    ; Looks Negate Caps Lock and Shift negate each other
+    ; Looks like Caps Lock and Shift negate each other
     ld   a, [input_key_modifier_flags__RAM_D027_]
     ld   c, a
     and  SYS_KBD_FLAG_CAPSLOCK  ; $02
@@ -387,18 +386,17 @@ _LABEL_E1C_:
     xor  b
     jr   z, _LABEL_E37_
 
-    ; TODO: Load SYS_CHAR_N_TILDE ? hmm...
-    ld   a, $D5
+    ld   a, SYS_CHAR_N_TILDE  ; $D5
     ld   [input_key_pressed__RAM_D025_], a
 _LABEL_E37_:
     ld   a, [input_key_pressed__RAM_D025_]
     ld   c, a
-    ld   a, [_RAM_D226_]    ; _RAM_D226_ = $D226
+    ld   a, [_RAM_D226_]
     cp   $AA
     jr   z, _LABEL_E70_
     xor  a
-    ld   [_RAM_D221_], a    ; _RAM_D221_ = $D221
-    ld   [_RAM_D226_], a    ; _RAM_D226_ = $D226
+    ld   [_RAM_D221_], a
+    ld   [_RAM_D226_], a
     ld   hl, $0EA0
 _LABEL_E4C_:
     ldi  a, [hl]
@@ -406,12 +404,12 @@ _LABEL_E4C_:
     jr   z, _LABEL_E97_
     cp   c
     jr   nz, _LABEL_E9C_
-    ld   a, [_RAM_D221_]    ; _RAM_D221_ = $D221
+    ld   a, [_RAM_D221_]
     cp   $01
     jr   z, _LABEL_E8B_
     ld   e, l
     ld   d, h
-    ld   hl, _RAM_D222_ ; _RAM_D222_ = $D222
+    ld   hl, _RAM_D222_
     ld   [hl], b
     inc  hl
     ld   [hl], c
@@ -431,7 +429,7 @@ _LABEL_E70_:
     ld   a, [input_key_pressed__RAM_D025_]
     cp   SYS_CHAR_NO_DATA_OR_KEY  ; $FF
     ret  z
-    ld   hl, _RAM_D222_ ; _RAM_D222_ = $D222
+    ld   hl, _RAM_D222_
     ld   b, [hl]
     inc  hl
     ld   c, [hl]
@@ -442,7 +440,7 @@ _LABEL_E70_:
     ld   l, e
     ld   h, d
     ld   a, $01
-    ld   [_RAM_D221_], a    ; _RAM_D221_ = $D221
+    ld   [_RAM_D221_], a
     ld   a, [input_key_pressed__RAM_D025_]
     ld   b, a
 _LABEL_E8B_:
@@ -456,6 +454,6 @@ _LABEL_E8B_:
     ld   [input_key_pressed__RAM_D025_], a
 _LABEL_E97_:
     xor  a
-    ld   [_RAM_D226_], a    ; _RAM_D226_ = $D226
+    ld   [_RAM_D226_], a
     ret
 
