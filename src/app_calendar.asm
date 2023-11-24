@@ -396,8 +396,8 @@ calendar_app_init__4D6F_::
         ld   [_RAM_D05E_], a    ; _RAM_D05E_ = $D05E
         ld   [_RAM_D05B_], a    ; _RAM_D05B_ = $D05B
         ld   [_RAM_D05C_], a    ; _RAM_D05C_ = $D05C
-        call delay_quarter_msec__BD6_
-        call delay_quarter_msec__BD6_
+        call delay_1_msec__BD6_
+        call delay_1_msec__BD6_
         jp   .maybe_calendar_app_main_input_loop__4F95_
 
     ._LABEL_5022_:

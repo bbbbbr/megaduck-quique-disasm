@@ -214,7 +214,7 @@ _GB_ENTRY_POINT_100_:
 
 IF (!(DEF(GB_DEBUG)))
     ; Initialize Serially attached peripheral
-    call serial_system_init_check__9CF_
+    call serial_system_init__9CF_
     wait_serial_status_ok__108_:
         ld   a, [serial_system_status__RAM_D024_]
         bit  SYS_REPLY__BIT_BOOT_FAIL, a  ; 0, a
@@ -230,8 +230,7 @@ IF (!(DEF(GB_DEBUG)))
     ld   [serial_cmd_0x09_reply_data__RAM_D2E4_], a
 
     ; Check a verification sequence in RAM
-    ; If they don't match then it triggers what looks like
-    ; an init process for the hardware attached via Serial IO
+    ; If they don't match then it triggers an RTC reset via Serial IO
     ld   hl, init_key_slot_1__RAM_DBFC_
     ldi  a, [hl]
     cp   INIT_KEY_1  ; $AA
@@ -253,7 +252,7 @@ IF (!(DEF(GB_DEBUG)))
         ld   [init_key_slot_2__RAM_DBFD_], a
         ld   a, INIT_KEY_3  ; $55
         ld   [init_key_slot_3__RAM_DBFE_], a
-        ld   a, INIT_KEYS_DIDNT_MATCH_IN_RAM  ; $AA  ; TODO: needs more specific name
+        ld   a, INIT_KEYS_NO_MATCH_RESET_RTC  ; $AA  ; TODO: needs more specific name
         ld   [_RAM_D400_], a
         jr   .init_keys_check_done_now_init__152_
 
@@ -273,7 +272,7 @@ ENDC
 IF (!(DEF(GB_DEBUG)))
         ; Check result of previous init sequence test
         ld   a, [_RAM_D400_]
-        cp   INIT_KEYS_DIDNT_MATCH_IN_RAM  ; $AA
+        cp   INIT_KEYS_NO_MATCH_RESET_RTC  ; $AA
         ; Note: To force an RTC update to configured defaults use this instead (no Z test)
         ; call rtc_set_default_time_and_date__25E_
         call z, rtc_set_default_time_and_date__25E_
@@ -875,6 +874,8 @@ joypad_and_buttons_read__4F9_:
 ;         - Looks like it sends a series commands:
 ;           - TX: 3 x 0x09, RX: checks non-zero
 ;           ... then a lot more code
+;   ... 040D
+;         
 ;     - ei
 ;     - jp C940 Likely: switch_bank_return_to_saved_bank_RAM__C940_
 call_printscreen_in_32k_bank_2__522_:
@@ -984,7 +985,7 @@ _window_scroll_up__5C3_:
     ldh  [rWY], a
 
     window_scroll_up_loop__5C8_:
-        ld   hl, $2000  ; Delay 57,346 M-Cycles (a little less than one frame [70,224])
+        ld   hl, $2000  ; Delay 57,346 T-States (a little less than one frame [70,224])
         _delay_loop__5CB_:
                 dec  hl
                 ld   a, l
@@ -1660,13 +1661,11 @@ SECTION "rom0_after_serial_io_0BD6", ROM0[$0BD6]
 
 
 
-; Delay loop to wait 0.25 msec (used by serial link function, maybe others)
+; Delay loop to wait ~1 msec (used by serial link function, maybe others)
 ;
-; TODO: Is this a long enough delay? Given so far it sends with serial speed 8192 Hz, 1 KB/s
-;
-; Delay approx: (1000 msec / 59.7275 GB FPS) * (1058 M-Cycles delay / 70224 one frame M-Cycles) = 0.25 msec
-; or (1058 M-Cycles delay / 456 M-Cycles per line) = ~2.3 lines
-delay_quarter_msec__BD6_:
+; Delay approx: (1000 msec / 59.7275 GB FPS) * (4256 T-States delay / 70224 T-States per frame) = 1.015 msec
+; or (4256 T-States delay / 456 T-States per line) = ~9.3 lines
+delay_1_msec__BD6_:
     push af
     ld   a, $46
     _loop_delay_BD9_:

@@ -50,7 +50,7 @@ DEF SERIAL_STATUS_FAIL            EQU (SERIAL_STATUS_RESET)
 DEF INIT_KEY_1                    EQU $AA
 DEF INIT_KEY_2                    EQU $E4
 DEF INIT_KEY_3                    EQU $55
-DEF INIT_KEYS_DIDNT_MATCH_IN_RAM  EQU $AA
+DEF INIT_KEYS_NO_MATCH_RESET_RTC  EQU $AA
 
 ; Serial IO peripheral commands
 DEF SYS_CMD_INIT_SEQ_REQUEST      EQU $00  ; Value sent to request the 255..0 countdown sequence (be sent into the serial port)

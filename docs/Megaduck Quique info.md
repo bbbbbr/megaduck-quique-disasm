@@ -43,7 +43,7 @@ serial_int_disable:
   // When tested it also works in normal order (SB load then arm SC)
   SC_REG = (SERIAL_XFER_ENABLE | SERIAL_CLOCK_INT); // 0x81
   SB_REG = `Data Byte to Send`;
-  delay_quarter_msec();
+  delay_1_msec();
   IF_REG = 0x00;
   SC_REG = (SERIAL_XFER_ENABLE | SERIAL_CLOCK_EXT); // 0x80
 ```
@@ -66,12 +66,12 @@ serial_int_disable:
   - Turn off all interrupts except serial
   - Send following sequence of bytes via serial_io_send_byte__B64_
     - 0,1,2,3...255
-      - 1/4 msec delay between each transfer
-  - Wait for response up to 50 msec
+      - 1 msec delay between each transfer
+  - Wait for response up to ~206 msec
     - If failed
     - If OK and resulting byte was SYS_REPLY_BOOT_OK (0x01)
       - Send SYS_CMD_INIT_SEQ_REQUEST (0x00) via serial_io_send_byte__B64_
-        - 1/4 msec delay
+        - 1 msec delay
         - Turn on serial interrupt
         - Use external serial clock
         - Wait for reply sequence of 255, 254, 253..0
@@ -187,28 +187,28 @@ There is some cross-mapping of the GamePad and Keyboard data to allow input with
 
   - Turn off all interrupts except serial
   - Send Initial Command (Ex: 0x0B)
-  - Wait 1/2 msec (?)
-  - Wait for response up to 50 msec
+  - Wait ~2 msec (?)
+  - Wait for response up to ~206 msec
     `Check_Send_Byte_OK`
       - If OK prep for sending buffer data:
-        - Wait 1/4 msec
+        - Wait 1 msec
         - Send (length + 0x02)
           - The +2 sizing seems to be for:
             - Initial Length Byte
             - Trailing Checksum Byte
-        - Wait 1/2 msec
+        - Wait ~2 msec
         - Send Buffer data Loop
-          - Wait for response up to 50 msec
+          - Wait for response up to ~206 msec
             `Check_Send_Byte_OK`
             - If OK send next Buffer Byte
         - Done sending buffer bytes
         - Wait for reply to last buffer byte sent
-          - Wait for response up to 50 msec
+          - Wait for response up to ~206 msec
             `Check_Send_Byte_OK`
               - If OK calculate checksum (truncated to 8 bits) and send it
                 - two's complement of (Sum of all bytes sent but excluding checksum)
                   - I.E: (((Length + 2) + sum of buffer bytes) xor 0xFF) + 1
-              - Wait for response up to 50 msec
+              - Wait for response up to ~206 msec
                 - If no Reply then Failed
                 - If Reply was:
                    - 0x01: Then return SUCCESS
@@ -227,10 +227,10 @@ There is some cross-mapping of the GamePad and Keyboard data to allow input with
     - So far observed max used is 8 bytes for reading RTC data
 
   - Turn off all interrupts except serial
-  - Wait 1/4 msec
+  - Wait 1 msec
   - Send Initial Command (Ex: 0x0C)
     - `RX_Byte_Loop`
-      - Wait for response up to 50 msec
+      - Wait for response up to ~206 msec
         - If no Reply then Failed
         - If RX OK then Save/Process Reply byte
           - 1st RX Byte: Length of transfer
