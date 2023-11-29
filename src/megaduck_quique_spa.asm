@@ -72,6 +72,8 @@ DEF SYS_REPLY_NO_CART_IN_SLOT     EQU $06  ; TODO: Maybe also some failure durin
 DEF SYS_REPLY_MAYBE_KBD_START     EQU $0E  ; Maybe 0x0E ... why 0x04 when logged? Reply at start of a 4 byte keyboard reply packet 
 ; Maybe this is wrong... DEF SYS_REPLY_PERIPHERAL_DATA_INCOMING    EQU $0E  ; See above - This may be a general prologue/header for any sequence of data about to be sent by the peripheral hardware to the SM83 CPU over Serial IO
 
+; TODO: ^^^ This is definitely 0x04 coming over the line in the GBDK C implementation
+
 DEF SYS_RTC_UPDATE_DATE_TIME_OK   EQU  1
 DEF SYS_RTC_VALIDATE_DATE_TIME_OK EQU  1
 DEF SYS_RTC_SET_DATE_AND_TIME_LEN EQU  8 ; 8 Bytes

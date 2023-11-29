@@ -12,7 +12,7 @@
 ;
 ; RX Bytes for Keyboard Serial Reply
 ; - 1st:
-;   -  Always 0x04 (? in disasm code it looks like and checks for 0x0E though ?)
+;   -  Always 0x04 (Length)
 ; - 2nd:
 ;    - KEY REPEAT : |= 0x01  (so far looks like with no key value set in 3rd Byte)
 ;    - CAPS_LOCK: |= 0x02
@@ -20,9 +20,9 @@
 ;    - LEFT_PRINTSCREEN: |= 0x08
 ; - 3rd:
 ;    - Carries the keyboard key scan code
-;    - ? Maybe 00 when no key pressed? (0x04, <modifiers>, 0x00, <calculated checksum>)
+;    - 0x00 when no key pressed
 ; - 4th:
-;     - Two's complement checuksum byte
+;     - Two's complement checksum byte
 ;     - It should be: #4 == (((#1 + #2 + #3) XOR 0xFF) + 1) [two's complement]
 ;     - I.E: (#4 + #1 + #2 + #3) == 0x100 -> unsigned overflow -> 0x00
 ;
@@ -46,7 +46,7 @@ DEF SYS_KBD_FLAG_CAPSLOCK               EQU $02
 DEF SYS_KBD_FLAG_CAPSLOCK_BIT           EQU 1
 DEF SYS_KBD_FLAG_SHIFT                  EQU $04
 DEF SYS_KBD_FLAG_SHIFT_BIT              EQU 2
-; Right Print Screen seems to have actual scancode, vs Left being in a flag
+; Right Print Screen seems to have actual scancode vs Left being in a flag
 DEF SYS_KBD_FLAG_PRINTSCREEN_LEFT       EQU $08
 DEF SYS_KBD_FLAG_PRINTSCREEN_LEFT_BIT   EQU 3
 
@@ -54,6 +54,7 @@ DEF SYS_KBD_FLAG_PRINTSCREEN_LEFT_BIT   EQU 3
 ; RX Byte 3 Flags
 ; All valid keys seem to have bit 7 set (0x80+)
 DEF SYS_KBD_KEYCODE_BASE_BIT  EQU 7
+DEF SYS_KBD_KEYCODE_BASE      EQU $80
 
 ; First 4 rows (top of keyboard)  ~ 0x80 - 0xB7
 ;
@@ -93,7 +94,7 @@ DEF SYS_KBD_CODE_7                   EQU  $9D  ; Shift alt: /
 DEF SYS_KBD_CODE_8                   EQU  $A1  ; Shift alt: (
 DEF SYS_KBD_CODE_9                   EQU  $A5  ; Shift alt: )
 DEF SYS_KBD_CODE_0                   EQU  $A9  ; Shift alt: \
-DEF SYS_KBD_CODE_SINGLE_QUOTE        EQU  $AD  ; Shift alt: ?  | German version: ß (eszett)
+DEF SYS_KBD_CODE_SINGLE_QUOTE        EQU  $AD  ; Shift alt: ? (Spanish) | German version: ß (eszett)
 DEF SYS_KBD_CODE_EXCLAMATION_FLIPPED EQU  $B1  ; Shift alt: ¿ (Spanish) | ` (German)  ; German version: ' (single quote?)
 DEF SYS_KBD_CODE_BACKSPACE           EQU  $B5  ; German label: Lösch
 ; See Continued Row 2 below
@@ -128,7 +129,7 @@ DEF SYS_KBD_CODE_K                   EQU  $A3
 DEF SYS_KBD_CODE_L                   EQU  $A7
 DEF SYS_KBD_CODE_N_TILDE             EQU  $AB  ; German version: ö
 DEF SYS_KBD_CODE_U_UMLAUT            EQU  $AF  ; German version: ä
-DEF SYS_KBD_CODE_O_OVER_LINE         EQU  $B3  ; Shift alt: [A over line] (Spanish) | ^ (German) | German version: #
+DEF SYS_KBD_CODE_O_OVER_LINE         EQU  $B3  ; º Masculine ordinal indicator (Spanish) | German version: #  | Shift alt: ª [Feminine ordinal indicator, A over line] (Spanish) | ^ (German)
 ; ? GAP at 0x87 ?
 
 
@@ -150,8 +151,8 @@ DEF SYS_KBD_CODE_V                   EQU  $C4
 DEF SYS_KBD_CODE_B                   EQU  $C8
 DEF SYS_KBD_CODE_N                   EQU  $CC
 DEF SYS_KBD_CODE_M                   EQU  $D0
-DEF SYS_KBD_CODE_COMMA               EQU  $D4
-DEF SYS_KBD_CODE_PERIOD              EQU  $D8
+DEF SYS_KBD_CODE_COMMA               EQU  $D4  ; Shift alt: ;
+DEF SYS_KBD_CODE_PERIOD              EQU  $D8  ; Shift alt: :
 DEF SYS_KBD_CODE_DASH                EQU  $DC  ; Shift alt: _ | German version: @
 ; See Continued Row 5 below
 ; Row 6 Continued (from below)

@@ -132,7 +132,7 @@ serial_io_send_command_and_buffer__A34_:
         call serial_io_send_byte__B64_
         call delay_1_msec__BD6_
         call delay_1_msec__BD6_
-        call serial_io_wait_receive_w_timeout_206msec__B8F_
+        call serial_io_wait_receive_timeout_200msec__B8F_
         ; If reply arrived then process it, otherwise
         ; it timed out, so fall through to failure handler
         and  a
@@ -180,7 +180,7 @@ serial_io_send_command_and_buffer__A34_:
             ld   a, [serial_io_checksum_calc__RAM_D026_]
             add  c
             ld   [serial_io_checksum_calc__RAM_D026_], a
-            call serial_io_wait_receive_w_timeout_206msec__B8F_
+            call serial_io_wait_receive_timeout_200msec__B8F_
 
             ; Fail if timed out
             and  a
@@ -199,7 +199,7 @@ serial_io_send_command_and_buffer__A34_:
 
         ; Done sending buffer bytes, wait for reply to last byte sent
         ; It should be the checksum byte
-        call serial_io_wait_receive_w_timeout_206msec__B8F_
+        call serial_io_wait_receive_timeout_200msec__B8F_
         ; Fail if timed out
         and  a
         jr   z, .command_failed___A5B_
@@ -219,7 +219,7 @@ serial_io_send_command_and_buffer__A34_:
         sub  [hl]
         ld   [serial_tx_data__RAM_D023_], a
         call serial_io_send_byte__B64_
-        call serial_io_wait_receive_w_timeout_206msec__B8F_
+        call serial_io_wait_receive_timeout_200msec__B8F_
 
         ; Fail if timed out
         and  a
@@ -230,7 +230,7 @@ serial_io_send_command_and_buffer__A34_:
         cp   SYS_REPLY_MULTI_BYTE_SEND_AND_CHECKSUM_OK  ; $01
         jp   nz, .command_failed___A5B_
 
-        call serial_io_wait_receive_w_timeout_206msec__B8F_
+        call serial_io_wait_receive_timeout_200msec__B8F_
         ld   a, SYS_CHAR_SERIAL_TX_SUCCESS  ; $FC
         jr   .done_save_result__AE6_
 
@@ -245,7 +245,7 @@ serial_io_send_command_and_buffer__A34_:
         ret
 
 
-; Sends a command receives a multi-byte buffer over Serial IO
+; Sends a command and then receives a multi-byte buffer over Serial IO
 ;
 ; - Serial command to send before the buffer: serial_rx_cmd_to_send__RAM_D036_
 ; - Receive buffer: buffer__RAM_D028_
@@ -266,7 +266,7 @@ serial_io_send_command_and_receive_buffer__AEF_:
     ld   a, [serial_rx_cmd_to_send__RAM_D036_]
     ld   [serial_tx_data__RAM_D023_], a
     call serial_io_send_byte__B64_
-    call serial_io_wait_receive_w_timeout_206msec__B8F_
+    call serial_io_wait_receive_timeout_200msec__B8F_
 
     ; Fail if timed out
     and  a
@@ -405,15 +405,15 @@ serial_io_wait_receive_with_timeout__B8F_:
     ld   a, SERIAL_STATUS_RESET ; $00
     ld   [serial_status__RAM_D022_], a
     call serial_io_enable_receive_byte__A17_
-    call serial_io_wait_for_transfer_w_timeout_103msec__BC5_
+    call serial_io_wait_for_transfer_w_timeout_100msec__BC5_
     ld   a, [serial_status__RAM_D022_]
     ret
 
 
-; Waits for a byte from Serial IO with a timeout (~50 msec)
+; Waits for a byte from Serial IO with a timeout (~206 msec)
 ;
 ; - Returns serial transfer success(0x01)/failure(0x00) in: A
-serial_io_wait_receive_w_timeout_206msec__B8F_:
+serial_io_wait_receive_timeout_200msec__B8F_:
     push bc
     ld   a, SERIAL_STATUS_RESET ; $00
     ld   [serial_status__RAM_D022_], a
@@ -421,7 +421,7 @@ serial_io_wait_receive_w_timeout_206msec__B8F_:
 
     ld   b, $02
     .loop_wait_reply__BA9_:
-        call serial_io_wait_for_transfer_w_timeout_103msec__BC5_
+        call serial_io_wait_for_transfer_w_timeout_100msec__BC5_
         ld   a, [serial_status__RAM_D022_]
         and  a
         jr   nz, serial_done__BB8_
@@ -449,7 +449,7 @@ serial_system_status_set_fail__BBA_:
 ; - Delay approx: (1000 msec / 59.7275 GB FPS) * (431632 T-States delay / 70224 T-States per frame) = ~103 msec
 ; - Serial ISR populates status var if anything was received (serial_int_handler__00CE_)
 ;
-serial_io_wait_for_transfer_w_timeout_103msec__BC5_:
+serial_io_wait_for_transfer_w_timeout_100msec__BC5_:
     push bc
     ld   b, $64
     .loop_wait_reply__BC8_:
