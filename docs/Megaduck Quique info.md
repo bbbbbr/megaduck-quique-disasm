@@ -157,6 +157,9 @@ Request booting from the cart slot
 
 - ? TODO: What happens to WRAM? Does it get preserved or reset?
 
+- Tile Pattern VRAM does not get cleared when a cart in the slot is launched from the System ROM main menu, so the main menu icon and font tiles can be inspected by the launched cart program.
+
+
 ## Any Save/External RAM built in?
 
 
