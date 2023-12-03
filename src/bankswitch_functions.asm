@@ -31,7 +31,7 @@ switch_bank_memcopy_hl_to_de_len_bc_ROM__7EF_:
         dec  a
         jr   nz, _wait_loop__703_
     call memcopy_in_RAM__C900_
-    jp   $C940  ; TODO: probably the return bankswitch
+    jp   switch_bank_return_to_saved_bank_RAM__C940_
 
 
 ; ** Appears to be: bank-switched read one byte from ROM to RAM
@@ -60,7 +60,7 @@ switch_bank_read_byte_at_hl_ROM__80C_:
     nop
     ld   a, [hl]
     ld   [_rombank_readbyte_result__D6E7_], a
-    jp   $C940  ; TODO: probably the return bankswitch
+    jp   switch_bank_return_to_saved_bank_RAM__C940_
 
 
 ; ** Appears to be: bank switched jump to code at HL in another bank
