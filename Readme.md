@@ -13,6 +13,10 @@ It's similar to the GameBoy Workboy add-on except it actually shipped, and it ma
 - ROM cart slot for running programs like a normal Mega Duck
 - A slightly larger screen (3")
 
+### Notes and Docs
+See [Docs](/Docs) for additional work in progress info.
+
+
 ### Status
 A fair amount of core functionality in Bank 0 has been labeled and commented. Less work has been done on code for the built-in applications aside from where they interact with system hardware.
 
@@ -27,5 +31,8 @@ The default Make target will assemble both a Mega Duck ROM and a Game Boy ROM.
 - To allow the System ROM to partially run in an Game Boy emulator without getting stuck in peripheral hardware init uncomment this line `; def GB_DEBUG = 1` (since currently there are not emulators which support the Laptop peripheral controller)
 
 
-### Misc
+### Misc & Thanks
 - Thanks to those who dumped the System ROM
+- Eucal.BB for cart slot boot initial VRAM pictures
+- [Emulicious](https://emulicious.net/) for disassembler, debugger and testing
+- [ImHex](https://github.com/WerWolv/ImHex) for rummaging through the binary
