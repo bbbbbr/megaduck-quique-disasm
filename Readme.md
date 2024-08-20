@@ -14,7 +14,7 @@ It's similar to the GameBoy Workboy add-on except it actually shipped, and it ma
 - A slightly larger screen (3")
 
 ### Notes and Docs
-See [Docs](/Docs) for additional work in progress info.
+See [docs](/docs) for additional work in progress info.
 
 
 ### Status
