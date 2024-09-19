@@ -13,8 +13,8 @@ input_read_keys__C8D_:
     ld   [_rIE_saved_serial__RAM_D078_], a
     xor  a
     ldh  [rIE], a
-    ; TODO ... ? Make a request for ??
-    ld   a, SYS_CMD_READ_KEYS_MAYBE ; $00  ; ? Same or different as SYS_CMD_INIT_SEQ_REQUEST ?
+    ; Request keyboard multi-byte response
+    ld   a, SYS_CMD_READ_KEYS ; $00
     ld   [serial_tx_data__RAM_D023_], a
     call serial_io_send_byte__B64_
     call serial_io_wait_receive_with_timeout__B8F_
@@ -28,7 +28,10 @@ input_read_keys__C8D_:
     cp   SYS_REPLY_READ_FAIL_MAYBE ; $00
     jr   z, .req_key_failed_so_send04__CB9_
 
-    cp   SYS_REPLY_MAYBE_KBD_START  ; $0E  ; TODO: Verify
+    ; Not sure why 0x0E is used here and has a secondary fail test for >= 0x0E
+    ; when the only packet length that works with this function and is sent by
+    ; the hardware is 0x04 (so far keyboard packet lengths are always 4 total)
+    cp   SYS_REPLY_MAYBE_KBD_START  ; $0E
     jr   z, .rx_byte_1_ok__CB0_
 
     jr   nc, .req_key_failed_so_send04__CB9_
@@ -82,7 +85,7 @@ input_read_keys__C8D_:
         add  [hl]
         jr   nz, .req_key_failed_so_send04__CB9_
 
-        ; TODO: Send a command byte. Something like DONE or ACK for a SYS_CMD?
+        ; Success, send DONE/ACK
         ld   a, SYS_CMD_DONE_OR_OK ; $01
         ld   [serial_tx_data__RAM_D023_], a
         call serial_io_send_byte__B64_

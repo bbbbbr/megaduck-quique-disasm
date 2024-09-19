@@ -86,7 +86,7 @@ serial_int_disable:
 
 
 ## Keyboard
- - ? DEF SYS_CMD_READ_KEYS_MAYBE       EQU $00
+ - ? DEF SYS_CMD_READ_KEYS       EQU $00
 
 ### Keyboard Reply Data
 RX Bytes for Keyboard Serial Reply
@@ -221,7 +221,7 @@ There is some cross-mapping of the GamePad and Keyboard data to allow input with
     - If no Reply then Failed
     - If Reply was:
       - 0x06: Some kind of abort or not ready?
-      - 0x03: Then Failed
+      - 0x03: Then Success/Ready for payload
 
 
 ## Receiving a Buffer over Serial IO

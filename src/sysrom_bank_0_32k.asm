@@ -4,11 +4,17 @@
 
 SECTION "rom0", ROM0[$0]
 _DUCK_ENTRY_POINT_0000_:
-    di
-    jp   _GB_ENTRY_POINT_100_
-    nop
-    nop
-    nop
+    if DEF(FIX_NO_STACK_INIT)
+        di
+        ld  sp, $FFFE
+        jp   _GB_ENTRY_POINT_100_
+    ELSE
+        di
+        jp   _GB_ENTRY_POINT_100_
+        nop
+        nop
+        nop
+    ENDC
     nop
 
 _RST__08_:
@@ -215,10 +221,13 @@ _GB_ENTRY_POINT_100_:
 IF (!(DEF(GB_DEBUG)))
     ; Initialize Serially attached peripheral
     call serial_system_init__9CF_
+
+    ; Init will permanently hang here if the init call above failed
     wait_serial_status_ok__108_:
         ld   a, [serial_system_status__RAM_D024_]
         bit  SYS_REPLY__BIT_BOOT_FAIL, a  ; 0, a
         jr   nz, wait_serial_status_ok__108_
+
 
     ; TODO: Save response from some command
     ; (so far not seen being used in 32K Bank 0)
@@ -1665,6 +1674,9 @@ SECTION "rom0_after_serial_io_0BD6", ROM0[$0BD6]
 ;
 ; Delay approx: (1000 msec / 59.7275 GB FPS) * (4256 T-States delay / 70224 T-States per frame) = 1.015 msec
 ; or (4256 T-States delay / 456 T-States per line) = ~9.3 lines
+;
+; Serial clock speed used is: 8192 Hz  1 KB/s  Bit 1 cleared, Normal speed
+
 delay_1_msec__BD6_:
     push af
     ld   a, $46

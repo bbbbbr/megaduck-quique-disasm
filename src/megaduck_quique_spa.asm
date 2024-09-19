@@ -1,10 +1,22 @@
 
+; def ALL_DEBUG_OFF = 1
 
+if (!(def(ALL_DEBUG_OFF)))
 ; Turn on to enable skipping some MegaDuck QuiQue hardware specific code
 ; so that the QuiQue ROM will run the Main Menu on a GB
 ; def GB_DEBUG = 1
 
- 
+; Turn on to fix issue (in emulators) where
+; SB reg gets loaded after SC reg is triggered to send
+; def FIX_SC_REG_FOR_IMPRECISE_SIO_EMULATION = 1
+
+; Turn on to fix issue (in emulators) where
+; SP doesn't get initialized before calls that push return addresses to it,
+; in some cases leading to unpredictable execution/crash upon return
+; (if power up SP defaults to 0000 in emu, first call push is to invalid addresses for stack)
+; def FIX_NO_STACK_INIT = 1
+
+ endc ; end if (!(ALL_DEBUG_OFF))
 
 include "inc/hardware.inc"
 
@@ -54,23 +66,27 @@ DEF INIT_KEYS_NO_MATCH_RESET_RTC  EQU $AA
 
 ; Serial IO peripheral commands
 DEF SYS_CMD_INIT_SEQ_REQUEST      EQU $00  ; Value sent to request the 255..0 countdown sequence (be sent into the serial port)
-DEF SYS_CMD_READ_KEYS_MAYBE       EQU $00
+DEF SYS_CMD_READ_KEYS             EQU $00
 DEF SYS_CMD_DONE_OR_OK            EQU $01  ; TODO: What does this do and why?
+DEF SYS_CMD_DONE_OR_OK_AND_SOMETHING EQU $81  ; TODO: Seen this as a keyboard poll done reply instead of 0x01 by the calculator app, not sure what the difference is
 DEF SYS_CMD_ABORT_OR_FAIL         EQU $04  ; TODO: What does this do and why?
 DEF SYS_CMD_RUN_CART_IN_SLOT      EQU $08
 DEF SYS_CMD_INIT_UNKNOWN_0x09     EQU $09
 DEF SYS_CMD_RTC_SET_DATE_AND_TIME EQU $0B  ; Sets Hardware RTC Date and Time using multi-byte buffer send/TX
 DEF SYS_CMD_RTC_GET_DATE_AND_TIME EQU $0C  ; Used in multi-byte buffer receive/RX
 
-DEF SYS_REPLY_MULTI_BYTE_SEND_AND_CHECKSUM_OK             EQU $01
+DEF SYS_REPLY_BUFFER_SEND_AND_CHECKSUM_OK             EQU $01
 DEF SYS_REPLY_BOOT_OK             EQU $01  ; Reply on startup that allows rest of code to proceed
 DEF SYS_REPLY_READ_FAIL_MAYBE     EQU $00
 DEF SYS_REPLY_READ_CONTINUE_MAYBE EQU $00
 DEF SYS_REPLY__BIT_BOOT_FAIL      EQU 0
+DEF SYS_REPLY_SEND_BUFFER_OK      EQU $03
+DEF SYS_REPLY_SEND_BUFFER_MAYBE_ERROR EQU $06
 DEF SYS_REPLY_NO_CART_IN_SLOT     EQU $06  ; TODO: Maybe also some failure during serial IO multi-byte buffer send
-
 DEF SYS_REPLY_MAYBE_KBD_START     EQU $0E  ; Maybe 0x0E ... why 0x04 when logged? Reply at start of a 4 byte keyboard reply packet 
 ; Maybe this is wrong... DEF SYS_REPLY_PERIPHERAL_DATA_INCOMING    EQU $0E  ; See above - This may be a general prologue/header for any sequence of data about to be sent by the peripheral hardware to the SM83 CPU over Serial IO
+
+DEF SYS_CMD_SERIAL_SEND_BUF_MAX_LEN_PLUS_1 EQU 13
 
 ; TODO: ^^^ This is definitely 0x04 coming over the line in the GBDK C implementation
 
@@ -189,7 +205,7 @@ _rombank_saved__C8D8_: ds $28
 
 SECTION "wram_functions_start_c900", WRAM0[$c900]
 memcopy_in_RAM__C900_:                           ds $20
-switch_bank_in_a_jump_hl_RAM__C920_:                  ds $20  ; Copied to RAM from: switch_bank_in_a_jump_hl_ROM__82C_
+switch_bank_in_a_jump_hl_RAM__C920_:             ds $20  ; Copied to RAM from: switch_bank_in_a_jump_hl_ROM__82C_
 switch_bank_return_to_saved_bank_RAM__C940_:     ds $20
 switch_bank_memcopy_hl_to_de_len_bc_RAM__C960_:  ds $20
 switch_bank_read_byte_at_hl_RAM__C980_:          ds $20
@@ -286,7 +302,7 @@ _RAM_D05E_: db
 _RAM_D05F_: db
 
 SECTION "wram_d068", WRAMX[$D068]
-_RAM_D068_: db
+_maybe_rtc_and_serial_reply_fail__RAM_D068_: db  ; Also see: SYS_REPLY_SEND_BUFFER_MAYBE_ERROR
 _RAM_D069_: db
 rtc_validate_result__RAM_D06A_: db
 _RAM_D06B_: db

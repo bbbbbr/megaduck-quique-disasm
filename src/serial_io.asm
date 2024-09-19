@@ -33,12 +33,12 @@ serial_system_init__9CF_:
     call nz, serial_system_status_set_fail__BBA_
 
     ; Send a "0" byte (SYS_CMD_INIT_SEQ_REQUEST)
-    ; That maybe requests a 255..0 countdown sequence (be sent into the serial IO)
+    ; That requests a 255..0 countdown sequence (be sent into the serial IO)
     xor  a
     ld   [serial_tx_data__RAM_D023_], a
     call serial_io_send_byte__B64_
 
-    ; ? Expects a reply sequence through the serial IO of (255,254...0)
+    ; Expects a reply sequence through the serial IO of (255,254...0)
     ld   b, $01             ; This might not do anything, again... (not used and later overwritten)
     ld   c, $FF
     .loop_receive_sequence__9F6_:
@@ -122,7 +122,7 @@ serial_io_send_command_and_buffer__A34_:
     ; Check if Serial Transfer Length is ok
     ; Maybe there is a max send length of 12 bytes ( < 13 )
     ld   a, [serial_transfer_length__RAM_D034_]
-    cp   $0D
+    cp   SYS_CMD_SERIAL_SEND_BUF_MAX_LEN_PLUS_1 ; 13 ; $0D
     jr   c, .send_command_with_timeout__A46_
     jr   .command_failed___A5B_
 
@@ -146,9 +146,9 @@ serial_io_send_command_and_buffer__A34_:
     .handle_reply__A63_:
         ; Check reply byte
         ld   a, [serial_rx_data__RAM_D021_]
-        cp   $06                                          ; TODO: Does this signify "Not Ready" or some other unwanted status?
+        cp   SYS_REPLY_SEND_BUFFER_MAYBE_ERROR  ; $06 ; TODO: Does this signify "Not Ready" or some other unwanted status?
         jp   z, .done_unsure_good_or_bad_reply_0xFB__AE4_
-        cp   $03                                          ; TODO: Apparently 0x03 is a failure status as well
+        cp   SYS_REPLY_SEND_BUFFER_OK  ; $03            ; Ready for Payload
         jp   nz, .command_failed___A5B_
 
         ; OK to send buffer over Serial IO
@@ -187,9 +187,9 @@ serial_io_send_command_and_buffer__A34_:
             jr   z, .command_failed___A5B_
             ; Check reply byte
             ld   a, [serial_rx_data__RAM_D021_]
-            cp   $06                                          ; TODO: Does this signify "Not Ready" or some other unwanted status?
+            cp   SYS_REPLY_SEND_BUFFER_MAYBE_ERROR  ; $06 ; TODO: Does this signify "Not Ready" or some other unwanted status?
             jp   z, .done_unsure_good_or_bad_reply_0xFB__AE4_
-            cp   $03                                          ; TODO: Apparently 0x03 is a failure status as well
+            cp   SYS_REPLY_SEND_BUFFER_OK  ; $03            ; Ready for Payload
             jp   nz, .command_failed___A5B_
 
             ; Send next buffer byte
@@ -205,9 +205,9 @@ serial_io_send_command_and_buffer__A34_:
         jr   z, .command_failed___A5B_
         ld   a, [serial_rx_data__RAM_D021_]
          ; Check reply byte
-        cp   $06                                          ; TODO: Does this signify "Not Ready" or some other unwanted status?
+        cp   SYS_REPLY_SEND_BUFFER_MAYBE_ERROR  ; $06 ; TODO: Does this signify "Not Ready" or some other unwanted status?
         jp   z, .done_unsure_good_or_bad_reply_0xFB__AE4_
-        cp   $03                                          ; TODO: Apparently 0x03 is a failure status as well
+        cp   SYS_REPLY_SEND_BUFFER_OK  ; $03            ; Ready for Payload
         jp   nz, .command_failed___A5B_
 
         ; Send trailing Checksum Byte
@@ -227,7 +227,7 @@ serial_io_send_command_and_buffer__A34_:
         ; Check reply byte
         ; If it was 0x01 then the transfer command succeeded
         ld   a, [serial_rx_data__RAM_D021_]
-        cp   SYS_REPLY_MULTI_BYTE_SEND_AND_CHECKSUM_OK  ; $01
+        cp   SYS_REPLY_BUFFER_SEND_AND_CHECKSUM_OK  ; $01
         jp   nz, .command_failed___A5B_
 
         call serial_io_wait_receive_timeout_200msec__B8F_
@@ -365,13 +365,22 @@ serial_io_send_byte__B64_:
     ; Set ready to receive an inbound transfer
     xor  a
     ldh  [_PORT_60_], a
-    ; Why does this start the transfer before the data is loaded into rSB?
-    ; Seems counter to recommended practice. Also, still works if rSC is loaded after rSB.
-    ld   a, (SERIAL_XFER_ENABLE | SERIAL_CLOCK_INT) ; $81
-    ldh  [rSC], a
+    IF DEF(FIX_SC_REG_FOR_IMPRECISE_SIO_EMULATION)
+        ; Fix SC reg loading data BEFORE starting for emulators that aren't as precise
+        ld   a, [serial_tx_data__RAM_D023_]
+        ldh  [rSB], a
 
-    ld   a, [serial_tx_data__RAM_D023_]
-    ldh  [rSB], a
+        ld   a, (SERIAL_XFER_ENABLE | SERIAL_CLOCK_INT) ; $81
+        ldh  [rSC], a
+    ELSE
+        ; Transfer started before data is loaded into rSB
+        ; Counter to recommended practice, but still works (and is expected to per Nitro2k feedback)
+        ld   a, (SERIAL_XFER_ENABLE | SERIAL_CLOCK_INT) ; $81
+        ldh  [rSC], a
+
+        ld   a, [serial_tx_data__RAM_D023_]
+        ldh  [rSB], a
+    ENDC
     call delay_1_msec__BD6_
 
     xor  a
@@ -398,7 +407,7 @@ serial_io_read_byte_no_timeout__B7D_:
         ret
 
 
-; Waits for a byte from Serial IO with a timeout (25 msec)
+; Waits for a byte from Serial IO with a timeout (100 msec)
 ;
 ; - Returns serial transfer success(0x01)/failure(0x00) in: A
 serial_io_wait_receive_with_timeout__B8F_:

@@ -85,7 +85,7 @@ clock_app_init__54AE_::
         call _LABEL_5B5F_
         call _LABEL_55A0_
         xor  a
-        ld   [_RAM_D068_], a
+        ld   [_maybe_rtc_and_serial_reply_fail__RAM_D068_], a
         ld   [_RAM_D03B_], a
         ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
 
@@ -324,9 +324,9 @@ _LABEL_56CB_:
         ret
 
     ._LABEL_5704_:
-        ld   hl, _RAM_D068_
+        ld   hl, _maybe_rtc_and_serial_reply_fail__RAM_D068_
         ld   a, [_RAM_D20C_]
-        cp   $06
+        cp   SYS_REPLY_SEND_BUFFER_MAYBE_ERROR  ; $06 ; TODO: Does this signify "Not Ready" or some other unwanted status?
         jr   nz, ._LABEL_5712_
         ld   [hl], $00
         jr   ._LABEL_571C_
@@ -344,15 +344,15 @@ _LABEL_56CB_:
         jp   ._LABEL_5737_
 
     ._LABEL_571F_:
-        ld   hl, _RAM_D068_
+        ld   hl, _maybe_rtc_and_serial_reply_fail__RAM_D068_
         ld   a, [_RAM_D20C_]
-        cp   $06
+        cp   SYS_REPLY_SEND_BUFFER_MAYBE_ERROR  ; $06
         jr   nz, ._LABEL_572D_
         ld   [hl], $02
         jr   ._LABEL_5737_
 
     ._LABEL_572D_:
-        cp   $03
+        cp   SYS_REPLY_SEND_BUFFER_OK  ; $03            ; Ready for Payload
         jr   z, ._LABEL_5735_
         ld   [hl], $00
         jr   ._LABEL_5737_
@@ -367,7 +367,7 @@ _LABEL_56CB_:
         ret
 
     ._LABEL_5740_:
-        ld   a, [_RAM_D068_]
+        ld   a, [_maybe_rtc_and_serial_reply_fail__RAM_D068_]
         cp   $00
         jr   nz, ._LABEL_5763_
         ld   a, [_RAM_D059_]
@@ -426,7 +426,7 @@ _LABEL_5792_:
     ld   [_tilemap_pos_y__RAM_C8CA_], a
     ld   a, $63
     call _LABEL_57BC_
-    ld   a, [_RAM_D068_]
+    ld   a, [_maybe_rtc_and_serial_reply_fail__RAM_D068_]
     ld   b, $03
     call multiply_a_x_b__result_in_de__4853_
     ld   a, e
