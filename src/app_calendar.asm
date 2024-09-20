@@ -123,6 +123,7 @@ calendar_app_init__4D6F_::
 
         ld   hl, _TILEMAP0 + $30 ; $9830
 
+        ; @ $4e29
         ; Load RX RTC Year
         ; Do a simple conversion from BCD -> Decimal
         ; If left digit is 1 then subtract 6 to convert. Ex. 0x10 - 6 = 0xA (10)

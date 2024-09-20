@@ -86,7 +86,7 @@ serial_int_disable:
 
 
 ## Keyboard
- - ? DEF SYS_CMD_READ_KEYS       EQU $00
+ - ? DEF SYS_CMD_GET_KEYS       EQU $00
 
 ### Keyboard Reply Data
 RX Bytes for Keyboard Serial Reply

@@ -16,7 +16,14 @@ if (!(def(ALL_DEBUG_OFF)))
 ; (if power up SP defaults to 0000 in emu, first call push is to invalid addresses for stack)
 ; def FIX_NO_STACK_INIT = 1
 
- endc ; end if (!(ALL_DEBUG_OFF))
+; TODO: Maybe add a fix for the "Y2K12" bug (max supported year 2011)
+; def FIX_Y2K12_BUG = 1
+
+if def(FIX_Y2K12_BUG)
+  def BUILD_FREE_TRAILING_SPACE_BANK_0 = 1
+endc
+
+endc ; end if (!(ALL_DEBUG_OFF))
 
 include "inc/hardware.inc"
 
@@ -66,7 +73,7 @@ DEF INIT_KEYS_NO_MATCH_RESET_RTC  EQU $AA
 
 ; Serial IO peripheral commands
 DEF SYS_CMD_INIT_SEQ_REQUEST      EQU $00  ; Value sent to request the 255..0 countdown sequence (be sent into the serial port)
-DEF SYS_CMD_READ_KEYS             EQU $00
+DEF SYS_CMD_GET_KEYS             EQU $00
 DEF SYS_CMD_DONE_OR_OK            EQU $01  ; TODO: What does this do and why?
 DEF SYS_CMD_DONE_OR_OK_AND_SOMETHING EQU $81  ; TODO: Seen this as a keyboard poll done reply instead of 0x01 by the calculator app, not sure what the difference is
 DEF SYS_CMD_ABORT_OR_FAIL         EQU $04  ; TODO: What does this do and why?
@@ -97,8 +104,9 @@ DEF _TIME_HOUR_12                 EQU  12
 DEF _TIME_MINUTE_60               EQU  60
 DEF _TIME_AM                      EQU  $00
 DEF _TIME_PM                      EQU  $01
-DEF _DATE_MAX_YEAR_2011_          EQU  (11 + 1) ; 12
 DEF _DATE_MIN_YEAR_1992_          EQU  92
+DEF _DATE_MAX_YEAR_2011_          EQU  (11 + 1) ; 12
+DEF _DATE_MAX_YEAR_FIXED_2091     EQU  (((_DATE_MIN_YEAR_1992_ + 99) - 100) + 1) ; +99 is max BCD year, -100 since date is compared without leading two digits
 DEF _DATE_Y2K_RTC_WRAP_2000_      EQU  100
 DEF _MONTH_JAN                    EQU  1
 DEF _MONTH_FEB                    EQU  2

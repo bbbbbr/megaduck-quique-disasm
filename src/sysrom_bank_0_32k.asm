@@ -3357,7 +3357,8 @@ SECTION "rom0_rtc_date_calc_LUTs_5DA6", ROMX[$5DA6], BANK[$1]
 include "inc/rtc_date_calc_LUTs.inc"
 
 
-
+; Anchroing here in cases where the LUT above gets relocated when expanded
+SECTION "rom0_date_time_strings_5DD2", ROMX[$5DD2], BANK[$1]
 ; Data from 5DD2 to 5DE0 (15 bytes)
 ; Text string: "PUESTA EN HORA" (setting the time)
 rom_str__PUESTA_EN_HORA__5DD2_:

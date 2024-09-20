@@ -844,7 +844,11 @@ rtc_validate_shadow_data_and_time__5A2B_:
     call convert_bcd2dec_at_hl_result_in_a__5B03_
     ; Year must be < 12 ( <= 2012)
     ; And year must be >= 92 ( >= 1992)
-    cp   _DATE_MAX_YEAR_2011_  ; $0C (12)
+    IF DEF(FIX_Y2K12_BUG)
+        cp   _DATE_MAX_YEAR_FIXED_2091 ; 91
+    ELSE
+        cp   _DATE_MAX_YEAR_2011_  ; $0C (12)
+    ENDC
     jr   c, .continue_validation__5A3B_
     cp   _DATE_MIN_YEAR_1992_  ; $5C (92)
     jr   nc, .continue_validation__5A3B_

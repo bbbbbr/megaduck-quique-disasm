@@ -1179,5 +1179,8 @@ piano_app__keyboard_note_names_LUT__79B2_:
     db $80, $58, $8C, $81, $FC, $BE   ; LA_2_SHARP
     db $84, $90, $93, $89, $BE, $BE   ; SI_2
 
+; Free up space at end of ROM if needed
+IF (!DEF(BUILD_FREE_TRAILING_SPACE_BANK_0))
 ; Unused space
 ds 1470, $00
+ENDC

@@ -14,7 +14,7 @@ input_read_keys__C8D_:
     xor  a
     ldh  [rIE], a
     ; Request keyboard multi-byte response
-    ld   a, SYS_CMD_READ_KEYS ; $00
+    ld   a, SYS_CMD_GET_KEYS ; $00
     ld   [serial_tx_data__RAM_D023_], a
     call serial_io_send_byte__B64_
     call serial_io_wait_receive_with_timeout__B8F_
