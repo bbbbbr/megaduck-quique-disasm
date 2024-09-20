@@ -16,7 +16,12 @@ if (!(def(ALL_DEBUG_OFF)))
 ; (if power up SP defaults to 0000 in emu, first call push is to invalid addresses for stack)
 ; def FIX_NO_STACK_INIT = 1
 
-; TODO: Maybe add a fix for the "Y2K12" bug (max supported year 2011)
+;  Turn on to (mostly) fix for the "Y2K12" bug (max supported year 2011)
+;  Fixed: 
+;   * First day of year LUT extended to 2092
+;   * Change max year limit for Clock set from 2011 to 2091
+; Not yet Fixed:
+;   * Agenda date entry (Bank 2/3)
 ; def FIX_Y2K12_BUG = 1
 
 if def(FIX_Y2K12_BUG)
