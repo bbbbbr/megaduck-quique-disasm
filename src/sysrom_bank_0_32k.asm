@@ -422,7 +422,7 @@ ENDC
     .check_app_run_cartridge__253_:
         cp   MAIN_MENU_APP_RUN_CARTRIDGE
         jp   nz, main_system_loop__15C_
-        call maybe_try_run_cart_from_slot__5E1_
+        call cartridge_try_runing_from_slot__5E1_
         jp   main_system_loop__15C_
 
 
@@ -1008,14 +1008,21 @@ _window_scroll_up__5C3_:
             di
             cp   $00
             jr   nz, window_scroll_up_loop__5C8_
-            ld   a, $0A
+            ld   a, 10  ; $0A ; 50 msec x 10 = 500 msec delay, then return
             jp   ret_after_delay_a_x_50msec_and_maybe_optional_audio_or_speech__4A72_
 
 
-; TODO: Seems to check and see whether a cart was found in the slot
-; If one isn't found then it displays a message indicating that
+; Check whether a cartridge is present in the slot (maybe via ground pins?)
+;
+; If CART FOUND = YES the peripheral hardware seems to:
+; - Un-map the System ROM from the bus
+; - Reset the cpu PC to the 0x0000 entry point (VRAM at least seems preserved)
+;
+; If CART FOUND = NO:
+; - Display a message indicating no cart, wait 5 seconds and then return
+;
 ; try_run_cart_from_slot__5E1_:
-maybe_try_run_cart_from_slot__5E1_:
+cartridge_try_runing_from_slot__5E1_:
     ; TODO: Request booting from the cart slot?
     ld   a, SYS_CMD_RUN_CART_IN_SLOT ; $08
     ld   [serial_tx_data__RAM_D023_], a
@@ -1023,7 +1030,7 @@ maybe_try_run_cart_from_slot__5E1_:
     call serial_io_wait_receive_with_timeout__B8F_  ; Result is in A. 0x01 if byte was received
     and  a
     ; Wait for a serial IO response byte
-    jr   z, maybe_try_run_cart_from_slot__5E1_
+    jr   z, cartridge_try_runing_from_slot__5E1_
 
     ld   a, [serial_rx_data__RAM_D021_]
     cp   SYS_REPLY_NO_CART_IN_SLOT ; $06  ; Indicates there was no cart in the slot to run
@@ -1031,8 +1038,8 @@ maybe_try_run_cart_from_slot__5E1_:
     ; TODO: If starting the cart slot succeeded then execute NOPs until the cart starts
     ; Presumably there may be some small delay before the system ROM unmaps itself?
     ;
-    ; What about a jump to the entry point and resetting state? Does the hardware handle that
-    ; by strobing the reset line?
+    ; What about a jump to the entry point and resetting state?
+    ; Does the hardware handle that by strobing the reset line?
     _idle_until_cart_starts_5F6_:
         nop
         jr   _idle_until_cart_starts_5F6_
