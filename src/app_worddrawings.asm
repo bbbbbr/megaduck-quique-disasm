@@ -56,7 +56,7 @@ maybe_app_worddrawings_init__5E55_:
         jr   nz, _LABEL_5EAE_
 
         call _LABEL_6265_
-        call maybe_input_wait_for_keys__4B84
+        call input_wait_for_keypress__4B84
         ret
 
         _LABEL_5EAE_:
@@ -105,7 +105,7 @@ maybe_app_worddrawings_init__5E55_:
         _LABEL_5F08_:
             call _LABEL_621C_
             ld   a, $02
-            call _LABEL_4A72_
+            call ret_after_delay_a_x_50msec_and_maybe_optional_audio_or_speech__4A72_
             jp   _LABEL_5E9A_
 
         _LABEL_5F13_:
@@ -170,7 +170,7 @@ maybe_app_worddrawings_init__5E55_:
             jp   z, _LABEL_6022_
             cp   SYS_CHAR_MINUS  ; $CB  ; Maybe also aliased SYS_CHAR_DASH
             jr   nz, _LABEL_5F93_
-            call maybe_input_wait_for_keys__4B84
+            call input_wait_for_keypress__4B84
             ld   a, [_RAM_D03B_]
             cp   $10
             jp   z, _LABEL_5E9A_
@@ -365,7 +365,7 @@ maybe_app_worddrawings_init__5E55_:
             cp   $B0
             jp   z, _LABEL_5E9A_
             call _LABEL_611B_
-            call maybe_input_wait_for_keys__4B84
+            call input_wait_for_keypress__4B84
             jp   _LABEL_5E9A_
 
         _LABEL_60E1_:
@@ -618,7 +618,7 @@ _LABEL_62AA_:
     dec  b
     jr   nz, _LABEL_62AA_
 _LABEL_62B9_:
-    call maybe_input_wait_for_keys__4B84
+    call input_wait_for_keypress__4B84
     ret
 
 _LABEL_62BD_:

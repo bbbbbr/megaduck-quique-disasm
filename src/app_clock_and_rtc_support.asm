@@ -56,7 +56,7 @@ clock_app_init__54AE_::
 
     .receive_loop_wait_valid_reply__5505_:
         call serial_io_send_command_and_receive_buffer__AEF_
-        call timer_wait_tick_AND_TODO__289_
+        call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
         ld   a, [input_key_pressed__RAM_D025_]
         cp   SYS_CHAR_SERIAL_RX_SUCCESS  ; $F9
         jr   nz, .receive_loop_wait_valid_reply__5505_
@@ -118,7 +118,7 @@ clock_app_init__54AE_::
         jr   ._LABEL_5549_
 
     ._LABEL_557B_:
-        call timer_wait_tick_AND_TODO__289_
+        call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
         call input_read_keys__C8D_
         ld   a, [buttons_new_pressed__RAM_D006_]
         ld   [_RAM_D03B_], a
@@ -363,7 +363,7 @@ _LABEL_56CB_:
     ._LABEL_5737_:
         call _LABEL_5792_
         ld   a, $05
-        call _LABEL_4A72_
+        call ret_after_delay_a_x_50msec_and_maybe_optional_audio_or_speech__4A72_
         ret
 
     ._LABEL_5740_:
@@ -375,11 +375,11 @@ _LABEL_56CB_:
         ld   [_RAM_D059_], a
         xor  a
         ld   [shadow_rtc_month__RAM_D052_], a
-        call timer_wait_tick_AND_TODO__289_
-        call timer_wait_tick_AND_TODO__289_
-        call timer_wait_tick_AND_TODO__289_
-        call timer_wait_tick_AND_TODO__289_
-        call timer_wait_tick_AND_TODO__289_
+        call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
+        call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
+        call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
+        call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
+        call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
         ret
 
     ._LABEL_5763_:
@@ -778,13 +778,13 @@ rtc_set_to_new_date_and_time___5987_:
         cp   SYS_CHAR_SERIAL_TX_SUCCESS  ; $FC
         jr   z, .done_ok__59E4_
 
-        call timer_wait_tick_AND_TODO__289_
+        call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
         jr   .send_loop_wait_valid_reply__59D5_
 
     .done_ok__59E4_:
         ld   a, SYS_RTC_UPDATE_DATE_TIME_OK  ; $01
         ld   [_RAM_D06B_], a  ; TODO: Label this, maybe RTC update status of some kind
-        call maybe_input_wait_for_keys__4B84
+        call input_wait_for_keypress__4B84
         ret
 
     .not_enter_key__59ED_:
@@ -1156,7 +1156,7 @@ clock_app_message__invalid_date_time__then_ret__5B12_:
         dec  c
         jr   nz, clear_tile_rows_loop__5B4C_
 
-    call maybe_input_wait_for_keys__4B84  ; TODO
+    call input_wait_for_keypress__4B84  ; TODO
     ret
 
 

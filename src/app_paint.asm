@@ -80,7 +80,7 @@ paint_app_maybe_main_loop__63A7_:
         ld   [_RAM_D05B_], a
 
 input_loop__63B4_:
-    call timer_wait_tick_AND_TODO__289_
+    call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
     call input_read_keys__C8D_
     ld   a, [input_key_pressed__RAM_D025_]
     cp   SYS_CHAR_SALIDA  ; $2A
@@ -209,7 +209,7 @@ input_loop__63B4_:
         call _LABEL_953_
         call oam_free_slot_and_clear__89B_
         call paint_app_some_util__6510_
-        call maybe_input_wait_for_keys__4B84
+        call input_wait_for_keypress__4B84
         call _LABEL_685B_
         jp   paint_app_maybe_main_loop__63A7_
 
@@ -542,7 +542,7 @@ paint_app_erase__66D1_:
         dec  b
         jr   nz, ._LABEL_6710_
 
-        call maybe_input_wait_for_keys__4B84
+        call input_wait_for_keypress__4B84
         call _LABEL_6765_
         jp   input_loop__63B4_
 
@@ -565,13 +565,13 @@ paint_app_maybe_set_pen__6739_:
     ._LABEL_6758_:
         ld   [ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_], a
         call paint_app_some_util__6510_
-        call maybe_input_wait_for_keys__4B84
+        call input_wait_for_keypress__4B84
         call _LABEL_6765_
         ret
 
 
 _LABEL_6765_:
-    call timer_wait_tick_AND_TODO__289_
+    call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
     ld   a, [buttons_new_pressed__RAM_D006_]
     bit  0, a
     jr   nz, _LABEL_6765_
@@ -656,7 +656,7 @@ _LABEL_67B1_:
     ._LABEL_67EB_:
         call _LABEL_6788_
         call _LABEL_685B_
-        call maybe_input_wait_for_keys__4B84
+        call input_wait_for_keypress__4B84
         ret
 
     ._LABEL_67F5_:
@@ -666,7 +666,7 @@ _LABEL_67B1_:
         jr   nz, ._LABEL_6808_
         call _LABEL_6817_
         call _LABEL_6788_
-        call maybe_input_wait_for_keys__4B84
+        call input_wait_for_keypress__4B84
         jr   ._LABEL_67B8_
 
     ._LABEL_6808_:
@@ -674,7 +674,7 @@ _LABEL_67B1_:
         jr   nz, ._LABEL_67B8_
         call _LABEL_683A_
         call _LABEL_6788_
-        call maybe_input_wait_for_keys__4B84
+        call input_wait_for_keypress__4B84
         jr   ._LABEL_67B8_
 
 
@@ -814,7 +814,7 @@ _LABEL_689D_:
         xor  a
         ld   [_RAM_D192_], a    ; _RAM_D192_ = $D192
         ld   a, $03
-        call _LABEL_4A72_
+        call ret_after_delay_a_x_50msec_and_maybe_optional_audio_or_speech__4A72_
         jp   paint_app_maybe_main_loop__63A7_
 
 _LABEL_68F3_:
@@ -893,7 +893,7 @@ _LABEL_694E_:
         ld   [_tilemap_pos_y__RAM_C8CA_], a
         call paint_app_some_util__6510_
         ld   a, $0A
-        call _LABEL_4A72_
+        call ret_after_delay_a_x_50msec_and_maybe_optional_audio_or_speech__4A72_
         jp   paint_app_maybe_main_loop__63A7_
 
 
@@ -2011,9 +2011,9 @@ paint_app_help_menu_show__6FED_:
         call _display_bg_sprites_on__627_
 
         ; TODO : Seems to be the wait loop for User input before leaving help menu
-        call maybe_input_wait_for_keys__4B84
+        call input_wait_for_keypress__4B84
         call _LABEL_7721_
-        call maybe_input_wait_for_keys__4B84
+        call input_wait_for_keypress__4B84
 
         ; Copy (Restore) Tile Pattern data from 0x8000 -> 0x8800
         ; that was saved above

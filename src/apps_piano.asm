@@ -95,7 +95,7 @@ piano_freeplay_app__7185_:
         ld   a, $FF
         ld   [_RAM_D079_], a
     .input_loop__71BB_:
-            call timer_wait_tick_AND_TODO__289_
+            call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
             call input_read_keys__C8D_
             ld   a, [input_key_pressed__RAM_D025_]
             cp   SYS_CHAR_SALIDA  ; $2A
@@ -219,7 +219,7 @@ _LABEL_7242_:
 
 _LABEL_72A0_:
         call _LABEL_72F0_
-        call timer_wait_tick_AND_TODO__289_
+        call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
         call input_read_keys__C8D_
         ld   a, [input_key_pressed__RAM_D025_]
         cp   SYS_CHAR_SALIDA  ; $2A
@@ -300,7 +300,7 @@ _LABEL_7326_:
         push hl
         call _LABEL_7704_
         call piano_app__show_message__begin_playing__76D4_
-        call maybe_input_wait_for_keys__4B84
+        call input_wait_for_keypress__4B84
         xor  a
         ld   [_RAM_D04B_], a
 _LABEL_7334_:
@@ -343,7 +343,7 @@ _LABEL_7354_:
             jr   z, _LABEL_7375_
 
             ; delay before Key Repeat test
-            call timer_wait_tick_AND_TODO__289_
+            call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
             jr   input_repeat_key_until_released__7366_
 
 _LABEL_7375_:
@@ -361,7 +361,7 @@ _LABEL_7377_:
         ld   [_RAM_D400_], a
         call maybe_piano_app__display_keyboard_note__77D3_
 _LABEL_738C_:
-        call timer_wait_tick_AND_TODO__289_
+        call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
         call input_read_keys__C8D_
         ld   a, [input_key_pressed__RAM_D025_]
         cp   SYS_CHAR_SALIDA  ; $2A
@@ -405,7 +405,7 @@ _LABEL_73DF_:
         ld   a, [_RAM_D07C_]
         and  a
         jr   nz, _LABEL_73E8_
-        call timer_wait_tick_AND_TODO__289_
+        call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
 _LABEL_73E8_:
         ld   a, $01
         ld   [_RAM_D400_], a
@@ -427,7 +427,7 @@ _LABEL_7407_:
 _LABEL_740D_:
         call _LABEL_77B0_
         call audio_init__784F_
-        call maybe_input_wait_for_keys__4B84
+        call input_wait_for_keypress__4B84
         ret
 
 _LABEL_7417_:
@@ -472,7 +472,7 @@ piano_app_record_and_playback__741D_:
             ld   e, $00
     _LABEL_7467_:
             push de
-            call timer_wait_tick_AND_TODO__289_
+            call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
             call input_read_keys__C8D_
             pop  de
             inc  e
@@ -494,7 +494,7 @@ _LABEL_747B_:
         jr   nz, _LABEL_74A6_
         call _LABEL_7704_
         call piano_app__show_message__begin_recording__76F8_
-        call maybe_input_wait_for_keys__4B84
+        call input_wait_for_keypress__4B84
         ld   a, $03
         ld   [_RAM_D07F_], a
         ld   a, $03
@@ -590,11 +590,11 @@ _LABEL_7532_:
         ld   a, $3C
         ld   [_RAM_D079_], a
         call _LABEL_77B0_
-        call maybe_input_wait_for_keys__4B84
+        call input_wait_for_keypress__4B84
         ld   b, $32
 _LABEL_7556_:
         push bc
-        call timer_wait_tick_AND_TODO__289_
+        call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
         call input_read_keys__C8D_
         pop  bc
         ld   a, [input_key_pressed__RAM_D025_]
@@ -640,7 +640,7 @@ _LABEL_75A3_:
         call _LABEL_76C8_
         xor  a
         ld   [_RAM_D07F_], a
-        call maybe_input_wait_for_keys__4B84
+        call input_wait_for_keypress__4B84
         jp   _LABEL_7465_
 
 _LABEL_75BD_:
@@ -648,7 +648,7 @@ _LABEL_75BD_:
         call _LABEL_7704_
         call piano_app__show_message__stop_recording__76B0_
         call _LABEL_77B0_
-        call maybe_input_wait_for_keys__4B84
+        call input_wait_for_keypress__4B84
         jp   _LABEL_7465_
 
 _LABEL_75CF_:
@@ -680,7 +680,7 @@ _LABEL_75F0_:
         ld   [_RAM_D07B_], a
         ld   hl, _RAM_D080_
         call _LABEL_7326_
-        call maybe_input_wait_for_keys__4B84
+        call input_wait_for_keypress__4B84
         jp   _LABEL_7465_
 
 _LABEL_760A_:
@@ -690,7 +690,7 @@ _LABEL_760A_:
         ld   e, $00
         xor  a
         ld   [_RAM_D07F_], a
-        call maybe_input_wait_for_keys__4B84
+        call input_wait_for_keypress__4B84
         jp   _LABEL_7473_
 
 _LABEL_761F_:
@@ -907,7 +907,7 @@ _LABEL_777C_:
         and  $CF
         or   $C1
         ldh  [rLCDC], a
-        call maybe_input_wait_for_keys__4B84
+        call input_wait_for_keypress__4B84
         call _LABEL_7721_
         call wait_until_vbl__92C_
         call display_screen_off__94C_
@@ -921,7 +921,7 @@ _LABEL_77A1_:
         cp   $A0
         jr   nz, _LABEL_77A1_
         call _display_bg_sprites_on__627_
-        call maybe_input_wait_for_keys__4B84
+        call input_wait_for_keypress__4B84
         ret
 
 _LABEL_77B0_:
@@ -1042,7 +1042,7 @@ audio_init__784F_:
         ldh  [rAUD2LEN], a
         xor  a
         ld   [_RAM_CC00_], a    ; _RAM_CC00_ = $CC00
-        call timer_wait_tick_AND_TODO__289_
+        call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
         ret
 
 audio_off_on_reset_max_vol__787C_:

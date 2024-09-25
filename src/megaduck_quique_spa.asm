@@ -1,5 +1,5 @@
 
-; def ALL_DEBUG_OFF = 1
+def ALL_DEBUG_OFF = 1
 
 if (!(def(ALL_DEBUG_OFF)))
 ; Turn on to enable skipping some MegaDuck QuiQue hardware specific code
@@ -8,7 +8,7 @@ if (!(def(ALL_DEBUG_OFF)))
 
 ; Turn on to fix issue (in emulators) where
 ; SB reg gets loaded after SC reg is triggered to send
-; def FIX_SC_REG_FOR_IMPRECISE_SIO_EMULATION = 1
+def FIX_SC_REG_FOR_IMPRECISE_SIO_EMULATION = 1
 
 ; Turn on to fix issue (in emulators) where
 ; SP doesn't get initialized before calls that push return addresses to it,
@@ -22,7 +22,7 @@ if (!(def(ALL_DEBUG_OFF)))
 ;   * Change max year limit for Clock set from 2011 to 2091
 ; Not yet Fixed:
 ;   * Agenda date entry (Bank 2/3)
-; def FIX_Y2K12_BUG = 1
+def FIX_Y2K12_BUG = 1
 
 if def(FIX_Y2K12_BUG)
   def BUILD_FREE_TRAILING_SPACE_BANK_0 = 1
@@ -78,12 +78,12 @@ DEF INIT_KEYS_NO_MATCH_RESET_RTC  EQU $AA
 
 ; Serial IO peripheral commands
 DEF SYS_CMD_INIT_SEQ_REQUEST      EQU $00  ; Value sent to request the 255..0 countdown sequence (be sent into the serial port)
-DEF SYS_CMD_GET_KEYS             EQU $00
+DEF SYS_CMD_GET_KEYS              EQU $00
 DEF SYS_CMD_DONE_OR_OK            EQU $01  ; TODO: What does this do and why?
 DEF SYS_CMD_DONE_OR_OK_AND_SOMETHING EQU $81  ; TODO: Seen this as a keyboard poll done reply instead of 0x01 by the calculator app, not sure what the difference is
 DEF SYS_CMD_ABORT_OR_FAIL         EQU $04  ; TODO: What does this do and why?
 DEF SYS_CMD_RUN_CART_IN_SLOT      EQU $08
-DEF SYS_CMD_INIT_UNKNOWN_0x09     EQU $09
+DEF SYS_CMD_INIT_UNKNOWN_0x09     EQU $09  ; May also be PrintScreen related
 DEF SYS_CMD_RTC_SET_DATE_AND_TIME EQU $0B  ; Sets Hardware RTC Date and Time using multi-byte buffer send/TX
 DEF SYS_CMD_RTC_GET_DATE_AND_TIME EQU $0C  ; Used in multi-byte buffer receive/RX
 
@@ -231,11 +231,11 @@ _RAM_CC02_: ds $e
 _RAM_CC10_: db
 _RAM_CC11_: db
 _RAM_CC12_: db
-_RAM_CC13_: db
-_RAM_CC14_: ds $f
+maybe_audio_cache_rAUD1SWEEP__RAM_CC13_: db
+maybe_audio_cache_rAUD1LEN__RAM_CC14_: ds $f
 _RAM_CC23_: ds $4
 _RAM_CC27_: db
-_RAM_CC28_: ds $7
+maybe_audio_cache_rAUD1LOW__RAM_CC28_: ds $7
 _RAM_CC2F_: ds $11
 _RAM_CC40_: db
 _RAM_CC41_: db

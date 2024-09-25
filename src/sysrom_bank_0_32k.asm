@@ -465,27 +465,27 @@ rtc_set_default_time_and_date__25E_:
         ld   a, [input_key_pressed__RAM_D025_]
         cp   SYS_CHAR_SERIAL_TX_SUCCESS  ; $FC
         ret  z
-        call timer_wait_tick_AND_TODO__289_
+        call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
         jr   .loop_wait_valid_reply_0xFC__27B_
 
 
 ; Turn on interrupts and wait for a Timer tick
 ; - Maybe audio driver related
-; - Maybe gamepad / Keyboard input related
+; - Often called before reading keyboard input
 ;
 ; - Turn on interrupts
 ;
 ; Overflows/Triggers interrupt every 201 ticks (0x100 - 0x37) = 201
 ; 4096 Hz / (201) = ~20.378Hz, roughly every 3rd frame
 ;
-; TODO: maybe: timer_wait_tick_AND_TODO__289_;
-timer_wait_tick_AND_TODO__289_:
+; Destroys a, hl (maybe more in subsequent jump to 043c)
+timer_wait_50msec_and_maybe_optional_audio_or_speech__289_:
     ei
-loop_wait_timer__28A_:
-    ld   hl, timer_flags__RAM_D000_
-    bit  TIMER_FLAG__BIT_TICKED, [hl]  ; 2, [hl]
-    jp   nz, _LABEL_43C_
-    jr   loop_wait_timer__28A_
+    .loop_wait_timer__28A_:
+        ld   hl, timer_flags__RAM_D000_
+        bit  TIMER_FLAG__BIT_TICKED, [hl]  ; 2, [hl]
+        jp   nz, timer_20hz_tick_done__maybe_audio_and_speech_related_43C_
+        jr   .loop_wait_timer__28A_
 
 
 ; Waits for a Timer tick to read the joypad & buttons
@@ -516,9 +516,9 @@ _LABEL_2A2_:
     ld   a, $8B
     ld   [_RAM_CC12_], a    ; _RAM_CC12_ = $CC12
     ld   a, $00
-    ld   [_RAM_CC13_], a    ; _RAM_CC13_ = $CC13
+    ld   [maybe_audio_cache_rAUD1SWEEP__RAM_CC13_], a    ; maybe_audio_cache_rAUD1SWEEP__RAM_CC13_ = $CC13
     ld   a, $C0
-    ld   [_RAM_CC14_], a    ; _RAM_CC14_ = $CC14
+    ld   [maybe_audio_cache_rAUD1LEN__RAM_CC14_], a    ; maybe_audio_cache_rAUD1LEN__RAM_CC14_ = $CC14
     ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
     or   $11
     ld   [_RAM_CC00_], a    ; _RAM_CC00_ = $CC00
@@ -600,7 +600,7 @@ _LABEL_344_:
     ld   a, h
     ld   [_RAM_CC10_], a    ; _RAM_CC10_ = $CC10
     ld   a, $FF
-    ld   [_RAM_CC28_], a    ; _RAM_CC28_ = $CC28
+    ld   [maybe_audio_cache_rAUD1LOW__RAM_CC28_], a    ; maybe_audio_cache_rAUD1LOW__RAM_CC28_ = $CC28
     ld   a, $07
     ld   [_RAM_CC27_], a    ; _RAM_CC27_ = $CC27
     ld   a, $01
@@ -629,10 +629,10 @@ _LABEL_37D_:
     ld   b, $00
     ld   hl, _DATA_BE3_
     add  hl, bc
-    ; Load u16 from table at HL into _RAM_CC27_, _RAM_CC28_
+    ; Load u16 from table at HL into _RAM_CC27_, maybe_audio_cache_rAUD1LOW__RAM_CC28_
     inc  hl
     ld   a, [hl]
-    ld   [_RAM_CC28_], a
+    ld   [maybe_audio_cache_rAUD1LOW__RAM_CC28_], a
     dec  hl
     ld   a, [hl]
     ld   [_RAM_CC27_], a
@@ -675,13 +675,13 @@ _LABEL_3A6_:
     ld   a, [_RAM_CC43_]    ; _RAM_CC43_ = $CC43
     ld   [_RAM_CC12_], a    ; _RAM_CC12_ = $CC12
     ld   a, [_RAM_CC44_]    ; _RAM_CC44_ = $CC44
-    ld   [_RAM_CC13_], a    ; _RAM_CC13_ = $CC13
+    ld   [maybe_audio_cache_rAUD1SWEEP__RAM_CC13_], a    ; maybe_audio_cache_rAUD1SWEEP__RAM_CC13_ = $CC13
     ld   a, [_RAM_CC45_]    ; _RAM_CC45_ = $CC45
-    ld   [_RAM_CC14_], a    ; _RAM_CC14_ = $CC14
+    ld   [maybe_audio_cache_rAUD1LEN__RAM_CC14_], a    ; maybe_audio_cache_rAUD1LEN__RAM_CC14_ = $CC14
     ld   a, [_RAM_CC48_]    ; _RAM_CC48_ = $CC48
     ld   [_RAM_CC27_], a    ; _RAM_CC27_ = $CC27
     ld   a, [_RAM_CC49_]    ; _RAM_CC49_ = $CC49
-    ld   [_RAM_CC28_], a    ; _RAM_CC28_ = $CC28
+    ld   [maybe_audio_cache_rAUD1LOW__RAM_CC28_], a    ; maybe_audio_cache_rAUD1LOW__RAM_CC28_ = $CC28
     ld   a, [_RAM_CC46_]    ; _RAM_CC46_ = $CC46
     ld   b, a
     ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
@@ -700,13 +700,13 @@ _LABEL_406_:
     ldi  a, [hl]
     ld   [_RAM_CC2F_], a    ; _RAM_CC2F_ = $CC2F
     ldi  a, [hl]
-    ld   [_RAM_CC14_], a    ; _RAM_CC14_ = $CC14
+    ld   [maybe_audio_cache_rAUD1LEN__RAM_CC14_], a    ; maybe_audio_cache_rAUD1LEN__RAM_CC14_ = $CC14
     ldi  a, [hl]
     ld   [_RAM_CC27_], a    ; _RAM_CC27_ = $CC27
     ldi  a, [hl]
-    ld   [_RAM_CC28_], a    ; _RAM_CC28_ = $CC28
+    ld   [maybe_audio_cache_rAUD1LOW__RAM_CC28_], a    ; maybe_audio_cache_rAUD1LOW__RAM_CC28_ = $CC28
     ldi  a, [hl]
-    ld   [_RAM_CC13_], a    ; _RAM_CC13_ = $CC13
+    ld   [maybe_audio_cache_rAUD1SWEEP__RAM_CC13_], a    ; maybe_audio_cache_rAUD1SWEEP__RAM_CC13_ = $CC13
     and  $80
     jr   z, _LABEL_42B_
     ld   a, [_RAM_CC01_]    ; _RAM_CC01_ = $CC01
@@ -728,108 +728,109 @@ _LABEL_433_:
 
 ; Clears Timer ticked flag...
 ; TODO: probably audio driver related
-_LABEL_43C_:
+timer_20hz_tick_done__maybe_audio_and_speech_related_43C_:
     res  TIMER_FLAG__BIT_TICKED, [hl]  ; 2, [hl]
     ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
     bit  0, a
-    jr   nz, _LABEL_44A_
+    jr   nz, ._LABEL_44A_
     bit  4, a
-    jp   z, _LABEL_4D3_
+    jp   z, ._LABEL_4D3_
 
-_LABEL_44A_:
-    ld   a, [_RAM_CC23_]    ; _RAM_CC23_ = $CC23
-    dec  a
-    ld   [_RAM_CC23_], a    ; _RAM_CC23_ = $CC23
-    jr   nz, _LABEL_4C0_
+    ._LABEL_44A_:
+        ld   a, [_RAM_CC23_]    ; _RAM_CC23_ = $CC23
+        dec  a
+        ld   [_RAM_CC23_], a    ; _RAM_CC23_ = $CC23
+        jr   nz, ._LABEL_4C0_
 
-    call _LABEL_315_
-    ld   a, [_RAM_CC02_]    ; _RAM_CC02_ = $CC02
-    bit  0, a
-    jp   z, _LABEL_4C0_
-    ld   a, [_RAM_CC13_]    ; _RAM_CC13_ = $CC13
-    ldh  [rAUD1SWEEP], a
-    ld   a, [_RAM_CC14_]    ; _RAM_CC14_ = $CC14
-    ldh  [rAUD1LEN], a
-    ld   a, [_RAM_CC28_]    ; _RAM_CC28_ = $CC28
-    ldh  [rAUD1LOW], a
-    ; TODO: Is this where it interacts with the speech synthesizer chip?
-    ld   a, (AUDVOL_VIN_LEFT | AUDVOL_VIN_RIGHT | AUDVOL_LEFT_MAX | AUDVOL_RIGHT_MAX)  ; $FF  ; Set rAUDVOL to both VIN = ON, Max Left/Right volume
-    ldh  [rAUDVOL], a
-    ld   a, [_RAM_CC2F_]    ; _RAM_CC2F_ = $CC2F
-    ld   a, [_RAM_CC27_]    ; _RAM_CC27_ = $CC27
-    cp   $07
-    jr   nz, _LABEL_486_
-    ld   a, [_RAM_CC28_]    ; _RAM_CC28_ = $CC28
-    cp   $FF
-    jr   nz, _LABEL_486_
-    ld   a, $80
-    jr   _LABEL_488_
+        call _LABEL_315_
+        ld   a, [_RAM_CC02_]    ; _RAM_CC02_ = $CC02
+        bit  0, a
+        jp   z, ._LABEL_4C0_
+        ld   a, [maybe_audio_cache_rAUD1SWEEP__RAM_CC13_]    ; maybe_audio_cache_rAUD1SWEEP__RAM_CC13_ = $CC13
+        ldh  [rAUD1SWEEP], a
+        ld   a, [maybe_audio_cache_rAUD1LEN__RAM_CC14_]    ; maybe_audio_cache_rAUD1LEN__RAM_CC14_ = $CC14
+        ldh  [rAUD1LEN], a
+        ld   a, [maybe_audio_cache_rAUD1LOW__RAM_CC28_]    ; maybe_audio_cache_rAUD1LOW__RAM_CC28_ = $CC28
+        ldh  [rAUD1LOW], a
+        ; TODO: Is this where it interacts with the speech synthesizer chip?
+        ld   a, (AUDVOL_VIN_LEFT | AUDVOL_VIN_RIGHT | AUDVOL_LEFT_MAX | AUDVOL_RIGHT_MAX)  ; $FF  ; Set rAUDVOL to both VIN = ON, Max Left/Right volume
+        ldh  [rAUDVOL], a
+        ld   a, [_RAM_CC2F_]    ; _RAM_CC2F_ = $CC2F
+        ld   a, [_RAM_CC27_]    ; _RAM_CC27_ = $CC27
+        cp   $07
+        jr   nz, ._LABEL_486_
+        ld   a, [maybe_audio_cache_rAUD1LOW__RAM_CC28_]    ; maybe_audio_cache_rAUD1LOW__RAM_CC28_ = $CC28
+        cp   $FF
+        jr   nz, ._LABEL_486_
+        ld   a, $80
+        jr   ._LABEL_488_
 
-_LABEL_486_:
-    ld   a, $0F
-_LABEL_488_:
-    ldh  [rAUD1ENV], a
-    ld   a, [_RAM_CC27_]    ; _RAM_CC27_ = $CC27
-    res  6, a
-    set  7, a
-    ld   b, a
-    ld   a, [_RAM_CC01_]    ; _RAM_CC01_ = $CC01
-    bit  0, a
-    jr   z, _LABEL_49E_
-    ld   a, b
-    res  6, a
-    jr   _LABEL_49F_
+    ._LABEL_486_:
+        ld   a, $0F
+    ._LABEL_488_:
+        ldh  [rAUD1ENV], a
+        ld   a, [_RAM_CC27_]    ; _RAM_CC27_ = $CC27
+        res  6, a
+        set  7, a
+        ld   b, a
+        ld   a, [_RAM_CC01_]    ; _RAM_CC01_ = $CC01
+        bit  0, a
+        jr   z, ._LABEL_49E_
+        ld   a, b
+        res  6, a
+        jr   ._LABEL_49F_
 
-_LABEL_49E_:
-    ld   a, b
-_LABEL_49F_:
-    ld   b, a
-    ld   a, [_RAM_CC27_]    ; _RAM_CC27_ = $CC27
-    cp   $07
-    jr   nz, _LABEL_4B5_
-    ld   a, [_RAM_CC28_]    ; _RAM_CC28_ = $CC28
-    cp   $FF
-    jr   nz, _LABEL_4B5_
-    xor  a
-    ldh  [rAUDENA], a
-    ld   a, AUDENA_ON  ; $80
-    ldh  [rAUDENA], a
-_LABEL_4B5_:
-    ld   a, b
-    ldh  [rAUD1HIGH], a
-    ld   a, [_RAM_CC02_]    ; _RAM_CC02_ = $CC02
-    res  0, a
-    ld   [_RAM_CC02_], a    ; _RAM_CC02_ = $CC02
-_LABEL_4C0_:
-    ld   a, [_RAM_CC47_]    ; _RAM_CC47_ = $CC47
-    bit  0, a
-    jr   z, _LABEL_4D3_
-    ld   a, [_RAM_CC42_]    ; _RAM_CC42_ = $CC42
-    dec  a
-    ld   [_RAM_CC42_], a    ; _RAM_CC42_ = $CC42
-    jr   nz, _LABEL_4D3_
-    call _LABEL_2D1_
-_LABEL_4D3_:
-    ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
-    bit  1, a
-    jr   nz, _LABEL_4DE_
-    bit  5, a
-    jr   z, _LABEL_4DE_
-_LABEL_4DE_:
-    ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
-    bit  2, a
-    jr   nz, _LABEL_4E9_
-    bit  6, a
-    jr   z, _LABEL_4E9_
-_LABEL_4E9_:
-    ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
-    bit  3, a
-    jr   nz, _LABEL_4F4_
-    bit  7, a
-    jr   z, _LABEL_4F4_
-_LABEL_4F4_:
-    ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
-    ldh  [rAUDTERM], a
+    ._LABEL_49E_:
+        ld   a, b
+    ._LABEL_49F_:
+        ld   b, a
+        ld   a, [_RAM_CC27_]    ; _RAM_CC27_ = $CC27
+        cp   $07
+        jr   nz, ._LABEL_4B5_
+        ld   a, [maybe_audio_cache_rAUD1LOW__RAM_CC28_]    ; maybe_audio_cache_rAUD1LOW__RAM_CC28_ = $CC28
+        cp   $FF
+        jr   nz, ._LABEL_4B5_
+
+        xor  a
+        ldh  [rAUDENA], a
+        ld   a, AUDENA_ON  ; $80
+        ldh  [rAUDENA], a
+    ._LABEL_4B5_:
+        ld   a, b
+        ldh  [rAUD1HIGH], a
+        ld   a, [_RAM_CC02_]    ; _RAM_CC02_ = $CC02
+        res  0, a
+        ld   [_RAM_CC02_], a    ; _RAM_CC02_ = $CC02
+    ._LABEL_4C0_:
+        ld   a, [_RAM_CC47_]    ; _RAM_CC47_ = $CC47
+        bit  0, a
+        jr   z, ._LABEL_4D3_
+        ld   a, [_RAM_CC42_]    ; _RAM_CC42_ = $CC42
+        dec  a
+        ld   [_RAM_CC42_], a    ; _RAM_CC42_ = $CC42
+        jr   nz, ._LABEL_4D3_
+        call _LABEL_2D1_
+    ._LABEL_4D3_:
+        ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
+        bit  1, a
+        jr   nz, ._LABEL_4DE_
+        bit  5, a
+        jr   z, ._LABEL_4DE_
+    ._LABEL_4DE_:
+        ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
+        bit  2, a
+        jr   nz, ._LABEL_4E9_
+        bit  6, a
+        jr   z, ._LABEL_4E9_
+    ._LABEL_4E9_:
+        ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
+        bit  3, a
+        jr   nz, ._LABEL_4F4_
+        bit  7, a
+        jr   z, ._LABEL_4F4_
+    ._LABEL_4F4_:
+        ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
+        ldh  [rAUDTERM], a
 
 
 
@@ -980,7 +981,7 @@ _display_win_obj_on__5B5_:
     ldh  [rLCDC], a
     call _LABEL_967_
     ld   a, $0A
-    jp   _LABEL_4A72_
+    jp   ret_after_delay_a_x_50msec_and_maybe_optional_audio_or_speech__4A72_
 
 
 ; TODO:  This is probably the function that gets called
@@ -1008,7 +1009,7 @@ _window_scroll_up__5C3_:
             cp   $00
             jr   nz, window_scroll_up_loop__5C8_
             ld   a, $0A
-            jp   _LABEL_4A72_
+            jp   ret_after_delay_a_x_50msec_and_maybe_optional_audio_or_speech__4A72_
 
 
 ; TODO: Seems to check and see whether a cart was found in the slot
@@ -1051,8 +1052,8 @@ display_message__no_cart_in_slot_to_run__5F9:
     ; (C is still PRINT_NORMAL  ; $01)
     ld   hl, $030B         ; Column 3, Row 11 (zero based)
     call render_string_at_de_to_tilemap0_xy_in_hl__4A46_
-    ld   a, $64
-    jp   _LABEL_4A72_ ; TODO: there is a small delay after string is shown, is part of this call handling that (sort of wait_vsync N times)?
+    ld   a, 100; $64  ; About a 5 second delay (100 x 50msec = 5000msec)
+    jp   ret_after_delay_a_x_50msec_and_maybe_optional_audio_or_speech__4A72_
 
 
 ; Waits until VBL then Writes byte to Tile Map 0 VRAM at preset address X,Y
@@ -1582,7 +1583,7 @@ _LABEL_967_:
     window_scroll_up_loop__969_:
         ldh  [rWY], a
         ei
-        call timer_wait_tick_AND_TODO__289_
+        call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
         di
         ldh  a, [rWY]
         and  a
@@ -2672,7 +2673,7 @@ _LABEL_49BE_:
 ;
 ; Destroys A
 input_map_gamepad_buttons_to_keycodes__49C2_:
-    call timer_wait_tick_AND_TODO__289_  ; TODO: still not sure all of what this is doing
+    call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_  ; TODO: still not sure all of what this is doing
     call input_read_keys__C8D_
     ld   a, [buttons_new_pressed__RAM_D006_]
     cp   $00
@@ -2822,13 +2823,15 @@ render_string_at_de_to_tilemap0_xy_in_hl__4A46_:
         jr   _loop_erase_chars_to_tilemap__4A68_
 
 
-; TODO:
-_LABEL_4A72_:
+; Wait 50msec x A, then return (sometimes used a delayed ret)
+;
+; May sometimes also interact with audio if certain vars are set
+ret_after_delay_a_x_50msec_and_maybe_optional_audio_or_speech__4A72_:
     push af
-    call timer_wait_tick_AND_TODO__289_
+    call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
     pop  af
     dec  a
-    jr   nz, _LABEL_4A72_
+    jr   nz, ret_after_delay_a_x_50msec_and_maybe_optional_audio_or_speech__4A72_
     ret
 
 
@@ -2955,11 +2958,11 @@ ui_icon_menu_draw_and_run__4A7B_::
         ld   [_RAM_D05E_], a    ; _RAM_D05E_ = $D05E
         ld   [_RAM_D05C_], a    ; _RAM_D05C_ = $D05C
         ld   [_RAM_D05B_], a    ; _RAM_D05B_ = $D05B
-        call maybe_input_wait_for_keys__4B84
+        call input_wait_for_keypress__4B84
 
     ; TODO: track down all calls to this and see if scope can be reduced
     ui_grid_menu_input_loop__4B0E_:
-        call timer_wait_tick_AND_TODO__289_
+        call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
         call input_read_keys__C8D_
         ld   hl, ui_grid_menu_icon_count__RAM_D06D_
         ld   a, [input_key_pressed__RAM_D025_]
@@ -3013,19 +3016,19 @@ ui_icon_menu_draw_and_run__4A7B_::
 
 
     _LABEL_4B78_:
-        call timer_wait_tick_AND_TODO__289_
-        call timer_wait_tick_AND_TODO__289_
-        call timer_wait_tick_AND_TODO__289_
+        call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
+        call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
+        call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
         jp   ui_grid_menu_input_loop__4B0E_
 
 
 ; TODO: Maybe waits for an input key press
-maybe_input_wait_for_keys__4B84:
-    call timer_wait_tick_AND_TODO__289_
+input_wait_for_keypress__4B84:
+    call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
     call input_read_keys__C8D_
     ld   a, [input_key_pressed__RAM_D025_]
     cp   SYS_CHAR_NO_DATA_OR_KEY  ; $FF
-    jr   nz, maybe_input_wait_for_keys__4B84
+    jr   nz, input_wait_for_keypress__4B84
     ret
 
 _LABEL_4B92_:

@@ -327,7 +327,7 @@ calendar_app_init__4D6F_::
         call _display_bg_sprites_on__627_
 
     .maybe_calendar_app_main_input_loop__4F95_:
-        call timer_wait_tick_AND_TODO__289_
+        call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
         call input_read_keys__C8D_
         ld   a, [_RAM_D074_ + 1]
         ld   hl, buffer__RAM_D028_
@@ -356,7 +356,7 @@ calendar_app_init__4D6F_::
         ld   a, [buffer__RAM_D028_ + 2]    ; buffer__RAM_D028_ + 2 = $D02A
         push af
         call ._LABEL_52BF_
-        call maybe_input_wait_for_keys__4B84
+        call input_wait_for_keypress__4B84
         pop  af
         ld   [buffer__RAM_D028_ + 2], a    ; buffer__RAM_D028_ + 2 = $D02A
         pop  af
@@ -471,7 +471,7 @@ calendar_app_init__4D6F_::
         ld   a, b
         ld   [_RAM_D05F_], a    ; _RAM_D05F_ = $D05F
         ld   a, $03
-        call _LABEL_4A72_
+        call ret_after_delay_a_x_50msec_and_maybe_optional_audio_or_speech__4A72_
         jp   .maybe_calendar_app_main_input_loop__4F95_
 
     ._LABEL_50C3_:
@@ -629,7 +629,7 @@ calendar_app_init__4D6F_::
         ld   c, $02
         call _LABEL_5401_
         ld   a, $03
-        call _LABEL_4A72_
+        call ret_after_delay_a_x_50msec_and_maybe_optional_audio_or_speech__4A72_
         jp   .maybe_calendar_app_main_input_loop__4F95_
 
     ._LABEL_5206_:
@@ -650,7 +650,7 @@ calendar_app_init__4D6F_::
         call _LABEL_535C_
         call _LABEL_52F5_
         ld   a, $03
-        call _LABEL_4A72_
+        call ret_after_delay_a_x_50msec_and_maybe_optional_audio_or_speech__4A72_
         jp   .maybe_calendar_app_main_input_loop__4F95_
 
     ._LABEL_522B_:
