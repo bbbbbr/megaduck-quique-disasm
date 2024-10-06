@@ -114,10 +114,9 @@ Keyboard serial reply scan codes have different ordering than SYS_CHAR_* codes
  LEFT_PRINTSCREEN 00 + modifier 0x08 ??? Right seems to have actual keycode
 
 
-## RTC?
+## RTC
 - Allowed Date Range in QuiQue System ROM: (1992 - 2011)
-  - Supported dates in RTC Hardware: TODO
-  - Format for all values is in BCD
+- Format for all values is in BCD
 
 ### Set RTC
 - Use "Send Command With Buffer" (along with it's error handling and success/fail status)
@@ -126,12 +125,12 @@ Keyboard serial reply scan codes have different ordering than SYS_CHAR_* codes
       - Ex: Month = December = 12th month = 0x12 (NOT 0x0C)
     - Command: (0x0B) SYS_CMD_RTC_SET_DATE_AND_TIME
     - Buffer: 8 Bytes
-        - 00: Year   : 94 (Year = 1900 + Date Byte in BCD 0x94) `Quique Sys Range: 0x92 - 0x11` (1992 - 2011)
-        - 01: Month  : 01 (January / Enero) `TODO: Range: 0x01 - 0x12`
+        - 00: Year   : 94 (Year = 1900 + Date Byte in BCD 0x94) `HW Range: 0-99. Quique Sys Range: 0x92 - 0x11` (1992 - 2011)
+        - 01: Month  : 01 (January / Enero) `Range: 0x01 - 0x12`
         - 02: Day    : 01 (1st)
-        - 03: DoW    : 06 (6th day of week: Saturday / Sabado) `TODO: Range: 0x01 -0x07`
-        - 04: AM/PM  : 00 (AM) `0=AM, 1=PM`- TODO: Verify
-        - 05: Hour   : 00 (With above it's: 12 am) `TODO: Range 0-11`
+        - 03: DoW    : 06 (6th day of week: Saturday / Sabado) `Days since Sunday, 0x00 - 0x06`
+        - 04: AM/PM  : 00 (AM) `0=AM, 1=PM`
+        - 05: Hour   : 00 (With above it's: 12 am) `Range 0-11`
         - 06: Minute : 00
         - 07: Second?: 00
 
@@ -139,6 +138,13 @@ Keyboard serial reply scan codes have different ordering than SYS_CHAR_* codes
 - Use "Send Command and Read Buffer" (along with it's error handling and success/fail status)
     - Command: (0x0C) SYS_CMD_RTC_GET_DATE_AND_TIME
       - Values are the same (so far) as SYS_CMD_RTC_SET_DATE_AND_TIME
+
+
+## Speech
+- Use "Send Command With Buffer" (along with it's error handling and success/fail status)
+    - Command: (0x05) SYS_CMD_PLAYSPEECH
+    - Buffer: 1 Bytes
+        - 00: Play speech phrase N (range 1-6, no audio enable required). Playback of one phrase can be interrupted by request for playback of another phrase
 
 ## Printing
 

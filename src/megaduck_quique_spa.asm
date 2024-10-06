@@ -8,7 +8,8 @@ if (!(def(ALL_DEBUG_OFF)))
 
 ; Turn on to fix issue (in emulators) where
 ; SB reg gets loaded after SC reg is triggered to send
-def FIX_SC_REG_FOR_IMPRECISE_SIO_EMULATION = 1
+; --> This is now fixed in SuperJuniorSameDuck, so no patching needed
+; def FIX_SC_REG_FOR_IMPRECISE_SIO_EMULATION = 1
 
 ; Turn on to fix issue (in emulators) where
 ; SP doesn't get initialized before calls that push return addresses to it,
@@ -82,6 +83,7 @@ DEF SYS_CMD_GET_KEYS              EQU $00
 DEF SYS_CMD_DONE_OR_OK            EQU $01  ; TODO: What does this do and why?
 DEF SYS_CMD_DONE_OR_OK_AND_SOMETHING EQU $81  ; TODO: Seen this as a keyboard poll done reply instead of 0x01 by the calculator app, not sure what the difference is
 DEF SYS_CMD_ABORT_OR_FAIL         EQU $04  ; TODO: What does this do and why?
+DEF SYS_CMD_PLAYSPEECH            EQU $05  ; Play pre-recorded speech phrases (range 1-6, no audio enable required). Playback of one phrase can be interrupted by request for playback of another phrase
 DEF SYS_CMD_RUN_CART_IN_SLOT      EQU $08
 DEF SYS_CMD_INIT_UNKNOWN_0x09     EQU $09  ; May also be PrintScreen related
 DEF SYS_CMD_RTC_SET_DATE_AND_TIME EQU $0B  ; Sets Hardware RTC Date and Time using multi-byte buffer send/TX
