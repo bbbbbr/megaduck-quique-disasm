@@ -2240,7 +2240,7 @@ db $00, $00, $00, $00, $FE, $FE, $06, $06, $06, $06, $0C, $0C, $08, $08, $18, $1
 db $10, $10, $30, $30, $20, $20, $60, $60, $C0, $C0, $C0, $C0, $FE, $FE, $FE, $FE
 db $00, $00, $00, $00, $82, $82, $00, $00
 
-; Actually in 32K Bank 0 Upper 16K, but 32K banking not supported in RGBDS
+; Actually 32K Bank 0 -> Upper 16K region. 32K banking not supported in RGBDS
 SECTION "rom1", ROMX[$4000], BANK[$1]
 _LABEL_4000_:
     jr   c, _LABEL_403A_
