@@ -1082,7 +1082,7 @@ rtc_calc_day_of_week_for_current_date__5A9F_::
 
 ; Convert value at [HL] from BCD to Decimal
 ;
-; - Resulting BCD value in: A
+; - Resulting Decimal value in: A
 ;
 ; Destroys A, B, E (not counting call to multiply)
 ;
