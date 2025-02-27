@@ -146,13 +146,37 @@ Keyboard serial reply scan codes have different ordering than SYS_CHAR_* codes
     - Buffer: 1 Bytes
         - 00: Play speech phrase N (range 1-6, no audio enable required). Playback of one phrase can be interrupted by request for playback of another phrase
 
+- Spanish Phrases
+  - 1. "Genial" (brilliant)
+  - 2. "Estupendo" (great)
+  - 3. "Fantástico" (fantastic)
+  - 4. "No, inténtalo otra vez." (no, try it again)
+  - 5. "No, prueba una vez más" (no, try once again)
+  - 6. "Vuelve a intentarlo" (try again)
+
+- German Phrases (Thanks kuddel, zwenergy)
+  - 1. "Ja, sehr gut" (yes, very good)
+  - 2. "Gut gemacht" (well done)
+  - 3. "Super" (great, awesome)
+  - 4. "Uh uh, probier's noch mal" (uh oh, try again)
+  - 5. "Uh uh, versuch's noch einmal" (give it another try)
+  - 6. "Oooh, schade" (ohh, what a pity)
+
 ## Printing
 
 ## Bank switching
-Megaduck QuiQue System ROM Bank Switching
-- 32K bank selected by writing to 0x1000
-- Seems to use delay of ~41 M-Cycles after write to bank switch (TODO: re-check)
-
+Laptop model System ROM MBC (CEFA Super Quique, Hartung Super Junior Computer)
+  - Informal MBC Number: `0xE0` (SuperJuniorSameDuck emulator)
+  - Informal extension: `.md0`
+  - Register: `0x1000`
+    - ROM Bank
+      - Selected by writing (`0 - 15`) in Lower Nibble (mask `0x0F`)
+      - Bank Size/Region: Switches the full 32K ROM region
+    - SRAM Bank (on secondary memory cart plugged into memory cart slot)
+      - Selected by writing (`0 - 3`) in Upper Nibble (mask `0x30`)
+      - Bank Size/Region: 8k mapped at `0xA000 - 0xBFFF`
+  - Games/Programs: Laptop System ROM, Bilder Lexikon, DataBank (requires SRAM cart)
+  - Note: Uses a delay of ~41 M-Cycles (executed from WRAM) after writing the bank switch before resuming execution from ROM. Unclear if required.
 
 ## Run Cartridge from Cart Slot
 Request booting from the cart slot
