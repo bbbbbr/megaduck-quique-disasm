@@ -1218,27 +1218,27 @@ vram_init__752_:
 
 
         ld   hl, STARTOF("wram_functions_start_c900")
-        ; HL at 0x9C00
+        ; HL at 0xC900
         ; memcopy_in_RAM__C900_
         ld   de, _memcopy__7D3_
         call _memcpy_32_bytes__7CA_
 
-        ; HL now at 0x9C20
+        ; HL now at 0xC920
         ; (switch_bank_in_a_jump_hl_RAM__C920_)
         ld   de, switch_bank_in_a_jump_hl_ROM__82C_
         call _memcpy_32_bytes__7CA_
 
-        ; HL now at 0x9C40
+        ; HL now at 0xC940
         ; (switch_bank_return_to_saved_bank_RAM__C940_)
         ld   de, switch_bank_return_to_saved_ROM__841_
         call _memcpy_32_bytes__7CA_
 
-        ; HL now at 0x9C60
+        ; HL now at 0xC960
         ; (switch_bank_memcopy_hl_to_de_len_bc_RAM__C960_)
         ld   de, switch_bank_memcopy_hl_to_de_len_bc_ROM__7EF_
         call _memcpy_32_bytes__7CA_
 
-        ; HL now at 0x9C80
+        ; HL now at 0xC980
         ld   de, switch_bank_read_byte_at_hl_ROM__80C_
         call _memcpy_32_bytes__7CA_
 
