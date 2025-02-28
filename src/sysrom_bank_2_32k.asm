@@ -5,15 +5,27 @@
 ; so they address has 0x4000 added that needs to be stripped
 ;
 ; So Even 16K BANK()s with the address > 0x4000 get shifted
-; \1 = Label which needs address fixed
-call_FIX_32K_BANK_ADDR: MACRO
-    IF _NARG != 1
-        FAIL "call_FIX_32K_BANK_ADDR accepts only 1 argument (address or address label)"
-    ENDC
-    IF ((BANK(\1) % 1) == 0)
-        call (\1 & $3FFF)
+; 2-3 arguments: [instruction], [opt: cond], [address or address label]
+;
+; Can't use BANK(label) if a label is defined after the Macro call.
+; Instead of using BANK(label) a workaround is BANK(@),
+; but that uses the bank of macro invocation, ...
+; ..SO SHOULDN'T BE USED ACROSS BANK LINES!
+BANK32K_ADDR: MACRO
+    IF _NARG == 2
+        IF ((BANK(@) % 1) == 0)
+            \1 (\2 & $3FFF)
+        ELSE
+            \1 \2
+        ENDC
+    ELIF _NARG == 3
+        IF ((BANK(@) % 1) == 0)
+            \1 \2, (\3 & $3FFF)
+        ELSE
+            \1 \2, \3
+        ENDC
     ELSE
-        call \1
+        FAIL "BANK32K_ADDR accepts only 2-3 arguments [instruction], [opt: cond], [address or address label]"
     ENDC
 ENDM
 
@@ -289,7 +301,7 @@ bank_2_32k__RST__58_:
 
             cp   $05
             jr   nz, @ + 7
-            call $3580 ; _LABEL_3580_
+            call $3580  ; _LABEL_3580_
             jr   @ - 89
 
             cp   $06
@@ -842,7 +854,7 @@ print__start_loading_x_y_from_ram__maybe___ROM_32K_Bank2_052B_:
 print_start__maybe___ROM_32K_Bank2_0535_:
             xor  a
             ld   [_RAM_CC00_], a  ; TODO: Possible a reply bugger for the print command?
-            call_FIX_32K_BANK_ADDR timer_wait_50msec_and_maybe_print_related__ROM_32K_Bank2_01A2_
+            BANK32K_ADDR  call, timer_wait_50msec_and_maybe_print_related__ROM_32K_Bank2_01A2_
 
             ld   a, SYS_CMD_PRINT_OR_EXT_IO_MAYBE__0x09  ; $09
             ld   [serial_tx_data__RAM_D023_], a
@@ -853,7 +865,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             and  a
             ret  z
 
-            call_FIX_32K_BANK_ADDR timer_wait_50msec_and_maybe_print_related__ROM_32K_Bank2_01A2_  ; call $01A2
+            BANK32K_ADDR  call, timer_wait_50msec_and_maybe_print_related__ROM_32K_Bank2_01A2_  ; call $01A2
             ld   a, SYS_CMD_PRINT_OR_EXT_IO_MAYBE__0x09  ; $09
             ld   [serial_tx_data__RAM_D023_], a
             call $0D28
@@ -1164,151 +1176,1059 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             ret
 
 
+    ; 32K Bank addr: $02:0776 (16K Bank addr: $04:4776)
+            push bc
+            ldh  a, [rLCDC]
+            bit  1, a
+            jr   nz, @ + 7
+            call $68D  ; _LABEL_68D_
+            jr   @ + 19
 
-; 32K Bank addr: $02:0776 (16K Bank addr: $04:4776)
-db $C5, $F0, $10, $CB, $4F, $20, $05, $CD, $8D, $06
-db $18, $11, $CD, $A7, $07, $21, $F0, $DC, $11, $C4, $D2, $0E, $10, $1A, $22, $13
-db $0D, $20, $FA, $C1, $0E, $0F, $21, $FF, $DC, $2B, $2A, $32, $0D, $20, $FA, $AF
-db $EA, $F0, $DC, $04, $20, $EE, $C9, $E5, $0E, $10, $21, $C4, $D2, $11, $F0, $DC
-db $1A, $22, $13, $0D, $20, $FA, $FA, $93, $D1, $67, $FA, $94, $D1, $6F, $3E, $10
-db $CD, $45, $29, $7C, $EA, $93, $D1, $7D, $EA, $94, $D1, $3E, $04, $EA, $95, $D1
-db $FB, $FA, $95, $D1, $A7, $20, $FA, $0E, $10, $21, $D4, $D2, $11, $F0, $DC, $1A
-db $22, $13, $0D, $20, $FA, $E1, $CD, $BA, $06, $C9, $FA, $CA, $C8, $CB, $3F, $CB
-db $3F, $CB, $3F, $D6, $02, $06, $20, $CD, $2A, $29, $FA, $CB, $C8, $CB, $3F, $CB
-db $3F, $CB, $3F, $3D, $83, $5F, $3E, $00, $8A, $57, $CD, $F0, $0A, $21, $00, $98
-db $F0, $10, $CB, $6F, $28, $03, $21, $00, $9C, $19, $7E, $21, $00, $90, $CB, $7F
-db $28, $05, $21, $00, $88, $CB, $BF, $06, $10, $CD, $2A, $29, $19, $C9, $FA, $CB
-db $C8, $21, $0E, $D2, $CD, $45, $29, $FA, $A7, $D1, $CB, $47, $28, $05, $11, $F1
-db $DC, $18, $03, $11, $F0, $DC, $06, $80, $3E, $08, $EA, $3A, $D0, $0E, $80, $D5
-db $1A, $A0, $20, $0F, $FA, $E4, $D2, $CB, $4F, $28, $18, $13, $1A, $1B, $A0, $28
-db $12, $18, $0D, $FA, $E4, $D2, $CB, $4F, $28, $06, $13, $1A, $1B, $A0, $28, $03
-db $79, $B6, $77, $13, $13, $CB, $39, $FA, $3A, $D0, $3D, $EA, $3A, $D0, $20, $D0
-db $D1, $23, $CB, $38, $20, $C2, $C9, $21, $16, $D2, $CD, $FD, $08, $3E, $11, $EA
-db $35, $D0, $3E, $0C, $EA, $34, $D0, $CD, $06, $09, $FA, $E4, $D2, $CB, $4F, $28
-db $2A, $06, $03, $C5, $CD, $FD, $08, $CD, $06, $09, $C1, $05, $20, $F5, $06, $76
-db $2A, $EA, $23, $D0, $C5, $E5, $CD, $53, $0D, $CD, $28, $0D, $E1, $C1, $05, $20
-db $EF, $CD, $9A, $0D, $CD, $62, $0D, $CD, $62, $0D, $C9, $06, $0C, $C5, $CD, $FD
-db $08, $CD, $06, $09, $C1, $05, $20, $F5, $CD, $FD, $08, $3E, $0D, $EA, $2C, $D0
-db $3E, $05, $EA, $34, $D0, $FA, $A7, $D1, $CB, $47, $28, $0A, $3E, $0A, $EA, $2D
-db $D0, $3E, $06, $EA, $34, $D0, $CD, $06, $09, $CD, $62, $0D, $C9, $06, $0C, $11
-db $28, $D0, $CD, $02, $29, $C9, $E5, $CD, $F8, $0B, $CD, $9A, $0D, $FA, $25, $D0
-db $FE, $FC, $20, $F3, $E1, $C9, $3E, $00, $EA, $D7, $C8, $E0, $10, $21, $00, $80
-db $AF, $22, $7C, $FE, $98, $20, $F9, $3E, $BE, $22, $7C, $FE, $9C, $20, $F8, $21
-db $00, $C8, $06, $A0, $AF, $22, $05, $20, $FB, $E0, $10, $00, $00, $00, $00, $3E
-db $C8, $E0, $10, $CD, $A7, $09, $3E, $E4, $E0, $14, $E0, $1B, $3E, $1B, $E0, $15
-db $3E, $07, $E0, $17, $3E, $FF, $E0, $13, $21, $00, $C9, $11, $97, $09, $CD, $8E
-db $09, $11, $F0, $09, $CD, $8E, $09, $11, $05, $0A, $CD, $8E, $09, $11, $B3, $09
-db $CD, $8E, $09, $11, $D0, $09, $CD, $8E, $09, $21, $80, $FF, $11, $A7, $09, $CD
-db $8E, $09, $3E, $00, $06, $2A, $21, $A0, $C8, $22, $05, $20, $FC, $C9, $06, $20
-db $1A, $22, $13, $05, $20, $FA, $C9, $1A, $22, $13, $0B, $78, $B1, $20, $F8, $C9
-db $F0, $10, $F6, $80, $E0, $10, $C9, $F3, $3E, $C8, $E0, $1A, $3E, $28, $3D, $20
-db $FD, $FB, $C9, $F3, $FA, $E6, $D6, $F5, $FA, $D7, $C8, $EA, $D8, $C8, $F1, $EA
-db $D7, $C8, $EA, $00, $10, $3E, $0A, $3D, $20, $FD, $CD, $00, $C9, $C3, $40, $C9
-db $F3, $FA, $E6, $D6, $F5, $FA, $D7, $C8, $EA, $D8, $C8, $F1, $EA, $D7, $C8, $EA
-db $00, $10, $3E, $0A, $3D, $20, $FD, $00, $00, $7E, $EA, $E7, $D6, $C3, $40, $C9
-db $F3, $F5, $FA, $D7, $C8, $EA, $D8, $C8, $F1, $EA, $D7, $C8, $EA, $00, $10, $3E
-db $0A, $3D, $20, $FD, $E9, $F3, $FA, $D8, $C8, $EA, $D7, $C8, $EA, $00, $10, $3E
-db $0A, $3D, $20, $FD, $C9, $FA, $CC, $C8, $3D, $CB, $27, $CB, $27, $6F, $26, $C8
-db $FA, $CA, $C8, $86, $5F, $77, $23, $FA, $CB, $C8, $86, $57, $77, $3E, $00, $C9
-db $3E, $02, $C9, $0E, $00, $21, $A0, $C8, $0C, $2A, $FE, $00, $20, $FA, $2B, $3E
-db $FF, $77, $79, $3D, $CB, $27, $CB, $27, $6F, $11, $CA, $C8, $06, $04, $1A, $22
-db $13, $05, $20, $FA, $FA, $C8, $C8, $3C, $EA, $C8, $C8, $41, $3E, $00, $C9, $FA
-db $CC, $C8, $FE, $00, $28, $21, $3D, $CB, $27, $CB, $27, $6F, $26, $C8, $3E, $00
-db $22, $22, $22, $22, $11, $A0, $C8, $FA, $CC, $C8, $3D, $83, $5F, $3E, $00, $12
-db $FA, $C8, $C8, $3D, $EA, $C8, $C8, $C9, $06, $12, $21, $00, $98, $FE, $00, $28
-db $03, $21, $00, $9C, $0E, $14, $1A, $22, $13, $0D, $20, $FA, $3E, $0C, $85, $6F
-db $3E, $00, $8C, $67, $05, $20, $ED, $F0, $10, $F6, $80, $E0, $10, $C9, $F5, $C5
-db $D5, $E5, $EA, $CC, $C8, $3E, $00, $CD, $BF, $0A, $E1, $D1, $C1, $F1, $C9, $21
-db $00, $98, $FE, $00, $28, $03, $21, $00, $9C, $3E, $00, $57, $FA, $CB, $C8, $5F
-db $19, $FA, $CA, $C8, $3D, $5F, $CB, $23, $CB, $12, $CB, $23, $CB, $12, $CB, $23
-db $CB, $12, $CB, $23, $CB, $12, $CB, $23, $CB, $12, $19, $FA, $CC, $C8, $77, $C9
-db $F0, $10, $CB, $7F, $20, $01, $C9, $F0, $11, $E6, $03, $20, $FA, $F0, $FF, $E0
-db $A1, $CB, $87, $E0, $FF, $F0, $18, $FE, $91, $20, $FA, $F0, $A1, $E0, $FF, $C9
-db $F0, $10, $E6, $7F, $E0, $10, $C9, $FA, $CC, $C8, $3D, $CB, $27, $CB, $27, $6F
-db $26, $C8, $2A, $EA, $CA, $C8, $2A, $EA, $CB, $C8, $C9, $3E, $A0, $E0, $16, $FB
-db $CD, $A2, $01, $F3, $F0, $16, $A7, $28, $04, $D6, $08, $18, $F0, $C9, $3E, $05
-db $E0, $0F, $E0, $FF, $AF, $E0, $01, $E0, $02, $E0, $45, $E0, $10, $3E, $80, $E0
-db $10, $3E, $E4, $E0, $1B, $E0, $14, $3E, $1B, $E0, $15, $AF, $E0, $2A, $3E, $FF
-db $E0, $2B, $3E, $55, $01, $3F, $08, $E2, $0D, $05, $20, $FB, $21, $45, $FF, $3E
-db $80, $32, $36, $77, $00, $00, $00, $00, $AF, $EA, $02, $CC, $EA, $00, $CC, $EA
-db $01, $CC, $3E, $28, $E0, $22, $E0, $25, $3E, $37, $E0, $06, $E0, $05, $3E, $04
-db $E0, $07, $C9, $3E, $08, $E0, $FF, $AF, $EA, $24, $D0, $AF, $EA, $23, $D0, $CD
-db $28, $0D, $3C, $20, $F7, $CD, $41, $0D, $FE, $01, $06, $00, $C4, $7E, $0D, $AF
-db $EA, $23, $D0, $CD, $28, $0D, $06, $01, $0E, $FF, $CD, $41, $0D, $B9, $C4, $7E
-db $0D, $0D, $79, $FE, $FF, $20, $F3, $FA, $24, $D0, $CB, $47, $20, $04, $3E, $01
-db $18, $02, $3E, $04, $EA, $23, $D0, $CD, $28, $0D, $C9, $F5, $AF, $E0, $60, $3E
-db $80, $E0, $02, $F0, $FF, $F6, $08, $E0, $FF, $AF, $E0, $0F, $FB, $F1, $C9, $F5
-db $F0, $FF, $E6, $F7, $E0, $FF, $F1, $C9, $F0, $FF, $EA, $78, $D0, $3E, $08, $E0
-db $FF, $FA, $34, $D0, $FE, $0D, $38, $02, $18, $15, $FA, $35, $D0, $EA, $23, $D0
-db $CD, $28, $0D, $CD, $9A, $0D, $CD, $9A, $0D, $CD, $62, $0D, $A7, $20, $08, $3E
-db $FD, $EA, $25, $D0, $C3, $AD, $0C, $FA, $21, $D0, $FE, $06, $CA, $A8, $0C, $FE
-db $03, $C2, $1F, $0C, $FA, $34, $D0, $47, $C6, $02, $EA, $23, $D0, $EA, $26, $D0
-db $CD, $9A, $0D, $CD, $28, $0D, $CD, $9A, $0D, $CD, $9A, $0D, $21, $28, $D0, $2A
-db $EA, $23, $D0, $4F, $FA, $26, $D0, $81, $EA, $26, $D0, $CD, $62, $0D, $A7, $28
-db $BE, $FA, $21, $D0, $FE, $06, $CA, $A8, $0C, $FE, $03, $C2, $1F, $0C, $CD, $28
-db $0D, $05, $20, $DB, $CD, $62, $0D, $A7, $28, $A5, $FA, $21, $D0, $FE, $06, $CA
-db $A8, $0C, $FE, $03, $C2, $1F, $0C, $21, $26, $D0, $AF, $96, $EA, $23, $D0, $CD
-db $28, $0D, $CD, $62, $0D, $A7, $CA, $1F, $0C, $FA, $21, $D0, $FE, $01, $C2, $1F
-db $0C, $CD, $62, $0D, $3E, $FC, $18, $02, $3E, $FB, $EA, $25, $D0, $FA, $78, $D0
-db $E0, $FF, $C9, $F0, $FF, $EA, $78, $D0, $3E, $08, $E0, $FF, $16, $00, $CD, $9A
-db $0D, $FA, $36, $D0, $EA, $23, $D0, $CD, $28, $0D, $CD, $62, $0D, $A7, $28, $07
-db $FA, $21, $D0, $FE, $0E, $38, $09, $3E, $FA, $EA, $25, $D0, $3E, $04, $18, $3C
-db $EA, $26, $D0, $3D, $3D, $EA, $34, $D0, $47, $21, $28, $D0, $E5, $CD, $53, $0D
-db $A7, $E1, $28, $E3, $FA, $21, $D0, $22, $4F, $FA, $26, $D0, $81, $EA, $26, $D0
-db $05, $20, $E9, $CD, $53, $0D, $A7, $28, $CE, $CD, $9A, $0D, $FA, $21, $D0, $21
-db $26, $D0, $86, $20, $C2, $3E, $F9, $EA, $25, $D0, $3E, $01, $EA, $23, $D0, $CD
-db $28, $0D, $FA, $78, $D0, $E0, $FF, $C9, $F5, $AF, $E0, $60, $3E, $81, $E0, $02
-db $FA, $23, $D0, $E0, $01, $CD, $9A, $0D, $AF, $E0, $0F, $3E, $80, $E0, $02, $F1
-db $C9, $3E, $00, $EA, $22, $D0, $CD, $DB, $0B, $FA, $22, $D0, $A7, $28, $FA, $FA
-db $21, $D0, $C9, $3E, $00, $EA, $22, $D0, $CD, $DB, $0B, $CD, $89, $0D, $FA, $22
-db $D0, $C9, $C5, $3E, $00, $EA, $22, $D0, $CD, $DB, $0B, $06, $02, $CD, $89, $0D
-db $FA, $22, $D0, $A7, $20, $06, $05, $20, $F4, $FA, $22, $D0, $C1, $C9, $F5, $FA
-db $24, $D0, $CB, $C7, $EA, $24, $D0, $F1, $C9, $C5, $06, $64, $CD, $9A, $0D, $FA
-db $22, $D0, $A7, $20, $03, $05, $20, $F4, $C1, $C9, $F5, $3E, $46, $F5, $FA, $23
-db $D0, $F1, $3D, $20, $F8, $F1, $C9, $00, $22, $00, $97, $00, $FF, $01, $72, $01
-db $C4, $02, $1F, $02, $80, $02, $C8, $03, $15, $03, $5A, $03, $98, $03, $D8, $04
-db $19, $04, $52, $04, $86, $04, $B9, $04, $E7, $05, $14, $05, $3D, $05, $64, $05
-db $8B, $05, $AD, $05, $CF, $05, $EE, $06, $0D, $06, $28, $06, $43, $06, $5B, $06
-db $74, $06, $89, $06, $9F, $06, $B2, $06, $C5, $06, $D7, $06, $E7, $06, $F7, $07
-db $06, $07, $14, $07, $21, $07, $2E, $07, $3A, $07, $45, $07, $51, $07, $59, $07
-db $63, $07, $6C, $07, $74, $07, $7C, $07, $83, $07, $8A, $07, $91, $07, $97, $07
-db $9D, $07, $A3, $07, $A8, $07, $AD, $07, $B2, $07, $B6, $07, $BA, $07, $BE, $07
-db $CB, $07, $CE, $07, $D1, $07, $D4, $07, $D6, $07, $D9, $07, $DB, $07, $DD, $07
-db $DF, $07, $E1, $07, $E3, $07, $E4, $07, $E6, $07, $E8, $07, $E9, $07, $EA, $07
-db $EB, $07, $EC, $07, $EE, $07, $EF, $07, $F0, $07, $F1, $07, $F2, $07, $F3, $07
-db $FF, $F0, $FF, $EA, $78, $D0, $AF, $E0, $FF, $3E, $00, $EA, $23, $D0, $CD, $28
-db $0D, $CD, $53, $0D, $A7, $28, $16, $FA, $21, $D0, $FE, $00, $28, $0F, $FE, $0E
-db $28, $02, $30, $09, $EA, $26, $D0, $CD, $53, $0D, $A7, $20, $0F, $3E, $FF, $EA
-db $25, $D0, $3E, $04, $EA, $23, $D0, $CD, $28, $0D, $18, $3E, $FA, $21, $D0, $EA
-db $27, $D0, $21, $26, $D0, $86, $77, $CD, $53, $0D, $A7, $28, $E0, $FA, $21, $D0
-db $EA, $25, $D0, $21, $26, $D0, $86, $EA, $26, $D0, $CD, $53, $0D, $A7, $28, $CD
-db $FA, $21, $D0, $21, $26, $D0, $86, $20, $C4, $3E, $01, $EA, $23, $D0, $CD, $28
-db $0D, $CD, $D3, $0E, $FA, $25, $D0, $EA, $81, $D1, $FA, $78, $D0, $E0, $FF, $CD
-db $C0, $0F, $C9, $FA, $27, $D0, $CB, $47, $C2, $99, $0F, $FA, $27, $D0, $CB, $5F
-db $28, $06, $3E, $2F, $EA, $25, $D0, $C9, $FA, $25, $D0, $A7, $CA, $93, $0F, $CB
-db $7F, $CA, $81, $0F, $FE, $F0, $D2, $89, $0F, $CB, $BF, $21, $83, $10, $CD, $45
-db $29, $7E, $EA, $25, $D0, $47, $FA, $27, $D0, $E6, $0E, $28, $7C, $FA, $27, $D0
-db $E6, $06, $28, $75, $CB, $57, $20, $14, $78, $CB, $7F, $28, $6C, $FE, $A1, $38
-db $68, $FE, $BE, $30, $64, $CB, $AF, $EA, $25, $D0, $18, $5D, $CB, $4F, $28, $1A
-db $78, $FE, $43, $20, $07, $3E, $70, $EA, $25, $D0, $18, $4D, $CB, $7F, $28, $0A
-db $FE, $A1, $38, $06, $FE, $BE, $30, $02, $18, $3F, $78, $FE, $43, $20, $07, $3E
-db $70, $EA, $25, $D0, $18, $33, $CB, $7F, $28, $19, $FE, $A1, $38, $06, $FE, $BE
-db $30, $02, $18, $C1, $FE, $C1, $38, $0B, $FE, $CA, $30, $07, $D6, $5E, $EA, $25
-db $D0, $18, $16, $0E, $0B, $21, $F3, $10, $2A, $B8, $28, $09, $23, $0D, $20, $F8
-db $C9, $3E, $F6, $18, $01, $2A, $EA, $25, $D0, $FA, $25, $D0, $FE, $F0, $D0, $EA
-db $81, $D1, $C9, $3E, $FF, $EA, $25, $D0, $C9, $FA, $81, $D1, $FE, $CA, $CA, $BC
-db $0F, $FE, $CB, $CA, $BC, $0F, $FE, $CC, $CA, $BC, $0F, $FE, $CD, $CA, $BC, $0F
-db $FE, $41, $38, $08, $FE, $18, $30, $02, $18, $02, $3E, $FF, $EA, $25, $D0, $C9
-db $FA, $25, $D0, $FE, $65, $20, $07, $3E, $9F, $EA, $25, $D0, $18, $2D, $FE, $2B
-db $20, $0E, $FA, $27, $D0, $CB, $57, $28, $22, $3E, $D2, $EA, $25, $D0, $18, $1B
-db $FA, $25, $D0, $FE, $DC, $20, $14, $FA, $27, $D0, $4F, $E6, $02, $CB, $27, $47
-db $79, $E6, $04, $A8, $28, $05, $3E, $D5, $EA, $25, $D0, $FA, $25, $D0, $4F, $FA
-db $26, $D2, $FE, $AA, $28, $2E, $AF, $EA, $21, $D2, $EA, $26, $D2, $21, $64, $10
-db $2A, $A7, $28, $47, $B9, $20, $49, $FA, $21, $D2, $FE, $01, $28, $31, $5D, $54
-db $21, $22, $D2, $70, $23, $71, $23, $72, $23, $73, $23, $3E, $AA, $77, $3E, $FF
-db $EA, $25, $D0, $C9, $FA, $25, $D0, $FE, $FF, $C8, $21, $22, $D2, $46, $23, $4E
-db $23, $56, $23, $5E, $6B, $62, $3E, $01, $EA, $21, $D2, $FA, $25, $D0, $47, $79
-db $B8, $28, $DB, $2A, $B8, $20, $0A, $7E, $EA, $25, $D0, $AF, $EA, $26, $D2, $C9
+            call $07A7
+            ld   hl, copy_buffer__RAM_DCF0_ ; copy_buffer__RAM_DCF0_ = $DCF0
+            ld   de, $D2C4
+            ld   c, $10
+            ld   a, [de]
+            ldi  [hl], a
+            inc  de
+            dec  c
+            jr   nz, @ - 4
+            pop  bc
+            ld   c, $0F
+            ld   hl, $DCFF
+            dec  hl
+            ldi  a, [hl]
+            ldd  [hl], a
+            dec  c
+            jr   nz, @ - 4
+            xor  a
+            ld   [copy_buffer__RAM_DCF0_], a    ; copy_buffer__RAM_DCF0_ = $DCF0
+            inc  b
+            jr   nz, @ - 16
+            ret
+
+            push hl
+            ld   c, $10
+            ld   hl, $D2C4
+            ld   de, copy_buffer__RAM_DCF0_ ; copy_buffer__RAM_DCF0_ = $DCF0
+            ld   a, [de]
+            ldi  [hl], a
+            inc  de
+            dec  c
+            jr   nz, @ - 4
+            ld   a, [_RAM_D193_]    ; _RAM_D193_ = $D193
+            ld   h, a
+            ld   a, [_RAM_D194_]    ; _RAM_D194_ = $D194
+            ld   l, a
+            ld   a, $10
+            call $2945  ; _LABEL_2945_
+            ld   a, h
+            ld   [_RAM_D193_], a    ; _RAM_D193_ = $D193
+            ld   a, l
+            ld   [_RAM_D194_], a    ; _RAM_D194_ = $D194
+            ld   a, $04
+            ld   [vbl_action_select__RAM_D195_], a  ; vbl_action_select__RAM_D195_ = $D195
+            ei
+            ld   a, [vbl_action_select__RAM_D195_]  ; vbl_action_select__RAM_D195_ = $D195
+            and  a
+            jr   nz, @ - 4
+            ld   c, $10
+            ld   hl, $D2D4
+            ld   de, copy_buffer__RAM_DCF0_ ; copy_buffer__RAM_DCF0_ = $DCF0
+            ld   a, [de]
+            ldi  [hl], a
+            inc  de
+            dec  c
+            jr   nz, @ - 4
+            pop  hl
+            call $06BA
+            ret
+
+            ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+            srl  a
+            srl  a
+            srl  a
+            sub  $02
+            ld   b, $20
+            call $292A  ; _LABEL_292A_
+            ld   a, [_tilemap_pos_x__RAM_C8CB_] ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+            srl  a
+            srl  a
+
+
+    ; 32K Bank addr: $02:0800 (16K Bank addr: $04:4800)
+            srl  a
+            dec  a
+            add  e
+            ld   e, a
+            ld   a, $00
+            adc  d
+            ld   d, a
+            call $0AF0
+            ld   hl, $9800
+            ldh  a, [rLCDC]
+            bit  5, a
+            jr   z, @ + 5
+            ld   hl, $9C00
+            add  hl, de
+            ld   a, [hl]
+            ld   hl, $9000
+            bit  7, a
+            jr   z, @ + 7
+            ld   hl, $8800
+            res  7, a
+            ld   b, $10
+            call $292A  ; _LABEL_292A_
+            add  hl, de
+            ret
+
+            ld   a, [_tilemap_pos_x__RAM_C8CB_] ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+            ld   hl, _RAM_D20D_ + 1 ; _RAM_D20D_ + 1 = $D20E
+            call $2945  ; _LABEL_2945_
+            ld   a, [_RAM_D1A7_]    ; _RAM_D1A7_ = $D1A7
+            bit  0, a
+            jr   z, @ + 7
+            ld   de, copy_buffer__RAM_DCF0_ + 1 ; copy_buffer__RAM_DCF0_ + 1 = $DCF1
+            jr   @ + 5
+
+            ld   de, copy_buffer__RAM_DCF0_ ; copy_buffer__RAM_DCF0_ = $DCF0
+            ld   b, $80
+            ld   a, $08
+            ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+            ld   c, LOW(_oam_dma_routine_in_HRAM__FF80_)    ; _oam_dma_routine_in_HRAM__FF80_ = $FF80
+            push de
+            ld   a, [de]
+            and  b
+            jr   nz, multiply_a_x_b__result_in_de__4853_._loop_multiply__4863_
+            ld   a, [serial_cmd_0x09_reply_data__RAM_D2E4_] ; serial_cmd_0x09_reply_data__RAM_D2E4_ = $D2E4
+            bit  1, a
+            jr   z, @ + 26
+            inc  de
+            ld   a, [de]
+            dec  de
+            and  b
+            jr   z, @ + 20
+            jr   @ + 15
+
+            ld   a, [serial_cmd_0x09_reply_data__RAM_D2E4_] ; serial_cmd_0x09_reply_data__RAM_D2E4_ = $D2E4
+            bit  1, a
+            jr   z, @ + 8
+            inc  de
+            ld   a, [de]
+            dec  de
+            and  b
+            jr   z, @ + 5
+            ld   a, c
+            or   [hl]
+            ld   [hl], a
+            inc  de
+            inc  de
+            srl  c
+            ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
+            dec  a
+            ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+            jr   nz, @ - 46
+            pop  de
+            inc  hl
+            srl  b
+            jr   nz, @ - 60
+            ret
+
+            ld   hl, $D216
+            call $08FD
+            ld   a, $11
+            ld   [serial_cmd_to_send__RAM_D035_], a ; serial_cmd_to_send__RAM_D035_ = $D035
+            ld   a, $0C
+            ld   [serial_transfer_length__RAM_D034_], a ; serial_transfer_length__RAM_D034_ = $D034
+            call $0906
+            ld   a, [serial_cmd_0x09_reply_data__RAM_D2E4_] ; serial_cmd_0x09_reply_data__RAM_D2E4_ = $D2E4
+            bit  1, a
+            jr   z, @ + 44
+            ld   b, $03
+            push bc
+            call $08FD
+            call $0906
+            pop  bc
+            dec  b
+            jr   nz, @ - 9
+            ld   b, $76
+            ldi  a, [hl]
+            ld   [serial_tx_data__RAM_D023_], a ; serial_tx_data__RAM_D023_ = $D023
+            push bc
+            push hl
+            call $0D53
+            call $D28  ; _LABEL_D28_
+            pop  hl
+            pop  bc
+            dec  b
+            jr   nz, @ - 15
+            BANK32K_ADDR  call, delay_1_msec__32K_Bank_2_0D9A_  ; call $D9A  ; _LABEL_D9A_
+            call $0D62
+            call $0D62
+            ret
+
+            ld   b, $0C
+            push bc
+            call $08FD
+            call $0906
+            pop  bc
+            dec  b
+            jr   nz, copy_a_x_tile_patterns_from_de_add_bx16_to_hl_add_cx16__48CD_
+            call $08FD
+            ld   a, $0D
+            ld   [_RAM_D02A_ + 2], a    ; _RAM_D02A_ + 2 = $D02C
+            ld   a, $05
+            ld   [serial_transfer_length__RAM_D034_], a ; serial_transfer_length__RAM_D034_ = $D034
+            ld   a, [_RAM_D1A7_]    ; _RAM_D1A7_ = $D1A7
+            bit  0, a
+            jr   z, @ + 12
+            ld   a, $0A
+            ld   [_RAM_D02D_], a    ; _RAM_D02D_ = $D02D
+            ld   a, $06
+            ld   [serial_transfer_length__RAM_D034_], a ; serial_transfer_length__RAM_D034_ = $D034
+            call $0906
+            call $0D62
+            ret
+
+            ld   b, $0C
+            ld   de, buffer__RAM_D028_  ; buffer__RAM_D028_ = $D028
+            call $2902  ; _LABEL_2902_
+            ret
+
+            push hl
+            call $0BF8
+            BANK32K_ADDR  call, delay_1_msec__32K_Bank_2_0D9A_  ; call $D9A  ; _LABEL_D9A_
+            ld   a, [input_key_pressed__RAM_D025_]  ; input_key_pressed__RAM_D025_ = $D025
+            cp   $FC
+            jr   nz, display_textbox_draw_xy_in_bc_wh_in_de_st_id_in_a__48EB_.loop_textbox_middle_rows__4907_
+            pop  hl
+            ret
+
+            ld   a, $00
+            ld   [_rombank_currrent__C8D7_], a  ; _rombank_currrent__C8D7_ = $C8D7
+            ldh  [rLCDC], a
+            ld   hl, $8000
+            xor  a
+            ldi  [hl], a
+            ld   a, h
+            cp   $98
+            jr   nz, @ - 5
+            ld   a, $BE
+            ldi  [hl], a
+            ld   a, h
+            cp   $9C
+            jr   nz, @ - 6
+            ld   hl, shadow_oam_base__RAM_C800_ ; shadow_oam_base__RAM_C800_ = $C800
+            ld   b, $A0
+            xor  a
+            ldi  [hl], a
+            dec  b
+            jr   nz, @ - 3
+            ldh  [rLCDC], a
+            nop
+            nop
+            nop
+            nop
+            ld   a, $C8
+            ldh  [rLCDC], a
+            call $09A7
+            ld   a, $E4
+            ldh  [rOBP0], a
+            ldh  [rBGP], a
+            ld   a, $1B
+            ldh  [rOBP1], a
+            ld   a, $07
+            ldh  [rWX], a
+            ld   a, $FF
+            ldh  [rSCX], a
+            ld   hl, memcopy_in_RAM__C900_  ; memcopy_in_RAM__C900_ = $C900
+            ld   de, $0997
+            call $098E
+            ld   de, $09F0
+            call $098E
+            ld   de, $0A05
+            call $098E
+            ld   de, $09B3
+            call $098E
+            ld   de, $09D0
+            call $098E
+            ld   hl, _oam_dma_routine_in_HRAM__FF80_    ; _oam_dma_routine_in_HRAM__FF80_ = $FF80
+            ld   de, $09A7
+            call $098E
+            ld   a, $00
+            ld   b, $2A
+            ld   hl, oam_slot_usage__RAM_C8A0_  ; oam_slot_usage__RAM_C8A0_ = $C8A0
+            ldi  [hl], a
+            dec  b
+            jr   nz, @ - 2
+            ret
+
+            ld   b, $20
+            ld   a, [de]
+            ldi  [hl], a
+            inc  de
+            dec  b
+            jr   nz, @ - 4
+            ret
+
+            ld   a, [de]
+            ldi  [hl], a
+            inc  de
+            dec  bc
+            ld   a, b
+            or   c
+            jr   nz, @ - 6
+            ret
+
+            ldh  a, [rLCDC]
+            or   $80
+            ldh  [rLCDC], a
+            ret
+
+            di
+            ld   a, $C8
+            ldh  [rDMA], a
+            ld   a, $28
+            dec  a
+            jr   nz, @ - 1
+            ei
+            ret
+
+            di
+            ld   a, [_rombank_switch_to__D6E6_] ; _rombank_switch_to__D6E6_ = $D6E6
+            push af
+            ld   a, [_rombank_currrent__C8D7_]  ; _rombank_currrent__C8D7_ = $C8D7
+            ld   [_rombank_saved__C8D8_], a ; _rombank_saved__C8D8_ = $C8D8
+            pop  af
+            ld   [_rombank_currrent__C8D7_], a  ; _rombank_currrent__C8D7_ = $C8D7
+            ld   [$1000], a
+            ld   a, $0A
+            dec  a
+            jr   nz, @ - 1
+            call memcopy_in_RAM__C900_  ; Code is loaded from _memcopy__7D3_
+            jp   switch_bank_return_to_saved_bank_RAM__C940_
+
+            di
+            ld   a, [_rombank_switch_to__D6E6_] ; _rombank_switch_to__D6E6_ = $D6E6
+            push af
+            ld   a, [_rombank_currrent__C8D7_]  ; _rombank_currrent__C8D7_ = $C8D7
+            ld   [_rombank_saved__C8D8_], a ; _rombank_saved__C8D8_ = $C8D8
+            pop  af
+            ld   [_rombank_currrent__C8D7_], a  ; _rombank_currrent__C8D7_ = $C8D7
+            ld   [$1000], a
+            ld   a, $0A
+            dec  a
+            jr   nz, @ - 1
+            nop
+            nop
+            ld   a, [hl]
+            ld   [_rombank_readbyte_result__D6E7_], a   ; _rombank_readbyte_result__D6E7_ = $D6E7
+            jp   switch_bank_return_to_saved_bank_RAM__C940_
+
+            di
+            push af
+            ld   a, [_rombank_currrent__C8D7_]  ; _rombank_currrent__C8D7_ = $C8D7
+            ld   [_rombank_saved__C8D8_], a ; _rombank_saved__C8D8_ = $C8D8
+            pop  af
+            ld   [_rombank_currrent__C8D7_], a  ; _rombank_currrent__C8D7_ = $C8D7
+            ld   [$1000], a
+            ld   a, $0A
+            dec  a
+            jr   nz, @ - 1
+            jp   hl
+
+            di
+            ld   a, [_rombank_saved__C8D8_] ; _rombank_saved__C8D8_ = $C8D8
+            ld   [_rombank_currrent__C8D7_], a  ; _rombank_currrent__C8D7_ = $C8D7
+            ld   [$1000], a
+            ld   a, $0A
+            dec  a
+            jr   nz, @ - 1
+            ret
+
+            ld   a, [maybe_vram_data_to_write__RAM_C8CC_]   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+            dec  a
+            sla  a
+            sla  a
+            ld   l, a
+            ld   h, $C8
+            ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+            add  [hl]
+            ld   e, a
+            ld   [hl], a
+            inc  hl
+            ld   a, [_tilemap_pos_x__RAM_C8CB_] ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+            add  [hl]
+            ld   d, a
+            ld   [hl], a
+            ld   a, $00
+            ret
+
+            ld   a, $02
+            ret
+
+            ld   c, $00
+            ld   hl, oam_slot_usage__RAM_C8A0_  ; oam_slot_usage__RAM_C8A0_ = $C8A0
+            inc  c
+            ldi  a, [hl]
+            cp   $00
+            jr   nz, @ - 4
+            dec  hl
+            ld   a, $FF
+            ld   [hl], a
+            ld   a, c
+            dec  a
+            sla  a
+            sla  a
+            ld   l, a
+            ld   de, _tilemap_pos_y__RAM_C8CA_  ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+            ld   b, $04
+            ld   a, [de]
+            ldi  [hl], a
+            inc  de
+            dec  b
+            jr   nz, @ - 4
+            ld   a, [_RAM_C8C8_]    ; _RAM_C8C8_ = $C8C8
+            inc  a
+            ld   [_RAM_C8C8_], a    ; _RAM_C8C8_ = $C8C8
+            ld   b, c
+            ld   a, $00
+            ret
+
+            ld   a, [maybe_vram_data_to_write__RAM_C8CC_]   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+            cp   $00
+            jr   z, @ + 35
+            dec  a
+            sla  a
+            sla  a
+            ld   l, a
+            ld   h, $C8
+            ld   a, $00
+            ldi  [hl], a
+            ldi  [hl], a
+            ldi  [hl], a
+            ldi  [hl], a
+            ld   de, oam_slot_usage__RAM_C8A0_  ; oam_slot_usage__RAM_C8A0_ = $C8A0
+            ld   a, [maybe_vram_data_to_write__RAM_C8CC_]   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+            dec  a
+            add  e
+            ld   e, a
+            ld   a, $00
+            ld   [de], a
+            ld   a, [_RAM_C8C8_]    ; _RAM_C8C8_ = $C8C8
+            dec  a
+            ld   [_RAM_C8C8_], a    ; _RAM_C8C8_ = $C8C8
+            ret
+
+            ld   b, $12
+            ld   hl, $9800
+            cp   $00
+            jr   z, @ + 5
+            ld   hl, $9C00
+            ld   c, $14
+            ld   a, [de]
+            ldi  [hl], a
+            inc  de
+            dec  c
+            jr   nz, @ - 4
+            ld   a, $0C
+            add  l
+            ld   l, a
+            ld   a, $00
+            adc  h
+            ld   h, a
+            dec  b
+            jr   nz, @ - 17
+            ldh  a, [rLCDC]
+            or   $80
+            ldh  [rLCDC], a
+            ret
+
+            push af
+            push bc
+            push de
+            push hl
+            ld   [maybe_vram_data_to_write__RAM_C8CC_], a   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+            ld   a, $00
+            call $0ABF
+            pop  hl
+            pop  de
+            pop  bc
+            pop  af
+            ret
+
+            ld   hl, $9800
+            cp   $00
+            jr   z, @ + 5
+            ld   hl, $9C00
+            ld   a, $00
+            ld   d, a
+            ld   a, [_tilemap_pos_x__RAM_C8CB_] ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+            ld   e, a
+            add  hl, de
+            ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+            dec  a
+            ld   e, a
+            sla  e
+            rl   d
+            sla  e
+            rl   d
+            sla  e
+            rl   d
+            sla  e
+            rl   d
+            sla  e
+            rl   d
+            add  hl, de
+            ld   a, [maybe_vram_data_to_write__RAM_C8CC_]   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+            ld   [hl], a
+            ret
+
+            ldh  a, [rLCDC]
+            bit  7, a
+            jr   nz, @ + 3
+            ret
+
+            ldh  a, [rSTAT]
+            and  $03
+            jr   nz, @ - 4
+            ldh  a, [$FF]
+            ldh  [_rIE_saved__RAM_FFA1_], a ; _rIE_saved__RAM_FFA1_ = $FFA1
+            res  0, a
+            ldh  [$FF], a
+            ldh  a, [rLY]
+            cp   $91
+            jr   nz, @ - 4
+            ldh  a, [_rIE_saved__RAM_FFA1_] ; _rIE_saved__RAM_FFA1_ = $FFA1
+            ldh  [$FF], a
+            ret
+
+            ldh  a, [rLCDC]
+            and  $7F
+            ldh  [rLCDC], a
+            ret
+
+            ld   a, [maybe_vram_data_to_write__RAM_C8CC_]   ; maybe_vram_data_to_write__RAM_C8CC_ = $C8CC
+            dec  a
+            sla  a
+            sla  a
+            ld   l, a
+            ld   h, $C8
+            ldi  a, [hl]
+            ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+            ldi  a, [hl]
+            ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+            ret
+
+            ld   a, $A0
+            ldh  [rWY], a
+            ei
+            call $01A2
+            di
+            ldh  a, [rWY]
+            and  a
+            jr   z, @ + 6
+            sub  $08
+            jr   @ - 14
+
+            ret
+
+; TODO: Can probably copy labeling from: general_init__97A_:
+            ld   a, $05
+            ldh  [rIF], a
+            ldh  [$FF], a
+            xor  a
+            ldh  [rSB], a
+            ldh  [rSC], a
+            ldh  [rAUDENA], a
+            ldh  [rLCDC], a
+            ld   a, $80
+            ldh  [rLCDC], a
+            ld   a, $E4
+            ldh  [rBGP], a
+            ldh  [rOBP0], a
+            ld   a, $1B
+            ldh  [rOBP1], a
+            xor  a
+            ldh  [rAUD3ENA], a
+            ld   a, $FF
+            ldh  [rAUD3LEN], a
+            ld   a, $55
+            ld   bc, $083F
+            ldh  [c], a
+            dec  c
+            dec  b
+            jr   nz, @ - 3
+            ld   hl, $FF45
+            ld   a, $80
+            ldd  [hl], a
+            ld   [hl], $77
+            nop
+            nop
+            nop
+            nop
+            xor  a
+            ld   [_RAM_CC02_], a    ; _RAM_CC02_ = $CC02
+            ld   [_RAM_CC00_], a    ; _RAM_CC00_ = $CC00
+            ld   [_RAM_CC01_], a    ; _RAM_CC01_ = $CC01
+            ld   a, $28
+            ldh  [rAUD1LEN], a
+            ldh  [rAUD2LEN], a
+            ld   a, $37
+            ldh  [rTMA], a
+            ldh  [rTIMA], a
+            ld   a, $04
+            ldh  [rTAC], a
+            ret
+
+; SECTION "32k_bank_2_serial_io_09CF", ROM0[$4B93]
+; 32K Bank addr: $02:0B93 (16K Bank addr: $04:4B93)
+include "serial_io_32k_bank_2.asm"
+
+; Waits for a serial transfer to complete with a ~1msec timeout
+;
+; - Timeout is for ~1.009 msec (4232 T-States)
+;
+;; 32K Bank addr: $02:0D9A (16K Bank addr: $04:4D9A)
+delay_1_msec__32K_Bank_2_0D9A_:
+            push af
+            ld   a, $46
+            .loop_wait_reply:
+                push af
+                ld   a, [serial_tx_data__RAM_D023_] ; Why? A useless read? Or is something else going on
+                pop  af
+                dec  a
+                jr   nz, .loop_wait_reply
+            pop  af
+            ret
+
+;; END EXTRA SERIAL CODE
+
+            nop
+            ldi  [hl], a
+            nop
+            sub  a
+            nop
+            rst  $38    ; _RST__38_
+            ld   bc, $0172
+            call nz, $1F02
+            ld   [bc], a
+            add  b
+            ld   [bc], a
+            ret  z
+            inc  bc
+            dec  d
+            inc  bc
+            ld   e, d
+            inc  bc
+            sbc  a, b
+            inc  bc
+            ret  c
+            inc  b
+            add  hl, de
+            inc  b
+            ld   d, d
+            inc  b
+            add  [hl]
+            inc  b
+            cp   c
+            inc  b
+            rst  $20    ; _RST__20_
+            dec  b
+            inc  d
+            dec  b
+            dec  a
+            dec  b
+            ld   h, h
+            dec  b
+            adc  e
+            dec  b
+            xor  l
+            dec  b
+            rst  $08    ; _RST__08_
+            dec  b
+            xor  $06
+            dec  c
+            ld   b, $28
+            ld   b, $43
+            ld   b, $5B
+            ld   b, $74
+            ld   b, $89
+            ld   b, $9F
+            ld   b, $B2
+            ld   b, $C5
+            ld   b, $D7
+            ld   b, $E7
+            ld   b, $F7
+            rlca
+            ld   b, $07
+            inc  d
+            rlca
+            ld   hl, $2E07
+            rlca
+            ldd  a, [hl]
+            rlca
+            ld   b, l
+            rlca
+            ld   d, c
+            rlca
+            ld   e, c
+            rlca
+            ld   h, e
+            rlca
+            ld   l, h
+            rlca
+            ld   [hl], h
+            rlca
+            ld   a, h
+            rlca
+            add  e
+            rlca
+            adc  d
+            rlca
+            sub  c
+            rlca
+            sub  a
+            rlca
+            sbc  a, l
+            rlca
+            and  e
+            rlca
+            xor  b
+            rlca
+            xor  l
+            rlca
+            or   d
+            rlca
+            or   [hl]
+            rlca
+            cp   d
+            rlca
+            cp   [hl]
+            rlca
+            rlc  a
+            adc  $07
+            pop  de
+            rlca
+            call nc, $D607
+            rlca
+            reti
+
+            rlca
+        db $DB
+            rlca
+        db $DD
+            rlca
+            rst  $18    ; _RST__18_
+            rlca
+            pop  hl
+            rlca
+        db $E3
+            rlca
+        db $E4
+            rlca
+            and  $07
+            add  sp, 7
+            jp   hl
+
+            rlca
+            ld   [$EB07], a
+            rlca
+        db $EC
+            rlca
+            xor  $07
+            rst  $28    ; _RST__28_
+            rlca
+            ldh  a, [rTAC]
+            pop  af
+            rlca
+            ldh  a, [c]
+            rlca
+            di
+            rlca
+            rst  $38    ; _RST__38_
+            ldh  a, [$FF]
+            ld   [_rIE_saved_serial__RAM_D078_], a  ; _rIE_saved_serial__RAM_D078_ = $D078
+            xor  a
+            ldh  [$FF], a
+            ld   a, $00
+            ld   [serial_tx_data__RAM_D023_], a ; serial_tx_data__RAM_D023_ = $D023
+            call $D28  ; _LABEL_D28_
+            call $0D53
+            and  a
+            jr   z, @ + 24
+            ld   a, [serial_rx_data__RAM_D021_] ; serial_rx_data__RAM_D021_ = $D021
+            cp   $00
+            jr   z, @ + 17
+            cp   $0E
+            jr   z, @ + 4
+            jr   nc, @ + 11
+            ld   [serial_io_checksum_calc__RAM_D026_], a    ; serial_io_checksum_calc__RAM_D026_ = $D026
+            call $0D53
+            and  a
+            jr   nz, @ + 17
+            ld   a, $FF
+            ld   [input_key_pressed__RAM_D025_], a  ; input_key_pressed__RAM_D025_ = $D025
+            ld   a, $04
+            ld   [serial_tx_data__RAM_D023_], a ; serial_tx_data__RAM_D023_ = $D023
+            call $D28  ; _LABEL_D28_
+            jr   @ + 64
+
+            ld   a, [serial_rx_data__RAM_D021_] ; serial_rx_data__RAM_D021_ = $D021
+            ld   [input_key_modifier_flags__RAM_D027_], a   ; input_key_modifier_flags__RAM_D027_ = $D027
+            ld   hl, serial_io_checksum_calc__RAM_D026_ ; serial_io_checksum_calc__RAM_D026_ = $D026
+            add  [hl]
+            ld   [hl], a
+            call $0D53
+            and  a
+            jr   z, @ - 30
+            ld   a, [serial_rx_data__RAM_D021_] ; serial_rx_data__RAM_D021_ = $D021
+            ld   [input_key_pressed__RAM_D025_], a  ; input_key_pressed__RAM_D025_ = $D025
+            ld   hl, serial_io_checksum_calc__RAM_D026_ ; serial_io_checksum_calc__RAM_D026_ = $D026
+            add  [hl]
+            ld   [serial_io_checksum_calc__RAM_D026_], a    ; serial_io_checksum_calc__RAM_D026_ = $D026
+            call $0D53
+            and  a
+            jr   z, @ - 49
+            ld   a, [serial_rx_data__RAM_D021_] ; serial_rx_data__RAM_D021_ = $D021
+            ld   hl, serial_io_checksum_calc__RAM_D026_ ; serial_io_checksum_calc__RAM_D026_ = $D026
+            add  [hl]
+            jr   nz, @ - 58
+            ld   a, $01
+            ld   [serial_tx_data__RAM_D023_], a ; serial_tx_data__RAM_D023_ = $D023
+            call $D28  ; _LABEL_D28_
+            call $0ED3
+            ld   a, [input_key_pressed__RAM_D025_]  ; input_key_pressed__RAM_D025_ = $D025
+            ld   [input_prev_key_pressed__RAM_D181_], a ; input_prev_key_pressed__RAM_D181_ = $D181
+            ld   a, [_rIE_saved_serial__RAM_D078_]  ; _rIE_saved_serial__RAM_D078_ = $D078
+            ldh  [$FF], a
+            call $0FC0
+            ret
+
+            ld   a, [input_key_modifier_flags__RAM_D027_]   ; input_key_modifier_flags__RAM_D027_ = $D027
+            bit  0, a
+            jp   nz, $0F99
+            ld   a, [input_key_modifier_flags__RAM_D027_]   ; input_key_modifier_flags__RAM_D027_ = $D027
+            bit  3, a
+            jr   z, @ + 8
+            ld   a, $2F
+            ld   [input_key_pressed__RAM_D025_], a  ; input_key_pressed__RAM_D025_ = $D025
+            ret
+
+            ld   a, [input_key_pressed__RAM_D025_]  ; input_key_pressed__RAM_D025_ = $D025
+            and  a
+            jp   z, $0F93
+            bit  7, a
+            jp   z, $0F81
+            cp   $F0
+            jp   nc, $0F89
+            res  7, a
+            ld   hl, $1083
+            call $2945  ; _LABEL_2945_
+            ld   a, [hl]
+            ld   [input_key_pressed__RAM_D025_], a  ; input_key_pressed__RAM_D025_ = $D025
+            ld   b, a
+            ld   a, [input_key_modifier_flags__RAM_D027_]   ; input_key_modifier_flags__RAM_D027_ = $D027
+            and  $0E
+            jr   z, @ + 126
+            ld   a, [input_key_modifier_flags__RAM_D027_]   ; input_key_modifier_flags__RAM_D027_ = $D027
+            and  $06
+            jr   z, @ + 119
+            bit  2, a
+            jr   nz, @ + 22
+            ld   a, b
+            bit  7, a
+            jr   z, @ + 110
+            cp   $A1
+            jr   c, @ + 106
+            cp   $BE
+            jr   nc, @ + 102
+            res  5, a
+            ld   [input_key_pressed__RAM_D025_], a  ; input_key_pressed__RAM_D025_ = $D025
+            jr   @ + 95
+
+            bit  1, a
+            jr   z, @ + 28
+            ld   a, b
+            cp   $43
+            jr   nz, @ + 9
+            ld   a, $70
+            ld   [input_key_pressed__RAM_D025_], a  ; input_key_pressed__RAM_D025_ = $D025
+            jr   @ + 79
+
+            bit  7, a
+            jr   z, @ + 12
+            cp   $A1
+            jr   c, @ + 8
+            cp   $BE
+            jr   nc, @ + 4
+            jr   @ + 65
+
+            ld   a, b
+            cp   $43
+            jr   nz, @ + 9
+            ld   a, $70
+            ld   [input_key_pressed__RAM_D025_], a  ; input_key_pressed__RAM_D025_ = $D025
+            jr   @ + 53
+
+            bit  7, a
+            jr   z, @ + 27
+            cp   $A1
+            jr   c, @ + 8
+            cp   $BE
+            jr   nc, @ + 4
+            jr   @ - 61
+
+            cp   $C1
+            jr   c, @ + 13
+            cp   $CA
+            jr   nc, @ + 9
+            sub  $5E
+            ld   [input_key_pressed__RAM_D025_], a  ; input_key_pressed__RAM_D025_ = $D025
+            jr   @ + 24
+
+            ld   c, $0B
+            ld   hl, $10F3
+            ldi  a, [hl]
+            cp   b
+            jr   z, @ + 11
+            inc  hl
+            dec  c
+            jr   nz, @ - 6
+            ret
+
+            ld   a, $F6
+            jr   @ + 3
+
+            ldi  a, [hl]
+            ld   [input_key_pressed__RAM_D025_], a  ; input_key_pressed__RAM_D025_ = $D025
+            ld   a, [input_key_pressed__RAM_D025_]  ; input_key_pressed__RAM_D025_ = $D025
+            cp   $F0
+            ret  nc
+            ld   [input_prev_key_pressed__RAM_D181_], a ; input_prev_key_pressed__RAM_D181_ = $D181
+            ret
+
+            ld   a, $FF
+            ld   [input_key_pressed__RAM_D025_], a  ; input_key_pressed__RAM_D025_ = $D025
+            ret
+
+            ld   a, [input_prev_key_pressed__RAM_D181_] ; input_prev_key_pressed__RAM_D181_ = $D181
+            cp   $CA
+            jp   z, $0FBC
+            cp   $CB
+            jp   z, $0FBC
+            cp   $CC
+            jp   z, $0FBC
+            cp   $CD
+            jp   z, $0FBC
+            cp   $41
+            jr   c, @ + 10
+            cp   $18
+            jr   nc, @ + 4
+            jr   @ + 4
+
+            ld   a, $FF
+            ld   [input_key_pressed__RAM_D025_], a  ; input_key_pressed__RAM_D025_ = $D025
+            ret
+
+            ld   a, [input_key_pressed__RAM_D025_]  ; input_key_pressed__RAM_D025_ = $D025
+            cp   $65
+            jr   nz, @ + 9
+            ld   a, $9F
+            ld   [input_key_pressed__RAM_D025_], a  ; input_key_pressed__RAM_D025_ = $D025
+            jr   @ + 47
+
+            cp   $2B
+            jr   nz, @ + 16
+            ld   a, [input_key_modifier_flags__RAM_D027_]   ; input_key_modifier_flags__RAM_D027_ = $D027
+            bit  2, a
+            jr   z, @ + 36
+            ld   a, $D2
+            ld   [input_key_pressed__RAM_D025_], a  ; input_key_pressed__RAM_D025_ = $D025
+            jr   @ + 29
+
+            ld   a, [input_key_pressed__RAM_D025_]  ; input_key_pressed__RAM_D025_ = $D025
+            cp   $DC
+            jr   nz, @ + 22
+            ld   a, [input_key_modifier_flags__RAM_D027_]   ; input_key_modifier_flags__RAM_D027_ = $D027
+            ld   c, a
+            and  $02
+            sla  a
+            ld   b, a
+            ld   a, c
+            and  $04
+            xor  b
+            jr   z, @ + 7
+            ld   a, $D5
+            ld   [input_key_pressed__RAM_D025_], a  ; input_key_pressed__RAM_D025_ = $D025
+            ld   a, [input_key_pressed__RAM_D025_]  ; input_key_pressed__RAM_D025_ = $D025
+            ld   c, a
+            ld   a, [_RAM_D226_]    ; _RAM_D226_ = $D226
+
+    ; 32K Bank addr: $02:1000 (16K Bank addr: $04:5000)
+
+            cp   $AA
+            jr   z, @ + 48
+            xor  a
+            ld   [_RAM_D221_], a    ; _RAM_D221_ = $D221
+            ld   [_RAM_D226_], a    ; _RAM_D226_ = $D226
+            ld   hl, $1064
+            ldi  a, [hl]
+            and  a
+            jr   z, @ + 73
+            cp   c
+            jr   nz, @ + 75
+            ld   a, [_RAM_D221_]    ; _RAM_D221_ = $D221
+            cp   $01
+            jr   z, @ + 51
+            ld   e, l
+            ld   d, h
+            ld   hl, _RAM_D222_ ; _RAM_D222_ = $D222
+            ld   [hl], b
+            inc  hl
+            ld   [hl], c
+            inc  hl
+            ld   [hl], d
+            inc  hl
+            ld   [hl], e
+            inc  hl
+            ld   a, $AA
+            ld   [hl], a
+            ld   a, $FF
+            ld   [input_key_pressed__RAM_D025_], a  ; input_key_pressed__RAM_D025_ = $D025
+            ret
+
+            ld   a, [input_key_pressed__RAM_D025_]  ; input_key_pressed__RAM_D025_ = $D025
+            cp   $FF
+            ret  z
+            ld   hl, _RAM_D222_ ; _RAM_D222_ = $D222
+            ld   b, [hl]
+            inc  hl
+            ld   c, [hl]
+            inc  hl
+            ld   d, [hl]
+            inc  hl
+            ld   e, [hl]
+            ld   l, e
+            ld   h, d
+            ld   a, $01
+            ld   [_RAM_D221_], a    ; _RAM_D221_ = $D221
+            ld   a, [input_key_pressed__RAM_D025_]  ; input_key_pressed__RAM_D025_ = $D025
+            ld   b, a
+            ld   a, c
+            cp   b
+            jr   z, @ - 35
+            ldi  a, [hl]
+            cp   b
+            jr   nz, @ + 12
+            ld   a, [hl]
+            ld   [input_key_pressed__RAM_D025_], a  ; input_key_pressed__RAM_D025_ = $D025
+            xor  a
+            ld   [_RAM_D226_], a    ; _RAM_D226_ = $D226
+            ret
+
+
+; 32K Bank addr: $02:1060 (16K Bank addr: $04:5060)
 db $23, $23, $18, $AC, $2B, $A1, $DD, $2B, $81, $D6, $2B, $A5, $DE, $2B, $85, $D7
 db $2B, $A9, $DF, $2B, $89, $D8, $2B, $AF, $E0, $2B, $8F, $D9, $2B, $B5, $E1, $2B
 db $95, $DA, $00, $30, $2A, $2D, $2F, $31, $C1, $B1, $A1, $32, $C2, $B7, $B3, $33

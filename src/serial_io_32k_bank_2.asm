@@ -1,7 +1,11 @@
 
-; SECTION "rom0_serial_io_9CF", ROM0[$09CF]
+; SECTION "32k_bank_2_serial_io_09CF", ROM0[$4B93]
+; include "serial_io_32k_bank_2.asm"
+;; 32K Bank addr: $02:0B93 (16K Bank addr: $04:4B93)
 
-; ===== Serial IO peripheral interface functions =====
+; All code addresses are off by +452 vs Bank 0 serial
+
+; ===== Serial IO peripheral interface functions : 32K Bank 2 copy =====
 
 
 
@@ -9,7 +13,7 @@
 ; Sends count up sequence, waits for and checks count down sequence in reverse
 ;
 ; - Turns on Serial interrupt on/off at various times
-serial_system_init__9CF_:
+serial_system_init__ROM_32K_Bank2_0B93_:
     ld   a, IEF_SERIAL ; $08
     ldh  [rIE], a
     xor  a
@@ -18,49 +22,49 @@ serial_system_init__9CF_:
 
     ; Send a count up sequence through the serial IO (0,1,2,3...255)
     ; Then wait for a response with no timeout
-    .loop_send_sequence__9D8_:
+    .loop_send_sequence_1:
         ld   [serial_tx_data__RAM_D023_], a
-        call serial_io_send_byte__B64_
+        BANK32K_ADDR  call, serial_io_send_byte__32K_Bank_2_0D28_ ; call $0D28
         inc  a
-        jr   nz, .loop_send_sequence__9D8_
-    call serial_io_read_byte_no_timeout__B7D_
+        jr   nz, .loop_send_sequence_1
+    BANK32K_ADDR  call, serial_io_read_byte_no_timeout__32K_Bank_2_0D41_  ; call $0D41
 
     ; Handle reply
     cp   SYS_REPLY_BOOT_OK  ; $01
     ld   b, $00             ; This might not do anything... (not used and later overwritten)
-    call nz, serial_system_status_set_fail__BBA_
+    BANK32K_ADDR  call, nz, serial_system_status_set_fail__32K_Bank_2_D7E_  ; call nz, $0D7E
 
     ; Send a "0" byte (SYS_CMD_INIT_SEQ_REQUEST)
     ; That requests a 255..0 countdown sequence (be sent into the serial IO)
     xor  a
     ld   [serial_tx_data__RAM_D023_], a
-    call serial_io_send_byte__B64_
+    BANK32K_ADDR  call, serial_io_send_byte__32K_Bank_2_0D28_ ; call $0D28
 
     ; Expects a reply sequence through the serial IO of (255,254...0)
     ld   b, $01             ; This might not do anything, again... (not used and later overwritten)
     ld   c, $FF
-    .loop_receive_sequence__9F6_:
-        call serial_io_read_byte_no_timeout__B7D_
+    .loop_receive_sequence_2:
+        BANK32K_ADDR  call, serial_io_read_byte_no_timeout__32K_Bank_2_0D41_  ; call $0D41
         cp   c
-        call nz, serial_system_status_set_fail__BBA_  ; Set status failed if reply doesn't match expected  sequence value
+        BANK32K_ADDR  call, nz, serial_system_status_set_fail__32K_Bank_2_D7E_  ; call nz, $0D7E  ; Set status failed if reply doesn't match expected  sequence value
         dec  c
         ld   a, c
         cp   $FF
-        jr   nz, .loop_receive_sequence__9F6_
+        jr   nz, .loop_receive_sequence_2
 
     ; Check for failures during the reply sequence
     ld   a, [serial_system_status__RAM_D024_]
     bit  SYS_REPLY__BIT_BOOT_FAIL, a  ; 0, a
-    jr   nz, set_send_if_sequence_no_match__A0E_  ; If there were any failures in the sequence, send
+    jr   nz, set_send_if_sequence_no_match__32K_Bank_2_0BD2_  ; If there were any failures in the sequence, send
     ld   a, SYS_CMD_DONE_OR_OK  ; $01
-    jr   send_response_to_sequence__A10_
+    jr   send_response_to_sequence__32K_Bank2_0BD4_
 
-    set_send_if_sequence_no_match__A0E_:
+    set_send_if_sequence_no_match__32K_Bank_2_0BD2_:
         ld   a, SYS_CMD_ABORT_OR_FAIL  ; $04  ; This gets sent if the startup sequence didn't match
 
-    send_response_to_sequence__A10_:
+    send_response_to_sequence__32K_Bank2_0BD4_:
     ld   [serial_tx_data__RAM_D023_], a
-    call serial_io_send_byte__B64_
+    BANK32K_ADDR  call, serial_io_send_byte__32K_Bank_2_0D28_ ; call $0D28
     ret
 
 
@@ -68,7 +72,7 @@ serial_system_init__9CF_:
 ;
 ; - Sets serial IO to external clock and enables ready state
 ; - Turns on Serial interrupt, clears pending interrupts, turns on interrupts
-serial_io_enable_receive_byte__A17_:
+serial_io_enable_receive_byte__32K_Bank_2_0BDB_:
     push af
     ; Unclear what writing 0 to FF60 does. Sending and receiving over serial still works
     ; with the load instruction removed. In 32K Bank 0 it's only used for Serial RX and TX.
@@ -94,7 +98,7 @@ serial_io_enable_receive_byte__A17_:
 
 
 ; Turns off the Serial Interrupt
-serial_int_disable__A2B_:
+serial_int_disable__32K_Bank_2_0BEF_:
     push af
     ldh  a, [rIE]
     and  ~IEF_SERIAL ; $F7
@@ -110,7 +114,7 @@ serial_int_disable__A2B_:
 ; - Length:       serial_transfer_length__RAM_D034_
 ;
 ; Destroys A, BC, HL
-serial_io_send_command_and_buffer__A34_:
+serial_io_send_command_and_buffer__32K_Bank_2_0BF8_:
     ; Save interrupt enables and then set only Serial to ON
     ldh  a, [rIE]
     ld   [_rIE_saved_serial__RAM_D078_], a
@@ -121,33 +125,33 @@ serial_io_send_command_and_buffer__A34_:
     ; Maybe there is a max send length of 12 bytes ( < 13 )
     ld   a, [serial_transfer_length__RAM_D034_]
     cp   SYS_CMD_SERIAL_SEND_BUF_MAX_LEN_PLUS_1 ; 13 ; $0D
-    jr   c, .send_command_with_timeout__A46_
-    jr   .command_failed___A5B_
+    jr   c, .send_command_with_timeout__32K_Bank_2_0C0A_
+    jr   .command_failed__32K_Bank2_0C1F_
 
-    .send_command_with_timeout__A46_:
+    .send_command_with_timeout__32K_Bank_2_0C0A_:
         ld   a, [serial_cmd_to_send__RAM_D035_]
         ld   [serial_tx_data__RAM_D023_], a
-        call serial_io_send_byte__B64_
-        call delay_1_msec__BD6_
-        call delay_1_msec__BD6_
-        call serial_io_wait_receive_timeout_200msec__B8F_
+        BANK32K_ADDR call, serial_io_send_byte__32K_Bank_2_0D28_ ; call $0D28
+        BANK32K_ADDR call, delay_1_msec__32K_Bank_2_0D9A_
+        BANK32K_ADDR call, delay_1_msec__32K_Bank_2_0D9A_
+        BANK32K_ADDR call, serial_io_wait_receive_timeout_200msec__32K_Bank_2_0D62_
         ; If reply arrived then process it, otherwise
         ; it timed out, so fall through to failure handler
         and  a
-        jr   nz, .handle_reply__A63_
+        jr   nz, .handle_reply__32K_Bank_2_0C27_
 
-    .command_failed___A5B_:
+    .command_failed__32K_Bank2_0C1F_:
         ld   a, SYS_CHAR_SERIAL_TX_FAIL  ; $FD
         ld   [input_key_pressed__RAM_D025_], a
-        jp   .done__AE9_
+        BANK32K_ADDR  jp, .done__32K_Bank_2_0CAD_
 
-    .handle_reply__A63_:
+    .handle_reply__32K_Bank_2_0C27_:
         ; Check reply byte
         ld   a, [serial_rx_data__RAM_D021_]
         cp   SYS_REPLY_SEND_BUFFER_MAYBE_ERROR  ; $06 ; TODO: Does this signify "Not Ready" or some other unwanted status?
-        jp   z, .done_unsure_good_or_bad_reply_0xFB__AE4_
+        BANK32K_ADDR  jp, z, .done_unsure_good_or_bad_reply_0xFB__32K_Bank_2_0CA8_
         cp   SYS_REPLY_SEND_BUFFER_OK  ; $03            ; Ready for Payload
-        jp   nz, .command_failed___A5B_
+        BANK32K_ADDR  jp, nz, .command_failed__32K_Bank2_0C1F_
 
         ; OK to send buffer over Serial IO
         ; Set Length to (Buffer Size + 2) and send that
@@ -161,15 +165,15 @@ serial_io_send_command_and_buffer__A34_:
         add  $02
         ld   [serial_tx_data__RAM_D023_], a
         ld   [serial_io_checksum_calc__RAM_D026_], a
-        call delay_1_msec__BD6_
-        call serial_io_send_byte__B64_
-        call delay_1_msec__BD6_
-        call delay_1_msec__BD6_
+        BANK32K_ADDR call, delay_1_msec__32K_Bank_2_0D9A_
+        BANK32K_ADDR call, serial_io_send_byte__32K_Bank_2_0D28_ ; call $0D28
+        BANK32K_ADDR call, delay_1_msec__32K_Bank_2_0D9A_
+        BANK32K_ADDR call, delay_1_msec__32K_Bank_2_0D9A_
 
         ; Send the contents of RAM Buffer
         ; Number of bytes to send in: B
         ld   hl, buffer__RAM_D028_
-        .serial_send_buffer_loop__A8B_:
+        .serial_send_buffer_loop__32K_Bank_2_0C4F_:
             ; Prep next data to send, update checksum
             ; then wait for reply from previous send with timeout
             ldi  a, [hl]
@@ -178,35 +182,35 @@ serial_io_send_command_and_buffer__A34_:
             ld   a, [serial_io_checksum_calc__RAM_D026_]
             add  c
             ld   [serial_io_checksum_calc__RAM_D026_], a
-            call serial_io_wait_receive_timeout_200msec__B8F_
+            BANK32K_ADDR call, serial_io_wait_receive_timeout_200msec__32K_Bank_2_0D62_
 
             ; Fail if timed out
             and  a
-            jr   z, .command_failed___A5B_
+            jr   z, .command_failed__32K_Bank2_0C1F_
             ; Check reply byte
             ld   a, [serial_rx_data__RAM_D021_]
             cp   SYS_REPLY_SEND_BUFFER_MAYBE_ERROR  ; $06 ; TODO: Does this signify "Not Ready" or some other unwanted status?
-            jp   z, .done_unsure_good_or_bad_reply_0xFB__AE4_
+            BANK32K_ADDR  jp, z, .done_unsure_good_or_bad_reply_0xFB__32K_Bank_2_0CA8_
             cp   SYS_REPLY_SEND_BUFFER_OK  ; $03            ; Ready for Payload
-            jp   nz, .command_failed___A5B_
+            BANK32K_ADDR  jp, nz, .command_failed__32K_Bank2_0C1F_
 
             ; Send next buffer byte
-            call serial_io_send_byte__B64_
+            BANK32K_ADDR  call, serial_io_send_byte__32K_Bank_2_0D28_ ; call $0D28
             dec  b
-            jr   nz, .serial_send_buffer_loop__A8B_
+            jr   nz, .serial_send_buffer_loop__32K_Bank_2_0C4F_
 
         ; Done sending buffer bytes, wait for reply to last byte sent
         ; It should be the checksum byte
-        call serial_io_wait_receive_timeout_200msec__B8F_
+        BANK32K_ADDR call, serial_io_wait_receive_timeout_200msec__32K_Bank_2_0D62_
         ; Fail if timed out
         and  a
-        jr   z, .command_failed___A5B_
+        jr   z, .command_failed__32K_Bank2_0C1F_
         ld   a, [serial_rx_data__RAM_D021_]
          ; Check reply byte
         cp   SYS_REPLY_SEND_BUFFER_MAYBE_ERROR  ; $06 ; TODO: Does this signify "Not Ready" or some other unwanted status?
-        jp   z, .done_unsure_good_or_bad_reply_0xFB__AE4_
+        BANK32K_ADDR  jp, z, .done_unsure_good_or_bad_reply_0xFB__32K_Bank_2_0CA8_
         cp   SYS_REPLY_SEND_BUFFER_OK  ; $03            ; Ready for Payload
-        jp   nz, .command_failed___A5B_
+        BANK32K_ADDR  jp, nz, .command_failed__32K_Bank2_0C1F_
 
         ; Send trailing Checksum Byte
         ;
@@ -216,27 +220,27 @@ serial_io_send_command_and_buffer__A34_:
         xor  a
         sub  [hl]
         ld   [serial_tx_data__RAM_D023_], a
-        call serial_io_send_byte__B64_
-        call serial_io_wait_receive_timeout_200msec__B8F_
+        BANK32K_ADDR  call, serial_io_send_byte__32K_Bank_2_0D28_ ; call $0D28
+        BANK32K_ADDR call, serial_io_wait_receive_timeout_200msec__32K_Bank_2_0D62_
 
         ; Fail if timed out
         and  a
-        jp   z, .command_failed___A5B_
+        BANK32K_ADDR  jp, z, .command_failed__32K_Bank2_0C1F_
         ; Check reply byte
         ; If it was 0x01 then the transfer command succeeded
         ld   a, [serial_rx_data__RAM_D021_]
         cp   SYS_REPLY_BUFFER_SEND_AND_CHECKSUM_OK  ; $01
-        jp   nz, .command_failed___A5B_
+        BANK32K_ADDR  jp, nz, .command_failed__32K_Bank2_0C1F_
 
-        call serial_io_wait_receive_timeout_200msec__B8F_
+        BANK32K_ADDR call, serial_io_wait_receive_timeout_200msec__32K_Bank_2_0D62_
         ld   a, SYS_CHAR_SERIAL_TX_SUCCESS  ; $FC
-        jr   .done_save_result__AE6_
+        jr   .done_save_result__32K_Bank_2_0CAA_
 
-    .done_unsure_good_or_bad_reply_0xFB__AE4_:
+    .done_unsure_good_or_bad_reply_0xFB__32K_Bank_2_0CA8_:
         ld   a, $FB
-    .done_save_result__AE6_:
+    .done_save_result__32K_Bank_2_0CAA_:
         ld   [input_key_pressed__RAM_D025_], a
-    .done__AE9_:
+    .done__32K_Bank_2_0CAD_:
         ; Restore previous interrupt enable state
         ld   a, [_rIE_saved_serial__RAM_D078_]
         ldh  [rIE], a
@@ -250,7 +254,7 @@ serial_io_send_command_and_buffer__A34_:
 ; - Length of serial transfer: Determined by sender
 ;
 ; Destroys A, BC, D, HL
-serial_io_send_command_and_receive_buffer__AEF_:
+serial_io_send_command_and_receive_buffer__32K_Bank_2_0CB3_:
     ; Save interrupt enables and then set only Serial to ON
     ldh  a, [rIE]
     ld   [_rIE_saved_serial__RAM_D078_], a
@@ -260,29 +264,29 @@ serial_io_send_command_and_receive_buffer__AEF_:
     ; TODO: What does D get used for here... if anything?
     ; Send initial Command from serial_rx_cmd_to_send__RAM_D036_
     ld   d, $00
-    call delay_1_msec__BD6_
+    BANK32K_ADDR  call, delay_1_msec__32K_Bank_2_0D9A_
     ld   a, [serial_rx_cmd_to_send__RAM_D036_]
     ld   [serial_tx_data__RAM_D023_], a
-    call serial_io_send_byte__B64_
-    call serial_io_wait_receive_timeout_200msec__B8F_
+    BANK32K_ADDR  call, serial_io_send_byte__32K_Bank_2_0D28_ ; call $0D28
+    BANK32K_ADDR  call, serial_io_wait_receive_timeout_200msec__32K_Bank_2_0D62_
 
     ; Fail if timed out
     and  a
-    jr   z, .command_failed__B13_
+    jr   z, .command_failed__32K_Bank_2_0CD7_
     ; First reply byte will be length of incoming bytes
     ; There might be a max reply length of 13 bytes ( < 14 )
     ld   a, [serial_rx_data__RAM_D021_]
     cp   $0E
-    jr   c, .receive_start__B1C_
+    jr   c, .receive_start__32K_Bank_2_0CE0_
     ; If length isn't ok then fall through to failure handler
 
-    .command_failed__B13_:
+    .command_failed__32K_Bank_2_0CD7_:
         ld   a, SYS_CHAR_SERIAL_RX_FAIL  ; $FA
         ld   [input_key_pressed__RAM_D025_], a
         ld   a, SYS_CMD_ABORT_OR_FAIL  ; $04
-        jr   .done__B58_
+        jr   .done__32K_Bank_2_0D1C_
 
-    .receive_start__B1C_:
+    .receive_start__32K_Bank_2_0CE0_:
         ; Set checksum to first reply byte (Length)
         ;
         ; Reduce length by 2 (probably for below) then save it
@@ -296,13 +300,13 @@ serial_io_send_command_and_receive_buffer__AEF_:
         ld   hl, buffer__RAM_D028_
 
         ; Number of bytes to receive in B
-        .serial_receive_buffer_loop__B28_:
+        .serial_receive_buffer_loop__32K_Bank_2_0CEC_:
             ; Wait for next byte
             push hl
-            call serial_io_wait_receive_with_timeout__B8F_
+            BANK32K_ADDR call, serial_io_wait_receive_with_timeout__32K_Bank_2_0D53_
             and  a
             pop  hl
-            jr   z, .command_failed__B13_
+            jr   z, .command_failed__32K_Bank_2_0CD7_
 
             ; Store received byte to buffer
             ; Add it to the checksum
@@ -314,18 +318,18 @@ serial_io_send_command_and_receive_buffer__AEF_:
             ld   [serial_io_checksum_calc__RAM_D026_], a
 
             dec  b
-            jr   nz, .serial_receive_buffer_loop__B28_
+            jr   nz, .serial_receive_buffer_loop__32K_Bank_2_0CEC_
 
         ; Done receiving buffer bytes, wait for the last byte sent
         ; It should be the checksum byte
-        call serial_io_wait_receive_with_timeout__B8F_
+        BANK32K_ADDR call, serial_io_wait_receive_with_timeout__32K_Bank_2_0D53_
         ; Fail if timed out
         and  a
-        jr   z, .command_failed__B13_
+        jr   z, .command_failed__32K_Bank_2_0CD7_
         ; Why does it need the extra delay below before reading the RX Byte?
         ; It should already be loaded if the receive didn't time out
         ; Is this extra delay a typo?
-        call delay_1_msec__BD6_
+        BANK32K_ADDR call, delay_1_msec__32K_Bank_2_0D9A_
 
         ; Verify received trailing received Checksum Byte
         ;
@@ -334,14 +338,14 @@ serial_io_send_command_and_receive_buffer__AEF_:
         ld   a, [serial_rx_data__RAM_D021_]
         ld   hl, serial_io_checksum_calc__RAM_D026_
         add  [hl]
-        jr   nz, .command_failed__B13_
+        jr   nz, .command_failed__32K_Bank_2_0CD7_
         ld   a, SYS_CHAR_SERIAL_RX_SUCCESS  ; $F9
         ld   [input_key_pressed__RAM_D025_], a
         ld   a, SYS_CMD_DONE_OR_OK  ; $01
 
-    .done__B58_:
+    .done__32K_Bank_2_0D1C_:
         ld   [serial_tx_data__RAM_D023_], a
-        call serial_io_send_byte__B64_
+        BANK32K_ADDR  call, serial_io_send_byte__32K_Bank_2_0D28_ ; call $0D28
         ld   a, [_rIE_saved_serial__RAM_D078_]
         ldh  [rIE], a
         ret
@@ -351,7 +355,7 @@ serial_io_send_command_and_receive_buffer__AEF_:
 ;
 ; - Called from "run cart from slot"
 ; - Possibly called from keyboard input polling
-serial_io_send_byte__B64_:
+serial_io_send_byte__32K_Bank_2_0D28_:
     push af
     ; Unclear what writing 0 to FF60 does. Sending and receiving over serial still works
     ; with the load instruction removed. In 32K Bank 0 it's only used for Serial RX and TX.
@@ -379,7 +383,7 @@ serial_io_send_byte__B64_:
         ld   a, [serial_tx_data__RAM_D023_]
         ldh  [rSB], a
     ENDC
-    call delay_1_msec__BD6_
+    BANK32K_ADDR  call, delay_1_msec__32K_Bank_2_0D9A_
 
     xor  a
     ldh  [rIF], a
@@ -392,15 +396,15 @@ serial_io_send_byte__B64_:
 ; Waits for and returns a byte from Serial IO with NO timeout
 ;
 ; - Returns received serial byte in: A
-serial_io_read_byte_no_timeout__B7D_:
+serial_io_read_byte_no_timeout__32K_Bank_2_0D41_:
     ld   a, SERIAL_STATUS_RESET ; $00
     ld   [serial_status__RAM_D022_], a
-    call serial_io_enable_receive_byte__A17_
+    BANK32K_ADDR  call, serial_io_enable_receive_byte__32K_Bank_2_0BDB_
 
-    .loop_wait_reply__B85_:
+    .loop_wait_reply__32K_Bank_2_0D49_:
         ld   a, [serial_status__RAM_D022_]
         and  a
-        jr   z, .loop_wait_reply__B85_
+        jr   z, .loop_wait_reply__32K_Bank_2_0D49_
         ld   a, [serial_rx_data__RAM_D021_]
         ret
 
@@ -408,11 +412,11 @@ serial_io_read_byte_no_timeout__B7D_:
 ; Waits for a byte from Serial IO with a timeout (100 msec)
 ;
 ; - Returns serial transfer success(0x01)/failure(0x00) in: A
-serial_io_wait_receive_with_timeout__B8F_:
+serial_io_wait_receive_with_timeout__32K_Bank_2_0D53_:
     ld   a, SERIAL_STATUS_RESET ; $00
     ld   [serial_status__RAM_D022_], a
-    call serial_io_enable_receive_byte__A17_
-    call serial_io_wait_for_transfer_w_timeout_100msec__BC5_
+    BANK32K_ADDR  call, serial_io_enable_receive_byte__32K_Bank_2_0BDB_
+    BANK32K_ADDR  call, serial_io_wait_for_transfer_w_timeout_100msec__32K_Bank_2_0D89_
     ld   a, [serial_status__RAM_D022_]
     ret
 
@@ -420,29 +424,29 @@ serial_io_wait_receive_with_timeout__B8F_:
 ; Waits for a byte from Serial IO with a timeout (~206 msec)
 ;
 ; - Returns serial transfer success(0x01)/failure(0x00) in: A
-serial_io_wait_receive_timeout_200msec__B8F_:
+serial_io_wait_receive_timeout_200msec__32K_Bank_2_0D62_:
     push bc
     ld   a, SERIAL_STATUS_RESET ; $00
     ld   [serial_status__RAM_D022_], a
-    call serial_io_enable_receive_byte__A17_
+    BANK32K_ADDR  call, serial_io_enable_receive_byte__32K_Bank_2_0BDB_
 
     ld   b, $02
-    .loop_wait_reply__BA9_:
-        call serial_io_wait_for_transfer_w_timeout_100msec__BC5_
+    .loop_wait_reply__32K_Bank_2_0D6D_:
+        BANK32K_ADDR call, serial_io_wait_for_transfer_w_timeout_100msec__32K_Bank_2_0D89_
         ld   a, [serial_status__RAM_D022_]
         and  a
-        jr   nz, serial_done__BB8_
+        jr   nz, serial_done__32K_Bank_2_0D7C_
         dec  b
-        jr   nz, .loop_wait_reply__BA9_
+        jr   nz, .loop_wait_reply__32K_Bank_2_0D6D_
 
         ld   a, [serial_status__RAM_D022_]
-    serial_done__BB8_:
+    serial_done__32K_Bank_2_0D7C_:
         pop  bc
         ret
 
 
 ; Sets the serial system status to OK (making some assumptions right now)
-serial_system_status_set_fail__BBA_:
+serial_system_status_set_fail__32K_Bank_2_D7E_:
     push af
     ld   a, [serial_system_status__RAM_D024_]
     set  SYS_REPLY__BIT_BOOT_FAIL, a  ; 0, a
@@ -456,16 +460,16 @@ serial_system_status_set_fail__BBA_:
 ; - Delay approx: (1000 msec / 59.7275 GB FPS) * (431632 T-States delay / 70224 T-States per frame) = ~103 msec
 ; - Serial ISR populates status var if anything was received (serial_int_handler__00CE_)
 ;
-serial_io_wait_for_transfer_w_timeout_100msec__BC5_:
+serial_io_wait_for_transfer_w_timeout_100msec__32K_Bank_2_0D89_:
     push bc
     ld   b, $64
-    .loop_wait_reply__BC8_:
-        call delay_1_msec__BD6_
+    .loop_wait_reply__32K_Bank_2_0D8C_:
+        BANK32K_ADDR call, delay_1_msec__32K_Bank_2_0D9A_
         ld   a, [serial_status__RAM_D022_]
         and  a
-        jr   nz, serial_done__BD4_
+        jr   nz, serial_done__32k_Bank_2_0D98_
         dec  b
-        jr   nz, .loop_wait_reply__BC8_
-    serial_done__BD4_:
+        jr   nz, .loop_wait_reply__32K_Bank_2_0D8C_
+    serial_done__32k_Bank_2_0D98_:
         pop  bc
         ret
