@@ -231,7 +231,7 @@ IF (!(DEF(GB_DEBUG)))
 
     ; TODO: Save response from some command
     ; (so far not seen being used in 32K Bank 0)
-    ld   a, SYS_CMD_INIT_UNKNOWN_0x09  ; $09  // TODO
+    ld   a, SYS_CMD_PRINT_OR_EXT_IO_MAYBE__0x09  ; $09  // TODO
     ld   [serial_tx_data__RAM_D023_], a
     call serial_io_send_byte__B64_
     call serial_io_read_byte_no_timeout__B7D_

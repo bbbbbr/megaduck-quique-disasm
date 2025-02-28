@@ -1,4 +1,22 @@
 
+; TODO: Move to common macro
+; Fixes bank numbers for the lower 16K region of 32K Banks > 0
+; which has to handle as 16K banks in the upper 16k region, and
+; so they address has 0x4000 added that needs to be stripped
+;
+; So Even 16K BANK()s with the address > 0x4000 get shifted
+; \1 = Label which needs address fixed
+call_FIX_32K_BANK_ADDR: MACRO
+    IF _NARG != 1
+        FAIL "call_FIX_32K_BANK_ADDR accepts only 1 argument (address or address label)"
+    ENDC
+    IF ((BANK(\1) % 1) == 0)
+        call (\1 & $3FFF)
+    ELSE
+        call \1
+    ENDC
+ENDM
+
 ; Actually 32K Bank 2 -> Lower 16K region. 32K banking not supported in RGBDS
 SECTION "rom4", ROMX, BANK[$4]
 ; 32K Bank memory region: 0x0000 -> 0x3FFF
@@ -31,15 +49,15 @@ bank_2_32k_RST__18_:
     di
     jp   switch_bank_return_to_saved_bank_RAM__C940_
 
-bank_2_32k_RST__20_:        
-    jp   _GB_ENTRY_POINT_100_    
+bank_2_32k_RST__20_:
+    jp   _GB_ENTRY_POINT_100_
     nop
     nop
     nop
     nop
     nop
 
-bank_2_32k_RST__28_:        
+bank_2_32k_RST__28_:
     jp   _GB_ENTRY_POINT_100_
     nop
     nop
@@ -100,20 +118,20 @@ bank_2_32k__RST__58_:
             nop
             di
             push af
-            ld   a, [_RAM_D020_]    ; _RAM_D020_ = $D020
+            ld   a, [_RAM_D020_]
             add  $05
-            ld   [_RAM_D020_], a    ; _RAM_D020_ = $D020
+            ld   [_RAM_D020_], a
             pop  af
             ei
             reti
-        
+
             push af
             push bc
             push de
             push hl
-            ld   a, [_RAM_D193_]    ; _RAM_D193_ = $D193
+            ld   a, [_RAM_D193_]
             ld   h, a
-            ld   a, [_RAM_D194_]    ; _RAM_D194_ = $D194
+            ld   a, [_RAM_D194_]
             ld   l, a
             ld   a, [vbl_action_select__RAM_D195_]  ; vbl_action_select__RAM_D195_ = $D195
             and  a
@@ -121,65 +139,65 @@ bank_2_32k__RST__58_:
             cp   $01
             jr   nz, @ + 4
             jr   tile_data_0x40ba_720_bytes_paino_app_menu_icons__40BA_
-        
+
             cp   $02
             jr   nz, @ + 4
             jr   tile_data_0x40ba_720_bytes_paino_app_menu_icons__40BA_
-        
+
             cp   $03
             jr   nz, @ + 7
-            call $28F1  ; Possibly invalid
+            call $28F1
             jr   tile_data_0x40ba_720_bytes_paino_app_menu_icons__40BA_
-        
+
             cp   $04
             jr   nz, @ + 7
-            call $28FD  ; Possibly invalid
+            call $28FD
             jr   tile_data_0x40ba_720_bytes_paino_app_menu_icons__40BA_
-        
+
             cp   $05
             jr   nz, @ + 4
             jr   tile_data_0x40ba_720_bytes_paino_app_menu_icons__40BA_
-        
+
             cp   $06
             jr   nz, @ + 2
             cp   $07
             jr   nz, @ + 7
-            call $28F6  ; Possibly invalid
+            call $28F6
             jr   tile_data_0x40ba_720_bytes_paino_app_menu_icons__40BA_
-        
+
             cp   $08
-            jp   nz, $00BA  ; Possibly invalid
-            call $2902  ; Possibly invalid
+            jp   nz, $00BA
+            call $2902
             jr   tile_data_0x40ba_720_bytes_paino_app_menu_icons__40BA_
-        
+
             xor  a
             ld   [vbl_action_select__RAM_D195_], a  ; vbl_action_select__RAM_D195_ = $D195
-            call _oam_dma_routine_in_HRAM__FF80_    ; Possibly invalid
+            call _oam_dma_routine_in_HRAM__FF80_
             pop  hl
             pop  de
             pop  bc
             pop  af
             ret
-        
+
             push af
-            ld   a, [_RAM_D020_]    ; _RAM_D020_ = $D020
+            ld   a, [_RAM_D020_]
             add  $07
-            ld   [_RAM_D020_], a    ; _RAM_D020_ = $D020
+            ld   [_RAM_D020_], a
             ld   a, [timer_flags__RAM_D000_]    ; timer_flags__RAM_D000_ = $D000
             set  2, a
             ld   [timer_flags__RAM_D000_], a    ; timer_flags__RAM_D000_ = $D000
             pop  af
             ret
-        
+
             push af
             ldh  a, [rSB]
-            ld   [serial_rx_data__RAM_D021_], a ; serial_rx_data__RAM_D021_ = $D021
+            ld   [serial_rx_data__RAM_D021_], a
             ld   a, $01
-            ld   [serial_status__RAM_D022_], a  ; serial_status__RAM_D022_ = $D022
-            call $0BEF  ; Possibly invalid
+            ld   [serial_status__RAM_D022_], a
+            call $0BEF
             pop  af
             ret
-        
+
             nop
             nop
             nop
@@ -204,8 +222,8 @@ bank_2_32k__RST__58_:
             nop
             nop
             di
-            call $0B93  ; Possibly invalid
-            ld   a, [serial_system_status__RAM_D024_]   ; serial_system_status__RAM_D024_ = $D024
+            call $0B93
+            ld   a, [serial_system_status__RAM_D024_]
             bit  0, a
             jr   nz, @ - 5
             ld   hl, init_key_slot_1__RAM_DBFC_ ; init_key_slot_1__RAM_DBFC_ = $DBFC
@@ -219,9 +237,9 @@ bank_2_32k__RST__58_:
             cp   $55
             jr   nz, @ + 4
             jr   @ + 21
-        
+
             xor  a
-            ld   [_RAM_DBFB_], a    ; _RAM_DBFB_ = $DBFB
+            ld   [_RAM_DBFB_], a
             ld   a, $AA
             ld   [init_key_slot_1__RAM_DBFC_], a    ; init_key_slot_1__RAM_DBFC_ = $DBFC
             ld   a, $E4
@@ -230,12 +248,12 @@ bank_2_32k__RST__58_:
             ld   [init_key_slot_3__RAM_DBFE_], a    ; init_key_slot_3__RAM_DBFE_ = $DBFE
             di
             ld   sp, $C400
-            call $0B3E  ; Possibly invalid
-            call $0916  ; Possibly invalid
+            call $0B3E
+            call $0916
             jr   @ + 2
-        
-            call $0AF0  ; Possibly invalid
-            call $0B10  ; Possibly invalid
+
+            call $0AF0
+            call $0B10
             ld   hl, $8800
             ld   de, $1109
             ld   bc, $0800
@@ -244,134 +262,158 @@ bank_2_32k__RST__58_:
             ld   [ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_], a ; ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_ = $D06C
             ld   a, $08
             ld   [ui_grid_menu_icon_count__RAM_D06D_], a    ; ui_grid_menu_icon_count__RAM_D06D_ = $D06D
-            call $294C  ; Possibly invalid
-            call $29E5  ; Possibly invalid
+            call $294C
+            call $29E5
             ld   a, [ui_grid_menu_selected_icon__RAM_D06E_] ; ui_grid_menu_selected_icon__RAM_D06E_ = $D06E
             cp   $00
             jr   nz, @ + 12
             ld   a, $01
-            ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
-            call $7804  ; Possibly invalid
+            ld   [_RAM_D1A7_], a
+            call $7804
             jr   @ - 49
-        
+
             cp   $01
             jr   nz, @ + 12
             ld   a, $02
-            ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
-            call $7804  ; Possibly invalid
+            ld   [_RAM_D1A7_], a
+            call $7804
             jr   @ - 63
-        
+
             cp   $03
             jr   nz, @ + 15
             ld   bc, $00FF
             ld   hl, $B000
             ld   a, $00
-            call $5281  ; Possibly invalid
+            call $5281
             jr   @ - 80
-        
+
             cp   $05
             jr   nz, @ + 7
             call $3580 ; _LABEL_3580_
             jr   @ - 89
-        
+
             cp   $06
             jr   nz, @ - 93
-            call $552E  ; Possibly invalid
+            call $552E
             jr   @ - 98
-        
-            ei
-            ld   hl, timer_flags__RAM_D000_ ; timer_flags__RAM_D000_ = $D000
-            bit  2, [hl]
-            jp   nz, $0355  ; Possibly invalid
-            jr   @ - 8
-        
-            ld   hl, timer_flags__RAM_D000_ ; timer_flags__RAM_D000_ = $D000
-            bit  2, [hl]
-            jr   nz, @ + 4
-            jr   @ - 7
-        
-            res  2, [hl]
-            jp   $0412  ; Possibly invalid
-        
-            ld   a, [_RAM_CC01_]    ; _RAM_CC01_ = $CC01
+
+; Turn on interrupts and wait for a Timer tick
+; - Called from printing
+;
+; - Turn on interrupts
+;
+; Overflows/Triggers interrupt every 201 ticks (0x100 - 0x37) = 201
+; 4096 Hz / (201) = ~20.378Hz, roughly every 3rd frame
+;
+; Destroys a, hl (maybe more in subsequent jump to 0355)
+;
+; 32K Bank addr: $02:01A2 (16K Bank addr: $04:41A2)
+timer_wait_50msec_and_maybe_print_related__ROM_32K_Bank2_01A2_:
+    ei
+    .loop_wait_timer__1A3_:
+        ld   hl, timer_flags__RAM_D000_
+        bit  TIMER_FLAG__BIT_TICKED, [hl]  ; 2, [hl]
+        jp   nz, $0355  ; timer_20hz_tick_done__maybe_print_related_355_  ; $0355
+        jr   .loop_wait_timer__1A3_
+
+; Waits for a Timer tick to read the joypad & buttons
+;
+; Possibly unused?
+wait_timer_then_read_joypad_buttons__ROM_32K_Bank2_01AD_:
+    ld   hl, timer_flags__RAM_D000_
+    bit  TIMER_FLAG__BIT_TICKED, [hl]  ; 2, [hl]
+    jr   nz, .start_read__1B6_
+    jr   wait_timer_then_read_joypad_buttons__ROM_32K_Bank2_01AD_
+
+    .start_read__1B6_:
+        ; Clear flag and read joypad
+        res  TIMER_FLAG__BIT_TICKED, [hl]  ; 2, [hl]
+        jp   $0412  ; TODO: joypad_and_buttons_read__412_  ; $0412
+        ; Returns at end of joypad_and_buttons_read__412_
+
+
+
+
+; 32K Bank addr: $02:01BB (16K Bank addr: $04:41BB)
+            ld   a, [_RAM_CC01_]
             set  0, a
             res  4, a
-            ld   [_RAM_CC01_], a    ; _RAM_CC01_ = $CC01
+            ld   [_RAM_CC01_], a
             ld   a, l
-            ld   [_RAM_CC11_], a    ; _RAM_CC11_ = $CC11
+            ld   [_RAM_CC11_], a
             ld   a, h
-            ld   [_RAM_CC10_], a    ; _RAM_CC10_ = $CC10
+            ld   [_RAM_CC10_], a
             ld   a, $8B
-            ld   [_RAM_CC12_], a    ; _RAM_CC12_ = $CC12
+            ld   [_RAM_CC12_], a
             ld   a, $00
             ld   [maybe_audio_cache_rAUD1SWEEP__RAM_CC13_], a   ; maybe_audio_cache_rAUD1SWEEP__RAM_CC13_ = $CC13
             ld   a, $C0
             ld   [maybe_audio_cache_rAUD1LEN__RAM_CC14_], a ; maybe_audio_cache_rAUD1LEN__RAM_CC14_ = $CC14
-            ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
+            ld   a, [_RAM_CC00_]
             or   $11
-            ld   [_RAM_CC00_], a    ; _RAM_CC00_ = $CC00
+            ld   [_RAM_CC00_], a
             ld   a, $01
-            ld   [_RAM_CC23_], a    ; _RAM_CC23_ = $CC23
+            ld   [_RAM_CC23_], a
             ret
-        
-            ld   a, [_RAM_CC40_]    ; _RAM_CC40_ = $CC40
+
+            ld   a, [_RAM_CC40_]
             ld   h, a
-            ld   a, [_RAM_CC41_]    ; _RAM_CC41_ = $CC41
+            ld   a, [_RAM_CC41_]
             ld   l, a
             ld   a, [hl]
             ld   b, a
             inc  hl
             ld   a, h
-            ld   [_RAM_CC40_], a    ; _RAM_CC40_ = $CC40
+            ld   [_RAM_CC40_], a
             ld   a, l
-            ld   [_RAM_CC41_], a    ; _RAM_CC41_ = $CC41
+            ld   [_RAM_CC41_], a
             ld   a, $FF
-            ld   [_RAM_CC48_], a    ; _RAM_CC48_ = $CC48
-            ld   [_RAM_CC49_], a    ; _RAM_CC49_ = $CC49
+            ld   [_RAM_CC48_], a
+            ld   [_RAM_CC49_], a
             bit  7, b
             jr   z, @ + 25
-            ld   a, [_RAM_CC47_]    ; _RAM_CC47_ = $CC47
+            ld   a, [_RAM_CC47_]
             res  0, a
-            ld   [_RAM_CC47_], a    ; _RAM_CC47_ = $CC47
+            ld   [_RAM_CC47_], a
             dec  hl
             ld   a, l
-            ld   [_RAM_CC41_], a    ; _RAM_CC41_ = $CC41
+            ld   [_RAM_CC41_], a
             ld   a, h
-            ld   [_RAM_CC40_], a    ; _RAM_CC40_ = $CC40
+            ld   [_RAM_CC40_], a
             ld   a, $01
-            ld   [_RAM_CC42_], a    ; _RAM_CC42_ = $CC42
+            ld   [_RAM_CC42_], a
             ret
-        
+
             ld   a, [hl]
-            ld   [_RAM_CC42_], a    ; _RAM_CC42_ = $CC42
+            ld   [_RAM_CC42_], a
             inc  hl
             ld   a, h
-            ld   [_RAM_CC40_], a    ; _RAM_CC40_ = $CC40
+            ld   [_RAM_CC40_], a
             ld   a, l
-            ld   [_RAM_CC41_], a    ; _RAM_CC41_ = $CC41
+            ld   [_RAM_CC41_], a
             ret
-        
-            ld   a, [_RAM_CC02_]    ; _RAM_CC02_ = $CC02
+
+            ld   a, [_RAM_CC02_]
             or   $01
-            ld   [_RAM_CC02_], a    ; _RAM_CC02_ = $CC02
-            ld   a, [_RAM_CC01_]    ; _RAM_CC01_ = $CC01
+            ld   [_RAM_CC02_], a
+            ld   a, [_RAM_CC01_]
             bit  4, a
             jr   z, @ + 5
-            jp   $02BF  ; Possibly invalid
-        
-            ld   a, [_RAM_CC10_]    ; _RAM_CC10_ = $CC10
+            jp   $02BF
+
+            ld   a, [_RAM_CC10_]
             ld   h, a
-            ld   a, [_RAM_CC11_]    ; _RAM_CC11_ = $CC11
+            ld   a, [_RAM_CC11_]
             ld   l, a
             ld   a, [hl]
             ld   b, a
             inc  hl
             ld   a, h
-            ld   [_RAM_CC10_], a    ; _RAM_CC10_ = $CC10
+            ld   [_RAM_CC10_], a
             ld   a, l
-            ld   [_RAM_CC11_], a    ; _RAM_CC11_ = $CC11
-            ld   a, [_RAM_CC12_]    ; _RAM_CC12_ = $CC12
-            ld   [_RAM_CC2F_], a    ; _RAM_CC2F_ = $CC2F
+            ld   [_RAM_CC11_], a
+            ld   a, [_RAM_CC12_]
+            ld   [_RAM_CC2F_], a
             bit  7, b
             jr   z, @ + 59
             ld   a, $FE
@@ -379,28 +421,28 @@ bank_2_32k__RST__58_:
             jr   z, @ + 40
             dec  hl
             ld   a, l
-            ld   [_RAM_CC11_], a    ; _RAM_CC11_ = $CC11
+            ld   [_RAM_CC11_], a
             ld   a, h
-            ld   [_RAM_CC10_], a    ; _RAM_CC10_ = $CC10
+            ld   [_RAM_CC10_], a
             ld   a, $FF
             ld   [maybe_audio_cache_rAUD1LOW__RAM_CC28_], a ; maybe_audio_cache_rAUD1LOW__RAM_CC28_ = $CC28
             ld   a, $07
-            ld   [_RAM_CC27_], a    ; _RAM_CC27_ = $CC27
+            ld   [_RAM_CC27_], a
             ld   a, $01
-            ld   [_RAM_CC23_], a    ; _RAM_CC23_ = $CC23
+            ld   [_RAM_CC23_], a
             ld   a, $01
-            ld   [_RAM_CC2F_], a    ; _RAM_CC2F_ = $CC2F
-            ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
+            ld   [_RAM_CC2F_], a
+            ld   a, [_RAM_CC00_]
             and  $EE
-            ld   [_RAM_CC00_], a    ; _RAM_CC00_ = $CC00
+            ld   [_RAM_CC00_], a
             ret
-        
-            ld   a, [_RAM_CC60_]    ; _RAM_CC60_ = $CC60
-            ld   [_RAM_CC10_], a    ; _RAM_CC10_ = $CC10
-            ld   a, [_RAM_CC61_]    ; _RAM_CC61_ = $CC61
-            ld   [_RAM_CC11_], a    ; _RAM_CC11_ = $CC11
+
+            ld   a, [_RAM_CC60_]
+            ld   [_RAM_CC10_], a
+            ld   a, [_RAM_CC61_]
+            ld   [_RAM_CC11_], a
             jr   @ - 84
-        
+
             ld   a, b
             add  a
             ld   c, a
@@ -412,100 +454,100 @@ bank_2_32k__RST__58_:
             ld   [maybe_audio_cache_rAUD1LOW__RAM_CC28_], a ; maybe_audio_cache_rAUD1LOW__RAM_CC28_ = $CC28
             dec  hl
             ld   a, [hl]
-            ld   [_RAM_CC27_], a    ; _RAM_CC27_ = $CC27
-            ld   a, [_RAM_CC10_]    ; _RAM_CC10_ = $CC10
+            ld   [_RAM_CC27_], a
+            ld   a, [_RAM_CC10_]
             ld   h, a
-            ld   a, [_RAM_CC11_]    ; _RAM_CC11_ = $CC11
+            ld   a, [_RAM_CC11_]
             ld   l, a
             ld   a, [hl]
-            ld   [_RAM_CC23_], a    ; _RAM_CC23_ = $CC23
+            ld   [_RAM_CC23_], a
             inc  hl
             ld   a, h
-            ld   [_RAM_CC10_], a    ; _RAM_CC10_ = $CC10
+            ld   [_RAM_CC10_], a
             ld   a, l
-            ld   [_RAM_CC11_], a    ; _RAM_CC11_ = $CC11
+            ld   [_RAM_CC11_], a
             ret
-        
-            ld   a, [_RAM_CC10_]    ; _RAM_CC10_ = $CC10
+
+            ld   a, [_RAM_CC10_]
             ld   h, a
-            ld   a, [_RAM_CC11_]    ; _RAM_CC11_ = $CC11
+            ld   a, [_RAM_CC11_]
             ld   l, a
             ldi  a, [hl]
             bit  7, a
             jr   z, @ + 85
-            ld   a, [_RAM_CC47_]    ; _RAM_CC47_ = $CC47
+            ld   a, [_RAM_CC47_]
             bit  0, a
-            jp   z, $025D   ; Possibly invalid
+            jp   z, $025D
             res  0, a
-            ld   [_RAM_CC47_], a    ; _RAM_CC47_ = $CC47
-            ld   a, [_RAM_CC41_]    ; _RAM_CC41_ = $CC41
-            ld   [_RAM_CC11_], a    ; _RAM_CC11_ = $CC11
-            ld   a, [_RAM_CC40_]    ; _RAM_CC40_ = $CC40
-            ld   [_RAM_CC10_], a    ; _RAM_CC10_ = $CC10
-            ld   a, [_RAM_CC43_]    ; _RAM_CC43_ = $CC43
-            ld   [_RAM_CC12_], a    ; _RAM_CC12_ = $CC12
-            ld   a, [_RAM_CC44_]    ; _RAM_CC44_ = $CC44
+            ld   [_RAM_CC47_], a
+            ld   a, [_RAM_CC41_]
+            ld   [_RAM_CC11_], a
+            ld   a, [_RAM_CC40_]
+            ld   [_RAM_CC10_], a
+            ld   a, [_RAM_CC43_]
+            ld   [_RAM_CC12_], a
+            ld   a, [_RAM_CC44_]
             ld   [maybe_audio_cache_rAUD1SWEEP__RAM_CC13_], a   ; maybe_audio_cache_rAUD1SWEEP__RAM_CC13_ = $CC13
-            ld   a, [_RAM_CC45_]    ; _RAM_CC45_ = $CC45
+            ld   a, [_RAM_CC45_]
             ld   [maybe_audio_cache_rAUD1LEN__RAM_CC14_], a ; maybe_audio_cache_rAUD1LEN__RAM_CC14_ = $CC14
-            ld   a, [_RAM_CC48_]    ; _RAM_CC48_ = $CC48
-            ld   [_RAM_CC27_], a    ; _RAM_CC27_ = $CC27
-            ld   a, [_RAM_CC49_]    ; _RAM_CC49_ = $CC49
+            ld   a, [_RAM_CC48_]
+            ld   [_RAM_CC27_], a
+            ld   a, [_RAM_CC49_]
             ld   [maybe_audio_cache_rAUD1LOW__RAM_CC28_], a ; maybe_audio_cache_rAUD1LOW__RAM_CC28_ = $CC28
-            ld   a, [_RAM_CC46_]    ; _RAM_CC46_ = $CC46
+            ld   a, [_RAM_CC46_]
             ld   b, a
-            ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
+            ld   a, [_RAM_CC00_]
             and  $EE
             or   b
-            ld   [_RAM_CC00_], a    ; _RAM_CC00_ = $CC00
-            ld   a, [_RAM_CC42_]    ; _RAM_CC42_ = $CC42
-            ld   [_RAM_CC23_], a    ; _RAM_CC23_ = $CC23
-            ld   a, [_RAM_CC01_]    ; _RAM_CC01_ = $CC01
+            ld   [_RAM_CC00_], a
+            ld   a, [_RAM_CC42_]
+            ld   [_RAM_CC23_], a
+            ld   a, [_RAM_CC01_]
             res  4, a
-            ld   [_RAM_CC01_], a    ; _RAM_CC01_ = $CC01
+            ld   [_RAM_CC01_], a
             ret
-        
-            ld   [_RAM_CC23_], a    ; _RAM_CC23_ = $CC23
+
+            ld   [_RAM_CC23_], a
             ldi  a, [hl]
-            ld   [_RAM_CC2F_], a    ; _RAM_CC2F_ = $CC2F
+            ld   [_RAM_CC2F_], a
             ldi  a, [hl]
             ld   [maybe_audio_cache_rAUD1LEN__RAM_CC14_], a ; maybe_audio_cache_rAUD1LEN__RAM_CC14_ = $CC14
             ldi  a, [hl]
-            ld   [_RAM_CC27_], a    ; _RAM_CC27_ = $CC27
+            ld   [_RAM_CC27_], a
             ldi  a, [hl]
             ld   [maybe_audio_cache_rAUD1LOW__RAM_CC28_], a ; maybe_audio_cache_rAUD1LOW__RAM_CC28_ = $CC28
             ldi  a, [hl]
             ld   [maybe_audio_cache_rAUD1SWEEP__RAM_CC13_], a   ; maybe_audio_cache_rAUD1SWEEP__RAM_CC13_ = $CC13
             and  $80
             jr   z, @ + 12
-            ld   a, [_RAM_CC01_]    ; _RAM_CC01_ = $CC01
+            ld   a, [_RAM_CC01_]
             set  0, a
-            ld   [_RAM_CC01_], a    ; _RAM_CC01_ = $CC01
+            ld   [_RAM_CC01_], a
             jr   @ + 10
-        
-            ld   a, [_RAM_CC01_]    ; _RAM_CC01_ = $CC01
+
+            ld   a, [_RAM_CC01_]
             res  0, a
-            ld   [_RAM_CC01_], a    ; _RAM_CC01_ = $CC01
+            ld   [_RAM_CC01_], a
             ld   a, l
-            ld   [_RAM_CC11_], a    ; _RAM_CC11_ = $CC11
+            ld   [_RAM_CC11_], a
             ld   a, h
-            ld   [_RAM_CC10_], a    ; _RAM_CC10_ = $CC10
+            ld   [_RAM_CC10_], a
             ret
-        
+
             res  2, [hl]
-            ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
+            ld   a, [_RAM_CC00_]
             bit  0, a
             jr   nz, @ + 7
             bit  4, a
-            jp   z, $03EC   ; Possibly invalid
-            ld   a, [_RAM_CC23_]    ; _RAM_CC23_ = $CC23
+            jp   z, $03EC
+            ld   a, [_RAM_CC23_]
             dec  a
-            ld   [_RAM_CC23_], a    ; _RAM_CC23_ = $CC23
+            ld   [_RAM_CC23_], a
             jr   nz, @ + 111
-            call $022E  ; Possibly invalid
-            ld   a, [_RAM_CC02_]    ; _RAM_CC02_ = $CC02
+            call $022E
+            ld   a, [_RAM_CC02_]
             bit  0, a
-            jp   z, $03D9   ; Possibly invalid
+            jp   z, $03D9
             ld   a, [maybe_audio_cache_rAUD1SWEEP__RAM_CC13_]   ; maybe_audio_cache_rAUD1SWEEP__RAM_CC13_ = $CC13
             ldh  [rAUD1SWEEP], a
             ld   a, [maybe_audio_cache_rAUD1LEN__RAM_CC14_] ; maybe_audio_cache_rAUD1LEN__RAM_CC14_ = $CC14
@@ -514,8 +556,8 @@ bank_2_32k__RST__58_:
             ldh  [rAUD1LOW], a
             ld   a, $FF
             ldh  [rAUDVOL], a
-            ld   a, [_RAM_CC2F_]    ; _RAM_CC2F_ = $CC2F
-            ld   a, [_RAM_CC27_]    ; _RAM_CC27_ = $CC27
+            ld   a, [_RAM_CC2F_]
+            ld   a, [_RAM_CC27_]
             cp   $07
             jr   nz, @ + 13
             ld   a, [maybe_audio_cache_rAUD1LOW__RAM_CC28_] ; maybe_audio_cache_rAUD1LOW__RAM_CC28_ = $CC28
@@ -523,23 +565,23 @@ bank_2_32k__RST__58_:
             jr   nz, @ + 6
             ld   a, $80
             jr   @ + 4
-        
+
             ld   a, $0F
             ldh  [rAUD1ENV], a
-            ld   a, [_RAM_CC27_]    ; _RAM_CC27_ = $CC27
+            ld   a, [_RAM_CC27_]
             res  6, a
             set  7, a
             ld   b, a
-            ld   a, [_RAM_CC01_]    ; _RAM_CC01_ = $CC01
+            ld   a, [_RAM_CC01_]
             bit  0, a
             jr   z, @ + 7
             ld   a, b
             res  6, a
             jr   @ + 3
-        
+
             ld   a, b
             ld   b, a
-            ld   a, [_RAM_CC27_]    ; _RAM_CC27_ = $CC27
+            ld   a, [_RAM_CC27_]
             cp   $07
             jr   nz, @ + 16
             ld   a, [maybe_audio_cache_rAUD1LOW__RAM_CC28_] ; maybe_audio_cache_rAUD1LOW__RAM_CC28_ = $CC28
@@ -551,33 +593,33 @@ bank_2_32k__RST__58_:
             ldh  [rAUDENA], a
             ld   a, b
             ldh  [rAUD1HIGH], a
-            ld   a, [_RAM_CC02_]    ; _RAM_CC02_ = $CC02
+            ld   a, [_RAM_CC02_]
             res  0, a
-            ld   [_RAM_CC02_], a    ; _RAM_CC02_ = $CC02
-            ld   a, [_RAM_CC47_]    ; _RAM_CC47_ = $CC47
+            ld   [_RAM_CC02_], a
+            ld   a, [_RAM_CC47_]
             bit  0, a
             jr   z, @ + 14
-            ld   a, [_RAM_CC42_]    ; _RAM_CC42_ = $CC42
+            ld   a, [_RAM_CC42_]
             dec  a
-            ld   [_RAM_CC42_], a    ; _RAM_CC42_ = $CC42
+            ld   [_RAM_CC42_], a
             jr   nz, @ + 5
             call main_system_loop__15C_.check_app_games__1EA_
-            ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
+            ld   a, [_RAM_CC00_]
             bit  1, a
             jr   nz, @ + 6
             bit  5, a
             jr   z, @ + 2
-            ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
+            ld   a, [_RAM_CC00_]
             bit  2, a
             jr   nz, @ + 6
             bit  6, a
             jr   z, @ + 2
-            ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
+            ld   a, [_RAM_CC00_]
             bit  3, a
             jr   nz, @ + 6
             bit  7, a
             jr   z, @ + 2
-            ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
+            ld   a, [_RAM_CC00_]
             ldh  [rAUDTERM], a
             ld   a, $20
             ldh  [rP1], a
@@ -603,12 +645,12 @@ bank_2_32k__RST__58_:
             ld   [hl], b
             ld   [buttons_current__RAM_D007_], a    ; buttons_current__RAM_D007_ = $D007
             ret
-        
+
             di
             ld   hl, $0010
             res  7, h
             ld   a, $00
-            call switch_bank_in_a_jump_hl_RAM__C920_    ; Possibly invalid
+            call switch_bank_in_a_jump_hl_RAM__C920_
             ei
             xor  a
             ld   [_rombank_saved__C8D8_], a ; _rombank_saved__C8D8_ = $C8D8
@@ -616,21 +658,21 @@ bank_2_32k__RST__58_:
             ld   [_rombank_currrent__C8D7_], a  ; _rombank_currrent__C8D7_ = $C8D7
             ei
             ret
-        
-            call $0AF0  ; Possibly invalid
-            call $0B10  ; Possibly invalid
+
+            call $0AF0
+            call $0B10
             ld   a, $BE
             ld   b, $80
             sub  b
             ld   b, $10
-            call $292A  ; Possibly invalid
+            call $292A
             ld   hl, $8800
             add  hl, de
             ld   de, $2301
             ld   bc, $0010
             call memcopy_in_RAM__C900_  ; Code is loaded from _memcopy__7D3_
             ret
-        
+
             ld   c, $0E
             ld   hl, $9862
             ld   b, $10
@@ -654,20 +696,20 @@ bank_2_32k__RST__58_:
             dec  c
             jr   nz, @ - 25
             ret
-        
+
             push af
             push bc
             push de
             push hl
-            call $0AF0  ; Possibly invalid
+            call $0AF0
             ld   a, $00
-            call $0ABF  ; Possibly invalid
+            call $0ABF
             pop  hl
             pop  de
             pop  bc
             pop  af
             ret
-        
+
             ld   h, e
             ld   hl, $2264
             ld   h, l
@@ -723,18 +765,18 @@ bank_2_32k__RST__58_:
             cp   [hl]
             jr   nz, @ - 63
             ccf
-            jp   z, $CB2B   ; Possibly invalid
+            jp   z, $CB2B
             dec  l
-            call z, $CD2A   ; Possibly invalid
+            call z, $CD2A
             or   $CE
             dec  a
             ret  nc
             xor  b
             pop  de
             xor  l
-            jp   nc, $D35B  ; Possibly invalid
+            jp   nc, $D35B
             ld   e, l
-            call nc, $D5A7  ; Possibly invalid
+            call nc, $D5A7
             and  l
             sub  $41
             rst  $10    ; _RST_10_serial_io_send_command_and_buffer__0010_
@@ -742,11 +784,11 @@ bank_2_32k__RST__58_:
             ret  c
             ld   c, c
             reti
-        
+
             ld   c, a
-            jp   c, $DB55   ; Possibly invalid
+            jp   c, $DB55
             and  [hl]
-            call c, $DDA4   ; Possibly invalid
+            call c, $DDA4
             and  b
             sbc  $82
             rst  $18    ; _RST__18_
@@ -779,6 +821,7 @@ bank_2_32k__RST__58_:
 
 
 ; Set up a print request and load x,y from ROM vars
+; 32K Bank addr: $02:052B (16K Bank addr: $04:452B)
 print__start_loading_x_y_from_ram__maybe___ROM_32K_Bank2_052B_:
     ld   a, [_tilemap_pos_x__RAM_C8CB_]
     push af
@@ -786,100 +829,103 @@ print__start_loading_x_y_from_ram__maybe___ROM_32K_Bank2_052B_:
     push af
     call $053F
     pop  af
-    ld   [_tilemap_pos_y__RAM_C8CA_], a 
+    ld   [_tilemap_pos_y__RAM_C8CA_], a
     pop  af
-    ld   [_tilemap_pos_x__RAM_C8CB_], a 
+    ld   [_tilemap_pos_x__RAM_C8CB_], a
     ret
-       
+
 
 ; - Start X,Y expected on stack, two bytes each with lower byte garbage
 ; - Y (stack+2..3)
 ; - X (stack+4..5)
+; 32K Bank addr: $02:0535 (16K Bank addr: $04:4535)
 print_start__maybe___ROM_32K_Bank2_0535_:
             xor  a
-            ld   [_RAM_CC00_], a    ; _RAM_CC00_ = $CC00
-            call $01A2  ; Possibly invalid
-            ld   a, $09
-            ld   [serial_tx_data__RAM_D023_], a ; serial_tx_data__RAM_D023_ = $D023
-            call $0D28  ; Possibly invalid
-            call $0D62  ; Possibly invalid
-            ld   a, [serial_rx_data__RAM_D021_] ; serial_rx_data__RAM_D021_ = $D021
-            ld   [serial_cmd_0x09_reply_data__RAM_D2E4_], a ; serial_cmd_0x09_reply_data__RAM_D2E4_ = $D2E4
+            ld   [_RAM_CC00_], a  ; TODO: Possible a reply bugger for the print command?
+            call_FIX_32K_BANK_ADDR timer_wait_50msec_and_maybe_print_related__ROM_32K_Bank2_01A2_
+
+            ld   a, SYS_CMD_PRINT_OR_EXT_IO_MAYBE__0x09  ; $09
+            ld   [serial_tx_data__RAM_D023_], a
+            call $0D28
+            call $0D62
+            ld   a, [serial_rx_data__RAM_D021_]
+            ld   [serial_cmd_0x09_reply_data__RAM_D2E4_], a
             and  a
             ret  z
-            call $01A2  ; Possibly invalid
-            ld   a, $09
-            ld   [serial_tx_data__RAM_D023_], a ; serial_tx_data__RAM_D023_ = $D023
-            call $0D28  ; Possibly invalid
-            call $0D62  ; Possibly invalid
-            ld   a, [serial_rx_data__RAM_D021_] ; serial_rx_data__RAM_D021_ = $D021
-            ld   [serial_cmd_0x09_reply_data__RAM_D2E4_], a ; serial_cmd_0x09_reply_data__RAM_D2E4_ = $D2E4
+
+            call_FIX_32K_BANK_ADDR timer_wait_50msec_and_maybe_print_related__ROM_32K_Bank2_01A2_  ; call $01A2
+            ld   a, SYS_CMD_PRINT_OR_EXT_IO_MAYBE__0x09  ; $09
+            ld   [serial_tx_data__RAM_D023_], a
+            call $0D28
+            call $0D62
+            ld   a, [serial_rx_data__RAM_D021_]
+            ld   [serial_cmd_0x09_reply_data__RAM_D2E4_], a
             and  a
             ret  z
-            call $01A2  ; Possibly invalid
-            ld   a, $09
-            ld   [serial_tx_data__RAM_D023_], a ; serial_tx_data__RAM_D023_ = $D023
-            call $0D28  ; Possibly invalid
-            call $0D62  ; Possibly invalid
-            ld   a, [serial_rx_data__RAM_D021_] ; serial_rx_data__RAM_D021_ = $D021
-            ld   [serial_cmd_0x09_reply_data__RAM_D2E4_], a ; serial_cmd_0x09_reply_data__RAM_D2E4_ = $D2E4
+            call $01A2
+            ld   a, SYS_CMD_PRINT_OR_EXT_IO_MAYBE__0x09  ; $09
+            ld   [serial_tx_data__RAM_D023_], a
+            call $0D28
+            call $0D62
+            ld   a, [serial_rx_data__RAM_D021_]
+            ld   [serial_cmd_0x09_reply_data__RAM_D2E4_], a
             and  a
             ret  z
-            call $05BF  ; Possibly invalid
+            call $05BF
             ld   a, $01
-            ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
-            call $0887  ; Possibly invalid
+            ld   [_RAM_D1A7_], a
+            call $0887
             ld   a, $10
             ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
             ld   a, $00
-            ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
-            call $05CA  ; Possibly invalid
-            call $0887  ; Possibly invalid
-            ld   a, [serial_cmd_0x09_reply_data__RAM_D2E4_] ; serial_cmd_0x09_reply_data__RAM_D2E4_ = $D2E4
+            ld   [_RAM_D1A7_], a
+            call $05CA
+            call $0887
+            ld   a, [serial_cmd_0x09_reply_data__RAM_D2E4_]
             bit  1, a
             jr   nz, @ + 13
             ld   a, $01
-            ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
-            call $05CA  ; Possibly invalid
-            call $0887  ; Possibly invalid
+            ld   [_RAM_D1A7_], a
+            call $05CA
+            call $0887
             ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
             add  $08
             ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
             cp   $A0
             jr   nz, @ - 39
             ret
-        
+
             ld   c, $B6
-            ld   hl, _RAM_D20D_ + 1 ; _RAM_D20D_ + 1 = $D20E
+            ld   hl, _RAM_D20D_ + 1
             xor  a
             ldi  [hl], a
             dec  c
             jr   nz, @ - 2
             ret
-        
-            call $05BF  ; Possibly invalid
+
+            call $05BF
             ld   a, $08
             ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
             call _oam_dma_copy_wait_loop_7EA_
             ld   a, h
-            ld   [_RAM_D193_], a    ; _RAM_D193_ = $D193
+            ld   [_RAM_D193_], a
             ld   a, l
-            ld   [_RAM_D194_], a    ; _RAM_D194_ = $D194
+            ld   [_RAM_D194_], a
             ld   a, $04
             ld   [vbl_action_select__RAM_D195_], a  ; vbl_action_select__RAM_D195_ = $D195
             ei
             ld   a, [vbl_action_select__RAM_D195_]  ; vbl_action_select__RAM_D195_ = $D195
             and  a
             jr   nz, @ - 4
-            call $082E  ; Possibly invalid
+            call $082E
             ld   a, [_tilemap_pos_x__RAM_C8CB_] ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
             add  $08
             ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
             cp   $A8
             jr   c, @ - 36
-            call $05FC  ; Possibly invalid
+            call $05FC
             ret
-        
+
             ld   hl, shadow_oam_base__RAM_C800_ ; shadow_oam_base__RAM_C800_ = $C800
             push hl
             ldi  a, [hl]
@@ -892,7 +938,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             cp   $0F
             jr   nc, @ + 4
             jr   @ + 16
-        
+
             ld   d, a
             ldh  a, [rLCDC]
             bit  1, a
@@ -901,15 +947,15 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             sub  $08
             cp   $0F
             jr   nc, @ + 5
-            call $062F  ; Possibly invalid
+            call $062F
             pop  hl
             ld   a, $04
-            call $2945  ; Possibly invalid
+            call $2945
             ld   a, l
             cp   $A0
             jr   nz, @ - 45
             ret
-        
+
             ldi  a, [hl]
             and  a
             ret  z
@@ -923,18 +969,18 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             jr   nz, @ + 7
             ld   hl, $8000
             jr   @ + 7
-        
+
             ld   hl, $8800
             res  7, a
             push hl
             ld   b, $10
-            call $292A  ; Possibly invalid
+            call $292A
             pop  hl
             add  hl, de
             ld   a, h
-            ld   [_RAM_D193_], a    ; _RAM_D193_ = $D193
+            ld   [_RAM_D193_], a
             ld   a, l
-            ld   [_RAM_D194_], a    ; _RAM_D194_ = $D194
+            ld   [_RAM_D194_], a
             ld   a, $04
             ld   [vbl_action_select__RAM_D195_], a  ; vbl_action_select__RAM_D195_ = $D195
             ei
@@ -953,7 +999,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             sub  b
             sla  a
             jr   @ + 11
-        
+
             ld   d, a
             ld   a, b
             sub  d
@@ -962,14 +1008,14 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             ld   a, $00
             sub  b
             ld   b, a
-            call $0726  ; Possibly invalid
+            call $0726
             pop  hl
             dec  hl
             ld   a, [hl]
             ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
-            call $082E  ; Possibly invalid
+            call $082E
             ret
-        
+
             push bc
             inc  hl
             inc  hl
@@ -978,24 +1024,24 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             jr   z, @ + 21
             ld   b, $10
             ld   de, copy_buffer__RAM_DCF0_ ; copy_buffer__RAM_DCF0_ = $DCF0
-            call $0704  ; Possibly invalid
+            call $0704
             ld   a, [de]
             swap a
             ld   [de], a
-            call $0704  ; Possibly invalid
+            call $0704
             inc  de
             dec  b
             jr   nz, @ - 12
             ld   a, [hl]
             bit  6, a
-            jp   z, $06B8   ; Possibly invalid
+            jp   z, $06B8
             ld   b, $08
             ld   c, $0E
             ld   de, copy_buffer__RAM_DCF0_ ; copy_buffer__RAM_DCF0_ = $DCF0
-            call $06E7  ; Possibly invalid
+            call $06E7
             pop  bc
             ret
-        
+
             push bc
             inc  hl
             inc  hl
@@ -1004,32 +1050,32 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             jr   z, @ + 21
             ld   b, $20
             ld   de, $D2C4
-            call $0704  ; Possibly invalid
+            call $0704
             ld   a, [de]
             swap a
             ld   [de], a
-            call $0704  ; Possibly invalid
+            call $0704
             inc  de
             dec  b
             jr   nz, @ - 12
             ld   a, [hl]
             bit  6, a
-            jp   z, $06E5   ; Possibly invalid
+            jp   z, $06E5
             ld   b, $10
             ld   c, $1E
             ld   de, $D2C4
-            call $06E7  ; Possibly invalid
+            call $06E7
             pop  bc
             ret
-        
+
             ld   l, c
             ld   h, $00
             add  hl, de
             ld   a, [de]
-            ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
+            ld   [_RAM_D03A_], a
             ld   a, [hl]
             ld   [de], a
-            ld   a, [_RAM_D03A_]    ; _RAM_D03A_ = $D03A
+            ld   a, [_RAM_D03A_]
             ldi  [hl], a
             inc  de
             dec  b
@@ -1042,7 +1088,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             and  a
             jr   nz, @ - 26
             ret
-        
+
             push bc
             ld   a, [de]
             and  $09
@@ -1066,9 +1112,9 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             ld   [de], a
             pop  bc
             ret
-        
+
             bit  7, b
-            jp   nz, $0776  ; Possibly invalid
+            jp   nz, $0776
             ld   a, b
             and  a
             ret  z
@@ -1076,7 +1122,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             bit  1, a
             jr   z, @ + 46
             push bc
-            call $07A7  ; Possibly invalid
+            call $07A7
             ld   c, $10
             ld   de, copy_buffer__RAM_DCF0_ ; copy_buffer__RAM_DCF0_ = $DCF0
             xor  a
@@ -1094,7 +1140,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             ld   c, a
             ld   hl, $D2C4
             ld   a, b
-            call $2945  ; Possibly invalid
+            call $2945
             ld   de, copy_buffer__RAM_DCF0_ ; copy_buffer__RAM_DCF0_ = $DCF0
             ldi  a, [hl]
             ld   [de], a
@@ -1102,8 +1148,8 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             dec  c
             jr   nz, @ - 4
             ret
-        
-            call $068D  ; Possibly invalid
+
+            call $068D
             ld   c, $0F
             ld   hl, copy_buffer__RAM_DCF0_ ; copy_buffer__RAM_DCF0_ = $DCF0
             inc  hl
@@ -1116,121 +1162,6 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             dec  b
             jr   nz, @ - 16
             ret
-; db $00, $00
-; db $F3, $F5, $FA, $20, $D0, $C6, $05, $EA, $20, $D0, $F1, $FB, $D9, $F5, $C5, $D5
-; db $E5, $FA, $93, $D1, $67, $FA, $94, $D1, $6F, $FA, $95, $D1, $A7, $28, $3B, $FE
-; db $01, $20, $02, $18, $35, $FE, $02, $20, $02, $18, $2F, $FE, $03, $20, $05, $CD
-; db $F1, $28, $18, $26, $FE, $04, $20, $05, $CD, $FD, $28, $18, $1D, $FE, $05, $20
-; db $02, $18, $17, $FE, $06, $20, $00, $FE, $07, $20, $05, $CD, $F6, $28, $18, $0A
-; db $FE, $08, $C2, $BA, $00, $CD, $02, $29, $18, $00, $AF, $EA, $95, $D1, $CD, $80
-; db $FF, $E1, $D1, $C1, $F1, $C9, $F5, $FA, $20, $D0, $C6, $07, $EA, $20, $D0, $FA
-; db $00, $D0, $CB, $D7, $EA, $00, $D0, $F1, $C9, $F5, $F0, $01, $EA, $21, $D0, $3E
-; db $01, $EA, $22, $D0, $CD, $EF, $0B, $F1, $C9
-; ds 23, $00
-; db $F3, $CD, $93, $0B, $FA, $24, $D0, $CB, $47, $20, $F9, $21, $FC, $DB, $2A, $FE
-; db $AA, $20, $0C, $2A, $FE, $E4, $20, $07, $2A, $FE, $55, $20, $02, $18, $13, $AF
-; db $EA, $FB, $DB, $3E, $AA, $EA, $FC, $DB, $3E, $E4, $EA, $FD, $DB, $3E, $55, $EA
-; db $FE, $DB, $F3, $31, $00, $C4, $CD, $3E, $0B, $CD, $16, $09, $18, $00, $CD, $F0
-; db $0A, $CD, $10, $0B, $21, $00, $88, $11, $09, $11, $01, $00, $08, $CD, $00, $C9
-; db $3E, $80, $EA, $6C, $D0, $3E, $08, $EA, $6D, $D0, $CD, $4C, $29, $CD, $E5, $29
-; db $FA, $6E, $D0, $FE, $00, $20, $0A, $3E, $01, $EA, $A7, $D1, $CD, $04, $78, $18
-; db $CD, $FE, $01, $20, $0A, $3E, $02, $EA, $A7, $D1, $CD, $04, $78, $18, $BF, $FE
-; db $03, $20, $0D, $01, $FF, $00, $21, $00, $B0, $3E, $00, $CD, $81, $52, $18, $AE
-; db $FE, $05, $20, $05, $CD, $80, $35, $18, $A5, $FE, $06, $20, $A1, $CD, $2E, $55
-; db $18, $9C, $FB, $21, $00, $D0, $CB, $56, $C2, $55, $03, $18, $F6, $21, $00, $D0
-; db $CB, $56, $20, $02, $18, $F7, $CB, $96, $C3, $12, $04, $FA, $01, $CC, $CB, $C7
-; db $CB, $A7, $EA, $01, $CC, $7D, $EA, $11, $CC, $7C, $EA, $10, $CC, $3E, $8B, $EA
-; db $12, $CC, $3E, $00, $EA, $13, $CC, $3E, $C0, $EA, $14, $CC, $FA, $00, $CC, $F6
-; db $11, $EA, $00, $CC, $3E, $01, $EA, $23, $CC, $C9, $FA, $40, $CC, $67, $FA, $41
-; db $CC, $6F, $7E, $47, $23, $7C, $EA, $40, $CC, $7D, $EA, $41, $CC, $3E, $FF, $EA
-; db $48, $CC, $EA, $49, $CC, $CB, $78, $28, $17, $FA, $47, $CC, $CB, $87, $EA, $47
-; db $CC, $2B, $7D, $EA, $41, $CC, $7C, $EA, $40, $CC, $3E, $01, $EA, $42, $CC, $C9
-; db $7E, $EA, $42, $CC, $23, $7C, $EA, $40, $CC, $7D, $EA, $41, $CC, $C9, $FA, $02
-; db $CC, $F6, $01, $EA, $02, $CC, $FA, $01, $CC, $CB, $67, $28, $03, $C3, $BF, $02
-; db $FA, $10, $CC, $67, $FA, $11, $CC, $6F, $7E, $47, $23, $7C, $EA, $10, $CC, $7D
-; db $EA, $11, $CC, $FA, $12, $CC, $EA, $2F, $CC, $CB, $78, $28, $39, $3E, $FE, $A8
-; db $28, $26, $2B, $7D, $EA, $11, $CC, $7C, $EA, $10, $CC, $3E, $FF, $EA, $28, $CC
-; db $3E, $07, $EA, $27, $CC, $3E, $01, $EA, $23, $CC, $3E, $01, $EA, $2F, $CC, $FA
-; db $00, $CC, $E6, $EE, $EA, $00, $CC, $C9, $FA, $60, $CC, $EA, $10, $CC, $FA, $61
-; db $CC, $EA, $11, $CC, $18, $AA, $78, $87, $4F, $06, $00, $21, $A7, $0D, $09, $23
-; db $7E, $EA, $28, $CC, $2B, $7E, $EA, $27, $CC, $FA, $10, $CC, $67, $FA, $11, $CC
-; db $6F, $7E, $EA, $23, $CC, $23, $7C, $EA, $10, $CC, $7D, $EA, $11, $CC, $C9, $FA
-; db $10, $CC, $67, $FA, $11, $CC, $6F, $2A, $CB, $7F, $28, $53, $FA, $47, $CC, $CB
-; db $47, $CA, $5D, $02, $CB, $87, $EA, $47, $CC, $FA, $41, $CC, $EA, $11, $CC, $FA
-; db $40, $CC, $EA, $10, $CC, $FA, $43, $CC, $EA, $12, $CC, $FA, $44, $CC, $EA, $13
-; db $CC, $FA, $45, $CC, $EA, $14, $CC, $FA, $48, $CC, $EA, $27, $CC, $FA, $49, $CC
-; db $EA, $28, $CC, $FA, $46, $CC, $47, $FA, $00, $CC, $E6, $EE, $B0, $EA, $00, $CC
-; db $FA, $42, $CC, $EA, $23, $CC, $FA, $01, $CC, $CB, $A7, $EA, $01, $CC, $C9, $EA
-; db $23, $CC, $2A, $EA, $2F, $CC, $2A, $EA, $14, $CC, $2A, $EA, $27, $CC, $2A, $EA
-; db $28, $CC, $2A, $EA, $13, $CC, $E6, $80, $28, $0A, $FA, $01, $CC, $CB, $C7, $EA
-; db $01, $CC, $18, $08, $FA, $01, $CC, $CB, $87, $EA, $01, $CC, $7D, $EA, $11, $CC
-; db $7C, $EA, $10, $CC, $C9, $CB, $96, $FA, $00, $CC, $CB, $47, $20, $05, $CB, $67
-; db $CA, $EC, $03, $FA, $23, $CC, $3D, $EA, $23, $CC, $20, $6D, $CD, $2E, $02, $FA
-; db $02, $CC, $CB, $47, $CA, $D9, $03, $FA, $13, $CC, $E0, $20, $FA, $14, $CC, $E0
-; db $22, $FA, $28, $CC, $E0, $23, $3E, $FF, $E0, $44, $FA, $2F, $CC, $FA, $27, $CC
-; db $FE, $07, $20, $0B, $FA, $28, $CC, $FE, $FF, $20, $04, $3E, $80, $18, $02, $3E
-; db $0F, $E0, $21, $FA, $27, $CC, $CB, $B7, $CB, $FF, $47, $FA, $01, $CC, $CB, $47
-; db $28, $05, $78, $CB, $B7, $18, $01, $78, $47, $FA, $27, $CC, $FE, $07, $20, $0E
-; db $FA, $28, $CC, $FE, $FF, $20, $07, $AF, $E0, $45, $3E, $80, $E0, $45, $78, $E0
-; db $24, $FA, $02, $CC, $CB, $87, $EA, $02, $CC, $FA, $47, $CC, $CB, $47, $28, $0C
-; db $FA, $42, $CC, $3D, $EA, $42, $CC, $20, $03, $CD, $EA, $01, $FA, $00, $CC, $CB
-; db $4F, $20, $04, $CB, $6F, $28, $00, $FA, $00, $CC, $CB, $57, $20, $04, $CB, $77
-; db $28, $00, $FA, $00, $CC, $CB, $5F, $20, $04, $CB, $7F, $28, $00, $FA, $00, $CC
-; db $E0, $46, $3E, $20, $E0, $00, $F0, $00, $F0, $00, $F0, $00, $2F, $E6, $0F, $CB
-; db $37, $47, $3E, $10, $E0, $00, $F0, $00, $F0, $00, $F0, $00, $2F, $E6, $0F, $B0
-; db $47, $21, $06, $D0, $AE, $A0, $70, $EA, $07, $D0, $C9, $F3, $21, $10, $00, $CB
-; db $BC, $3E, $00, $CD, $20, $C9, $FB, $AF, $EA, $D8, $C8, $3E, $02, $EA, $D7, $C8
-; db $FB, $C9, $CD, $F0, $0A, $CD, $10, $0B, $3E, $BE, $06, $80, $90, $06, $10, $CD
-; db $2A, $29, $21, $00, $88, $19, $11, $01, $23, $01, $10, $00, $CD, $00, $C9, $C9
-; db $0E, $0E, $21, $62, $98, $06, $10, $1A, $22, $13, $05, $20, $FA, $7B, $C6, $30
-; db $5F, $7A, $CE, $00, $57, $7D, $C6, $10, $6F, $7C, $CE, $00, $67, $0D, $20, $E5
-; db $C9, $F5, $C5, $D5, $E5, $CD, $F0, $0A, $3E, $00, $CD, $BF, $0A, $E1, $D1, $C1
-; db $F1, $C9, $63, $21, $64, $22, $65, $FA, $66, $24, $67, $25, $68, $26, $69, $2F
-; db $6A, $28, $6B, $29, $6C, $5C, $6D, $60, $6E, $27, $6F, $2A, $70, $5E, $71, $23
-; db $72, $40, $73, $3A, $74, $2E, $75, $3B, $76, $3E, $77, $3C, $7D, $E1, $9B, $8E
-; db $9C, $99, $9D, $9A, $9E, $2C, $9F, $FA, $A0, $5F, $BB, $84, $BC, $94, $BD, $81
-; db $BE, $20, $BF, $3F, $CA, $2B, $CB, $2D, $CC, $2A, $CD, $F6, $CE, $3D, $D0, $A8
-; db $D1, $AD, $D2, $5B, $D3, $5D, $D4, $A7, $D5, $A5, $D6, $41, $D7, $90, $D8, $49
-; db $D9, $4F, $DA, $55, $DB, $A6, $DC, $A4, $DD, $A0, $DE, $82, $DF, $A1, $E0, $A2
-; db $E1, $A3, $01, $0A, $10, $14, $19, $1E, $23, $28, $2D, $32, $37, $3C, $41, $46
-; db $4B, $50, $55, $5A, $5F, $64, $69, $6E, $73, $78, $7F, $FA, $CB, $C8, $F5, $FA
-; db $CA, $C8, $F5, $CD, $3F, $05, $F1, $EA, $CA, $C8, $F1, $EA, $CB, $C8, $C9, $AF
-; db $EA, $00, $CC, $CD, $A2, $01, $3E, $09, $EA, $23, $D0, $CD, $28, $0D, $CD, $62
-; db $0D, $FA, $21, $D0, $EA, $E4, $D2, $A7, $C8, $CD, $A2, $01, $3E, $09, $EA, $23
-; db $D0, $CD, $28, $0D, $CD, $62, $0D, $FA, $21, $D0, $EA, $E4, $D2, $A7, $C8, $CD
-; db $A2, $01, $3E, $09, $EA, $23, $D0, $CD, $28, $0D, $CD, $62, $0D, $FA, $21, $D0
-; db $EA, $E4, $D2, $A7, $C8, $CD, $BF, $05, $3E, $01, $EA, $A7, $D1, $CD, $87, $08
-; db $3E, $10, $EA, $CA, $C8, $3E, $00, $EA, $A7, $D1, $CD, $CA, $05, $CD, $87, $08
-; db $FA, $E4, $D2, $CB, $4F, $20, $0B, $3E, $01, $EA, $A7, $D1, $CD, $CA, $05, $CD
-; db $87, $08, $FA, $CA, $C8, $C6, $08, $EA, $CA, $C8, $FE, $A0, $20, $D7, $C9, $0E
-; db $B6, $21, $0E, $D2, $AF, $22, $0D, $20, $FC, $C9, $CD, $BF, $05, $3E, $08, $EA
-; db $CB, $C8, $CD, $EA, $07, $7C, $EA, $93, $D1, $7D, $EA, $94, $D1, $3E, $04, $EA
-; db $95, $D1, $FB, $FA, $95, $D1, $A7, $20, $FA, $CD, $2E, $08, $FA, $CB, $C8, $C6
-; db $08, $EA, $CB, $C8, $FE, $A8, $38, $DA, $CD, $FC, $05, $C9, $21, $00, $C8, $E5
-; db $2A, $47, $FA, $CA, $C8, $90, $C6, $07, $CB, $7F, $20, $17, $FE, $0F, $30, $02
-; db $18, $0E, $57, $F0, $10, $CB, $4F, $28, $0A, $7A, $D6, $08, $FE, $0F, $30, $03
-; db $CD, $2F, $06, $E1, $3E, $04, $CD, $45, $29, $7D, $FE, $A0, $20, $D1, $C9, $2A
-; db $A7, $C8, $CB, $7F, $28, $03, $FE, $A8, $D0, $7E, $E5, $CB, $7F, $20, $05, $21
-; db $00, $80, $18, $05, $21, $00, $88, $CB, $BF, $E5, $06, $10, $CD, $2A, $29, $E1
-; db $19, $7C, $EA, $93, $D1, $7D, $EA, $94, $D1, $3E, $04, $EA, $95, $D1, $FB, $FA
-; db $95, $D1, $A7, $20, $FA, $E1, $E5, $2B, $2B, $2A, $47, $FA, $CA, $C8, $B8, $38
-; db $05, $90, $CB, $27, $18, $09, $57, $78, $92, $CB, $27, $47, $3E, $00, $90, $47
-; db $CD, $26, $07, $E1, $2B, $7E, $EA, $CB, $C8, $CD, $2E, $08, $C9, $C5, $23, $23
-; db $7E, $CB, $6F, $28, $13, $06, $10, $11, $F0, $DC, $CD, $04, $07, $1A, $CB, $37
-; db $12, $CD, $04, $07, $13, $05, $20, $F2, $7E, $CB, $77, $CA, $B8, $06, $06, $08
-; db $0E, $0E, $11, $F0, $DC, $CD, $E7, $06, $C1, $C9, $C5, $23, $23, $7E, $CB, $6F
-; db $28, $13, $06, $20, $11, $C4, $D2, $CD, $04, $07, $1A, $CB, $37, $12, $CD, $04
-; db $07, $13, $05, $20, $F2, $7E, $CB, $77, $CA, $E5, $06, $06, $10, $0E, $1E, $11
-; db $C4, $D2, $CD, $E7, $06, $C1, $C9, $69, $26, $00, $19, $1A, $EA, $3A, $D0, $7E
-; db $12, $FA, $3A, $D0, $22, $13, $05, $CB, $40, $20, $F0, $79, $D6, $04, $4F, $78
-; db $A7, $20, $E4, $C9, $C5, $1A, $E6, $09, $47, $28, $07, $FE, $09, $28, $03, $EE
-; db $09, $47, $1A, $E6, $06, $28, $06, $FE, $06, $28, $02, $EE, $06, $B0, $47, $1A
-; db $E6, $F0, $B0, $12, $C1, $C9, $CB, $78, $C2, $76, $07, $78, $A7, $C8, $F0, $10
-; db $CB, $4F, $28, $2C, $C5, $CD, $A7, $07, $0E, $10, $11, $F0, $DC, $AF, $12, $13
-; db $0D, $20, $FB, $C1, $0E, $10, $78, $FE, $11, $38, $04, $3E, $20, $90, $4F, $21
-; db $C4, $D2, $78, $CD, $45, $29, $11, $F0, $DC, $2A, $12, $13, $0D, $20, $FA, $C9
-; db $CD, $8D, $06, $0E, $0F, $21, $F0, $DC, $23, $3A, $22, $0D, $20, $FA, $AF, $EA
-; db $FF, $DC, $05, $20, $EE, $C9, 
 
 
 

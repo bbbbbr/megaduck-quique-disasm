@@ -85,7 +85,7 @@ DEF SYS_CMD_DONE_OR_OK_AND_SOMETHING EQU $81  ; TODO: Seen this as a keyboard po
 DEF SYS_CMD_ABORT_OR_FAIL         EQU $04  ; TODO: What does this do and why?
 DEF SYS_CMD_PLAYSPEECH            EQU $05  ; Play pre-recorded speech phrases (range 1-6, no audio enable required). Playback of one phrase can be interrupted by request for playback of another phrase
 DEF SYS_CMD_RUN_CART_IN_SLOT      EQU $08
-DEF SYS_CMD_INIT_UNKNOWN_0x09     EQU $09  ; May also be PrintScreen related
+DEF SYS_CMD_PRINT_OR_EXT_IO_MAYBE__0x09     EQU $09  ; May also be PrintScreen related
 DEF SYS_CMD_RTC_SET_DATE_AND_TIME EQU $0B  ; Sets Hardware RTC Date and Time using multi-byte buffer send/TX
 DEF SYS_CMD_RTC_GET_DATE_AND_TIME EQU $0C  ; Used in multi-byte buffer receive/RX
 
