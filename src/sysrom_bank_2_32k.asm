@@ -320,13 +320,14 @@ bank_2_32k__RST__58_:
 ; Destroys a, hl (maybe more in subsequent jump to 0355)
 ;
 ; 32K Bank addr: $02:01A2 (16K Bank addr: $04:41A2)
-timer_wait_50msec_and_maybe_print_related__ROM_32K_Bank2_01A2_:
+timer_wait_50msec_maybe_print_related__ROM_32K_Bank2_01A2_:
     ei
     .loop_wait_timer__1A3_:
         ld   hl, timer_flags__RAM_D000_
         bit  TIMER_FLAG__BIT_TICKED, [hl]  ; 2, [hl]
-        jp   nz, $0355  ; timer_20hz_tick_done__maybe_print_related_355_  ; $0355
+        BANK32K_ADDR  jp, nz, timer_20hz_tick_done__maybe_print_related__32k_Bank_2_0355_  ; jp   nz, $0355
         jr   .loop_wait_timer__1A3_
+
 
 ; Waits for a Timer tick to read the joypad & buttons
 ;
@@ -405,6 +406,7 @@ wait_timer_then_read_joypad_buttons__ROM_32K_Bank2_01AD_:
             ld   [_RAM_CC41_], a
             ret
 
+_LABEL__ROM_32K_Bank2_022E_:
             ld   a, [_RAM_CC02_]
             or   $01
             ld   [_RAM_CC02_], a
@@ -546,117 +548,154 @@ wait_timer_then_read_joypad_buttons__ROM_32K_Bank2_01AD_:
             ld   [_RAM_CC10_], a
             ret
 
-            res  2, [hl]
-            ld   a, [_RAM_CC00_]
-            bit  0, a
-            jr   nz, @ + 7
-            bit  4, a
-            jp   z, $03EC
-            ld   a, [_RAM_CC23_]
-            dec  a
-            ld   [_RAM_CC23_], a
-            jr   nz, @ + 111
-            call $022E
-            ld   a, [_RAM_CC02_]
-            bit  0, a
-            jp   z, $03D9
-            ld   a, [maybe_audio_cache_rAUD1SWEEP__RAM_CC13_]   ; maybe_audio_cache_rAUD1SWEEP__RAM_CC13_ = $CC13
-            ldh  [rAUD1SWEEP], a
-            ld   a, [maybe_audio_cache_rAUD1LEN__RAM_CC14_] ; maybe_audio_cache_rAUD1LEN__RAM_CC14_ = $CC14
-            ldh  [rAUD1LEN], a
-            ld   a, [maybe_audio_cache_rAUD1LOW__RAM_CC28_] ; maybe_audio_cache_rAUD1LOW__RAM_CC28_ = $CC28
-            ldh  [rAUD1LOW], a
-            ld   a, $FF
-            ldh  [rAUDVOL], a
-            ld   a, [_RAM_CC2F_]
-            ld   a, [_RAM_CC27_]
-            cp   $07
-            jr   nz, @ + 13
-            ld   a, [maybe_audio_cache_rAUD1LOW__RAM_CC28_] ; maybe_audio_cache_rAUD1LOW__RAM_CC28_ = $CC28
-            cp   $FF
-            jr   nz, @ + 6
-            ld   a, $80
-            jr   @ + 4
 
-            ld   a, $0F
-            ldh  [rAUD1ENV], a
-            ld   a, [_RAM_CC27_]
-            res  6, a
-            set  7, a
-            ld   b, a
-            ld   a, [_RAM_CC01_]
-            bit  0, a
-            jr   z, @ + 7
-            ld   a, b
-            res  6, a
-            jr   @ + 3
+; Clears Timer ticked flag...
+; TODO: probably audio driver related
+timer_20hz_tick_done__maybe_print_related__32k_Bank_2_0355_:
 
-            ld   a, b
-            ld   b, a
-            ld   a, [_RAM_CC27_]
-            cp   $07
-            jr   nz, @ + 16
-            ld   a, [maybe_audio_cache_rAUD1LOW__RAM_CC28_] ; maybe_audio_cache_rAUD1LOW__RAM_CC28_ = $CC28
-            cp   $FF
-            jr   nz, @ + 9
-            xor  a
-            ldh  [rAUDENA], a
-            ld   a, $80
-            ldh  [rAUDENA], a
-            ld   a, b
-            ldh  [rAUD1HIGH], a
-            ld   a, [_RAM_CC02_]
-            res  0, a
-            ld   [_RAM_CC02_], a
-            ld   a, [_RAM_CC47_]
-            bit  0, a
-            jr   z, @ + 14
-            ld   a, [_RAM_CC42_]
-            dec  a
-            ld   [_RAM_CC42_], a
-            jr   nz, @ + 5
-            call main_system_loop__15C_.check_app_games__1EA_
-            ld   a, [_RAM_CC00_]
-            bit  1, a
-            jr   nz, @ + 6
-            bit  5, a
-            jr   z, @ + 2
-            ld   a, [_RAM_CC00_]
-            bit  2, a
-            jr   nz, @ + 6
-            bit  6, a
-            jr   z, @ + 2
-            ld   a, [_RAM_CC00_]
-            bit  3, a
-            jr   nz, @ + 6
-            bit  7, a
-            jr   z, @ + 2
-            ld   a, [_RAM_CC00_]
-            ldh  [rAUDTERM], a
-            ld   a, $20
-            ldh  [rP1], a
-            ldh  a, [rP1]
-            ldh  a, [rP1]
-            ldh  a, [rP1]
-            cpl
-            and  $0F
-            swap a
-            ld   b, a
-            ld   a, $10
-            ldh  [rP1], a
-            ldh  a, [rP1]
-            ldh  a, [rP1]
-            ldh  a, [rP1]
-            cpl
-            and  $0F
-            or   b
-            ld   b, a
-            ld   hl, buttons_new_pressed__RAM_D006_ ; buttons_new_pressed__RAM_D006_ = $D006
-            xor  [hl]
-            and  b
-            ld   [hl], b
-            ld   [buttons_current__RAM_D007_], a    ; buttons_current__RAM_D007_ = $D007
-            ret
+    res  TIMER_FLAG__BIT_TICKED, [hl]  ; 2, [hl]
+    ld   a, [_RAM_CC00_]    ; _RAM_CC00_ = $CC00
+    bit  0, a
+    jr   nz, ._LABEL_32K_Bank_2_0363_
+    bit  4, a
+    BANK32K_ADDR  jp, z, ._LABEL_32K_Bank_2_03EC_
+
+    ._LABEL_32K_Bank_2_0363_:
+        ld   a, [_RAM_CC23_]
+        dec  a
+        ld   [_RAM_CC23_], a
+        jr   nz, ._LABEL_32K_Bank_2_03D9_
+
+        BANK32K_ADDR call, _LABEL__ROM_32K_Bank2_022E_
+        ld   a, [_RAM_CC02_]
+        bit  0, a
+        BANK32K_ADDR  jp, z, ._LABEL_32K_Bank_2_03D9_
+        ld   a, [maybe_audio_cache_rAUD1SWEEP__RAM_CC13_]
+        ldh  [rAUD1SWEEP], a
+        ld   a, [maybe_audio_cache_rAUD1LEN__RAM_CC14_]
+        ldh  [rAUD1LEN], a
+        ld   a, [maybe_audio_cache_rAUD1LOW__RAM_CC28_]
+        ldh  [rAUD1LOW], a
+        ld   a, (AUDVOL_VIN_LEFT | AUDVOL_VIN_RIGHT | AUDVOL_LEFT_MAX | AUDVOL_RIGHT_MAX)  ; $FF  ; Set rAUDVOL to both VIN = ON, Max Left/Right volume
+; SYNC
+        ldh  [rAUDVOL], a
+        ld   a, [_RAM_CC2F_]
+        ld   a, [_RAM_CC27_]
+        cp   $07
+        jr   nz, ._LABEL_32K_Bank_2_39F_
+        ld   a, [maybe_audio_cache_rAUD1LOW__RAM_CC28_]    ; maybe_audio_cache_rAUD1LOW__RAM_CC28_ = $CC28
+        cp   $FF
+        jr   nz, ._LABEL_32K_Bank_2_39F_
+        ld   a, $80
+        jr   ._LABEL_32K_Bank_2_03A1_
+
+    ._LABEL_32K_Bank_2_39F_:
+        ld   a, $0F
+    ._LABEL_32K_Bank_2_03A1_:
+        ldh  [rAUD1ENV], a
+        ld   a, [_RAM_CC27_]
+        res  6, a
+        set  7, a
+        ld   b, a
+        ld   a, [_RAM_CC01_]
+        bit  0, a
+        jr   z, ._LABEL_32K_Bank_2_03B7_
+        ld   a, b
+        res  6, a
+        jr   ._LABEL_32K_Bank_2_03B8_
+
+    ._LABEL_32K_Bank_2_03B7_:
+        ld   a, b
+    ._LABEL_32K_Bank_2_03B8_:
+        ld   b, a
+        ld   a, [_RAM_CC27_]
+        cp   $07
+        jr   nz, ._LABEL_32K_Bank_2_03CE_
+        ld   a, [maybe_audio_cache_rAUD1LOW__RAM_CC28_]    ; maybe_audio_cache_rAUD1LOW__RAM_CC28_ = $CC28
+        cp   $FF
+        jr   nz, ._LABEL_32K_Bank_2_03CE_
+
+        xor  a
+        ldh  [rAUDENA], a
+        ld   a, AUDENA_ON  ; $80
+        ldh  [rAUDENA], a
+    ._LABEL_32K_Bank_2_03CE_:
+        ld   a, b
+        ldh  [rAUD1HIGH], a
+        ld   a, [_RAM_CC02_]
+        res  0, a
+        ld   [_RAM_CC02_], a
+    ._LABEL_32K_Bank_2_03D9_:
+        ld   a, [_RAM_CC47_]
+        bit  0, a
+        jr   z, ._LABEL_32K_Bank_2_03EC_
+        ld   a, [_RAM_CC42_]
+        dec  a
+        ld   [_RAM_CC42_], a
+        jr   nz, ._LABEL_32K_Bank_2_03EC_
+    call main_system_loop__15C_.check_app_games__1EA_ ; TODO: Does this need fixing? (was $02D1 in Bank 0 version of the code)
+    ._LABEL_32K_Bank_2_03EC_:
+        ld   a, [_RAM_CC00_]
+        bit  1, a
+        jr   nz, ._LABEL_32K_Bank_2_03F7_
+        bit  5, a
+        jr   z, ._LABEL_32K_Bank_2_03F7_
+    ._LABEL_32K_Bank_2_03F7_:
+        ld   a, [_RAM_CC00_]
+        bit  2, a
+        jr   nz, ._LABEL_32K_Bank_2_0402_
+        bit  6, a
+        jr   z, ._LABEL_32K_Bank_2_0402_
+    ._LABEL_32K_Bank_2_0402_:
+        ld   a, [_RAM_CC00_]
+        bit  3, a
+        jr   nz, ._LABEL_32K_Bank_2_040D_
+        bit  7, a
+        jr   z, ._LABEL_32K_Bank_2_040D_
+    ._LABEL_32K_Bank_2_040D_:
+        ld   a, [_RAM_CC00_]
+        ldh  [rAUDTERM], a
+
+
+
+; Read D-Pad and Buttons
+;
+; - D-Pad: Upper nibble
+; - Buttons: Lower nibble
+;
+; - Newly pressed buttons saved to: buttons_new_pressed__RAM_D006_
+; - current pressed buttons saved to: buttons_current__RAM_D007_
+joypad_and_buttons_read__32K_Bank_2_0412_:
+    ; Read D-Pad
+    ld   a, P1F_GET_DPAD  ; $20
+    ldh  [rP1], a
+    ldh  a, [rP1]
+    ldh  a, [rP1]
+    ldh  a, [rP1]
+    cpl
+    and  $0F
+    swap a
+    ld   b, a
+    ; Read Buttons
+    ld   a, P1F_GET_BTN  ; $10
+    ldh  [rP1], a
+    ldh  a, [rP1]
+    ldh  a, [rP1]
+    ldh  a, [rP1]
+    cpl
+    and  $0F
+    ; Merge D-Pad and Buttons (active High)
+    or   b
+    ld   b, a
+    ; Determine newly pressed buttons and save result
+    ld   hl, buttons_new_pressed__RAM_D006_
+    xor  [hl]
+    and  b
+    ld   [hl], b
+    ; Save currently pressed buttons as well
+    ld   [buttons_current__RAM_D007_], a
+    ret
+
 
             di
             ld   hl, $0010
@@ -839,7 +878,7 @@ print__start_loading_x_y_from_ram__maybe___ROM_32K_Bank2_052B_:
     push af
     ld   a, [_tilemap_pos_y__RAM_C8CA_]
     push af
-    call $053F
+    BANK32K_ADDR  call, print_start__maybe___ROM_32K_Bank2_0535_  ; call $053F
     pop  af
     ld   [_tilemap_pos_y__RAM_C8CA_], a
     pop  af
@@ -854,52 +893,66 @@ print__start_loading_x_y_from_ram__maybe___ROM_32K_Bank2_052B_:
 print_start__maybe___ROM_32K_Bank2_0535_:
             xor  a
             ld   [_RAM_CC00_], a  ; TODO: Possible a reply bugger for the print command?
-            BANK32K_ADDR  call, timer_wait_50msec_and_maybe_print_related__ROM_32K_Bank2_01A2_
+            BANK32K_ADDR  call, timer_wait_50msec_maybe_print_related__ROM_32K_Bank2_01A2_
 
+            ; Send Print (or Ext IO) command maybe
             ld   a, SYS_CMD_PRINT_OR_EXT_IO_MAYBE__0x09  ; $09
             ld   [serial_tx_data__RAM_D023_], a
-            call $0D28
-            call $0D62
+            BANK32K_ADDR  call, serial_io_send_byte__32K_Bank_2_0D28_  ; call $0D28
+            BANK32K_ADDR  call, serial_io_wait_receive_timeout_200msec__32K_Bank_2_0D62_  ; call $0D62
             ld   a, [serial_rx_data__RAM_D021_]
             ld   [serial_cmd_0x09_reply_data__RAM_D2E4_], a
+            ; Fail if reply was zero
             and  a
             ret  z
 
-            BANK32K_ADDR  call, timer_wait_50msec_and_maybe_print_related__ROM_32K_Bank2_01A2_  ; call $01A2
+            ; @ 32K_Bank_2_0559
+            ; Send Print (or Ext IO) command maybe (second time, same as above)
+            BANK32K_ADDR  call, timer_wait_50msec_maybe_print_related__ROM_32K_Bank2_01A2_  ; call $01A2
             ld   a, SYS_CMD_PRINT_OR_EXT_IO_MAYBE__0x09  ; $09
             ld   [serial_tx_data__RAM_D023_], a
-            call $0D28
-            call $0D62
+            BANK32K_ADDR  call, serial_io_send_byte__32K_Bank_2_0D28_  ; call $0D28
+            BANK32K_ADDR  call, serial_io_wait_receive_timeout_200msec__32K_Bank_2_0D62_  ; call $0D62
             ld   a, [serial_rx_data__RAM_D021_]
             ld   [serial_cmd_0x09_reply_data__RAM_D2E4_], a
+            ; Fail if reply was zero
             and  a
             ret  z
+
+            ; @ 32K_Bank_2_056F
+            ; Send Print (or Ext IO) command maybe (second time, same as above)
             call $01A2
             ld   a, SYS_CMD_PRINT_OR_EXT_IO_MAYBE__0x09  ; $09
             ld   [serial_tx_data__RAM_D023_], a
-            call $0D28
-            call $0D62
+            BANK32K_ADDR  call, serial_io_send_byte__32K_Bank_2_0D28_  ; call $0D28
+            BANK32K_ADDR  call, serial_io_wait_receive_timeout_200msec__32K_Bank_2_0D62_  ; call $0D62
             ld   a, [serial_rx_data__RAM_D021_]
             ld   [serial_cmd_0x09_reply_data__RAM_D2E4_], a
+            ; Fail if reply was zero
             and  a
             ret  z
-            call $05BF
+
+            ; @ 32K_Bank_2_0585
+            BANK32K_ADDR  call, .clear_ram_buffer__not_yet_known___ROM_32K_Bank2_05Bf_  ; call $05BF
             ld   a, $01
             ld   [_RAM_D1A7_], a
-            call $0887
+            BANK32K_ADDR  call, not_yet_known___ROM_32K_Bank2_0887_  ; call $0887
+
             ld   a, $10
             ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
             ld   a, $00
             ld   [_RAM_D1A7_], a
             call $05CA
-            call $0887
+            BANK32K_ADDR  call, not_yet_known___ROM_32K_Bank2_0887_  ; call $0887
+
             ld   a, [serial_cmd_0x09_reply_data__RAM_D2E4_]
             bit  1, a
             jr   nz, @ + 13
             ld   a, $01
             ld   [_RAM_D1A7_], a
             call $05CA
-            call $0887
+            BANK32K_ADDR  call, not_yet_known___ROM_32K_Bank2_0887_  ; call $0887
+
             ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
             add  $08
             ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
@@ -907,15 +960,19 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             jr   nz, @ - 39
             ret
 
-            ld   c, $B6
+        ; Clears a ram buffer of 182 bytes
+        .clear_ram_buffer__not_yet_known___ROM_32K_Bank2_05Bf_
+            ld   c, 182  ; $B6  
             ld   hl, _RAM_D20D_ + 1
             xor  a
-            ldi  [hl], a
-            dec  c
-            jr   nz, @ - 2
+            .clear_buffer_loop
+                ldi  [hl], a
+                dec  c
+                jr   nz, .clear_buffer_loop  ; @ - 2
             ret
 
-            call $05BF
+        .not_yet_known___ROM_32K_Bank2_05CA_
+            BANK32K_ADDR  call, .clear_ram_buffer__not_yet_known___ROM_32K_Bank2_05Bf_  ; call $05BF
             ld   a, $08
             ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
             call _oam_dma_copy_wait_loop_7EA_
@@ -938,6 +995,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             call $05FC
             ret
 
+        .not_yet_known___ROM_32K_Bank2_05FC_
             ld   hl, shadow_oam_base__RAM_C800_ ; shadow_oam_base__RAM_C800_ = $C800
             push hl
             ldi  a, [hl]
@@ -951,6 +1009,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             jr   nc, @ + 4
             jr   @ + 16
 
+        .not_yet_known___ROM_32K_Bank2_0612_
             ld   d, a
             ldh  a, [rLCDC]
             bit  1, a
@@ -968,6 +1027,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             jr   nz, @ - 45
             ret
 
+        .not_yet_known___ROM_32K_Bank2_062F_
             ldi  a, [hl]
             and  a
             ret  z
@@ -982,6 +1042,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             ld   hl, $8000
             jr   @ + 7
 
+        .not_yet_known___ROM_32K_Bank2_0644_
             ld   hl, $8800
             res  7, a
             push hl
@@ -1012,6 +1073,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             sla  a
             jr   @ + 11
 
+        .not_yet_known___ROM_32K_Bank2_0676_
             ld   d, a
             ld   a, b
             sub  d
@@ -1028,6 +1090,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             call $082E
             ret
 
+        .not_yet_known___ROM_32K_Bank2_068D_
             push bc
             inc  hl
             inc  hl
@@ -1054,6 +1117,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             pop  bc
             ret
 
+        .not_yet_known___ROM_32K_Bank2_06BA_
             push bc
             inc  hl
             inc  hl
@@ -1080,6 +1144,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             pop  bc
             ret
 
+        .not_yet_known___ROM_32K_Bank2_06E7_
             ld   l, c
             ld   h, $00
             add  hl, de
@@ -1101,6 +1166,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             jr   nz, @ - 26
             ret
 
+        .not_yet_known___ROM_32K_Bank2_0704_
             push bc
             ld   a, [de]
             and  $09
@@ -1125,6 +1191,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             pop  bc
             ret
 
+        .not_yet_known___ROM_32K_Bank2_0726_
             bit  7, b
             jp   nz, $0776
             ld   a, b
@@ -1161,6 +1228,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             jr   nz, @ - 4
             ret
 
+        .not_yet_known___ROM_32K_Bank2_0760_
             call $068D
             ld   c, $0F
             ld   hl, copy_buffer__RAM_DCF0_ ; copy_buffer__RAM_DCF0_ = $DCF0
@@ -1177,6 +1245,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
 
 
     ; 32K Bank addr: $02:0776 (16K Bank addr: $04:4776)
+        .not_yet_known___ROM_32K_Bank2_0776_
             push bc
             ldh  a, [rLCDC]
             bit  1, a
@@ -1184,6 +1253,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             call $68D  ; _LABEL_68D_
             jr   @ + 19
 
+        .not_yet_known___ROM_32K_Bank2_0782_
             call $07A7
             ld   hl, copy_buffer__RAM_DCF0_ ; copy_buffer__RAM_DCF0_ = $DCF0
             ld   de, $D2C4
@@ -1207,6 +1277,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             jr   nz, @ - 16
             ret
 
+        .not_yet_known___ROM_32K_Bank2_07A7_
             push hl
             ld   c, $10
             ld   hl, $D2C4
@@ -1244,6 +1315,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             call $06BA
             ret
 
+        .not_yet_known___ROM_32K_Bank2_07EA_
             ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
             srl  a
             srl  a
@@ -1254,9 +1326,6 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             ld   a, [_tilemap_pos_x__RAM_C8CB_] ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
             srl  a
             srl  a
-
-
-    ; 32K Bank addr: $02:0800 (16K Bank addr: $04:4800)
             srl  a
             dec  a
             add  e
@@ -1282,6 +1351,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             add  hl, de
             ret
 
+        .not_yet_known___ROM_32K_Bank2_082E_
             ld   a, [_tilemap_pos_x__RAM_C8CB_] ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
             ld   hl, _RAM_D20D_ + 1 ; _RAM_D20D_ + 1 = $D20E
             call $2945  ; _LABEL_2945_
@@ -1291,6 +1361,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             ld   de, copy_buffer__RAM_DCF0_ + 1 ; copy_buffer__RAM_DCF0_ + 1 = $DCF1
             jr   @ + 5
 
+        .not_yet_known___ROM_32K_Bank2_0843_
             ld   de, copy_buffer__RAM_DCF0_ ; copy_buffer__RAM_DCF0_ = $DCF0
             ld   b, $80
             ld   a, $08
@@ -1310,6 +1381,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             jr   z, @ + 20
             jr   @ + 15
 
+        .not_yet_known___ROM_32K_Bank2_0863_
             ld   a, [serial_cmd_0x09_reply_data__RAM_D2E4_] ; serial_cmd_0x09_reply_data__RAM_D2E4_ = $D2E4
             bit  1, a
             jr   z, @ + 8
@@ -1334,6 +1406,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             jr   nz, @ - 60
             ret
 
+        not_yet_known___ROM_32K_Bank2_0887_:
             ld   hl, $D216
             call $08FD
             ld   a, $11
@@ -1363,10 +1436,11 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             dec  b
             jr   nz, @ - 15
             BANK32K_ADDR  call, delay_1_msec__32K_Bank_2_0D9A_  ; call $D9A  ; _LABEL_D9A_
-            call $0D62
-            call $0D62
+            BANK32K_ADDR  call, serial_io_wait_receive_timeout_200msec__32K_Bank_2_0D62_  ; call $0D62
+            BANK32K_ADDR  call, serial_io_wait_receive_timeout_200msec__32K_Bank_2_0D62_  ; call $0D62
             ret
 
+        .not_yet_known___ROM_32K_Bank2_08CB_
             ld   b, $0C
             push bc
             call $08FD
@@ -1387,14 +1461,16 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             ld   a, $06
             ld   [serial_transfer_length__RAM_D034_], a ; serial_transfer_length__RAM_D034_ = $D034
             call $0906
-            call $0D62
+            BANK32K_ADDR  call, serial_io_wait_receive_timeout_200msec__32K_Bank_2_0D62_  ; call $0D62
             ret
 
+        .not_yet_known___ROM_32K_Bank2_08FD_
             ld   b, $0C
             ld   de, buffer__RAM_D028_  ; buffer__RAM_D028_ = $D028
             call $2902  ; _LABEL_2902_
             ret
 
+        .not_yet_known___ROM_32K_Bank2_0906_
             push hl
             call $0BF8
             BANK32K_ADDR  call, delay_1_msec__32K_Bank_2_0D9A_  ; call $D9A  ; _LABEL_D9A_
@@ -1404,6 +1480,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             pop  hl
             ret
 
+        .not_yet_known___ROM_32K_Bank2_090D_
             ld   a, $00
             ld   [_rombank_currrent__C8D7_], a  ; _rombank_currrent__C8D7_ = $C8D7
             ldh  [rLCDC], a
@@ -1463,6 +1540,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             jr   nz, @ - 2
             ret
 
+        .not_yet_known___ROM_32K_Bank2_098E_
             ld   b, $20
             ld   a, [de]
             ldi  [hl], a
@@ -1471,6 +1549,7 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             jr   nz, @ - 4
             ret
 
+        .not_yet_known___ROM_32K_Bank2_0997_
             ld   a, [de]
             ldi  [hl], a
             inc  de
