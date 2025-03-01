@@ -87,16 +87,16 @@ clock_app_init__54AE_::
         xor  a
         ld   [_maybe_rtc_and_serial_reply_fail__RAM_D068_], a
         ld   [_RAM_D03B_], a
-        ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
+        ld   [print_serial_etc_something__RAM_D1A7_], a    ; print_serial_etc_something__RAM_D1A7_ = $D1A7
 
     ._LABEL_5549_:
-        ld   a, [_RAM_D1A7_]    ; _RAM_D1A7_ = $D1A7
+        ld   a, [print_serial_etc_something__RAM_D1A7_]    ; print_serial_etc_something__RAM_D1A7_ = $D1A7
         inc  a
-        ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
+        ld   [print_serial_etc_something__RAM_D1A7_], a    ; print_serial_etc_something__RAM_D1A7_ = $D1A7
         cp   $04
         jr   nz, ._LABEL_557B_
         xor  a
-        ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
+        ld   [print_serial_etc_something__RAM_D1A7_], a    ; print_serial_etc_something__RAM_D1A7_ = $D1A7
 
         ; TODO: Maybe Read Hardware RTC and then ...
         ld   a, SYS_CMD_RTC_GET_DATE_AND_TIME  ; $0C
@@ -759,7 +759,7 @@ rtc_set_to_new_date_and_time___5987_:
         di
         ld   b, SYS_RTC_SET_DATE_AND_TIME_LEN  ; $08
         ld   hl, shadow_rtc_buf_start_and_year__RAM_D051_
-        ld   de, buffer__RAM_D028_
+        ld   de, serial_buffer__RAM_D028_
         call memcopy_b_bytes_from_hl_to_de__482B_
         ld   a, SYS_CMD_RTC_SET_DATE_AND_TIME  ; $0B
         ld   [serial_cmd_to_send__RAM_D035_], a
@@ -1446,12 +1446,12 @@ _LABEL_5D3E_:
 memcopy_8_bytes_from_serial_rx_RAM_D028_to_shadow_rtc_RAM_D051__5D50_:
     call _LABEL_5D3E_
     ld   b, $08
-    ld   hl, buffer__RAM_D028_
+    ld   hl, serial_buffer__RAM_D028_
     ld   de, shadow_rtc_buf_start_and_year__RAM_D051_
     call memcopy_b_bytes_from_hl_to_de__482B_
     ret
 
-; TODO: compares buffers at buffer__RAM_D028_ and shadow_rtc_buf_start_and_year__RAM_D051_
+; TODO: compares buffers at serial_buffer__RAM_D028_ and shadow_rtc_buf_start_and_year__RAM_D051_
 ; - Wherever they don't match:
 ;   -  ..D028 is copied into ...D051
 ;   - _RAM_D03A_ is set to 0x01
@@ -1460,7 +1460,7 @@ _LABEL_5D5F_:
     xor  a
     ld   [_RAM_D03A_], a
     ld   b, $08
-    ld   hl, buffer__RAM_D028_
+    ld   hl, serial_buffer__RAM_D028_
     ld   de, shadow_rtc_buf_start_and_year__RAM_D051_
 
     .loop_compare_buffers__5D6E_:

@@ -106,7 +106,7 @@ serial_int_disable__A2B_:
 ; Sends a command and a trailing multi-byte buffer over Serial IO
 ;
 ; - Serial command to send before the buffer: serial_cmd_to_send__RAM_D035_
-; - Send buffer: buffer__RAM_D028_
+; - Send buffer: serial_buffer__RAM_D028_
 ; - Length:       serial_transfer_length__RAM_D034_
 ;
 ; Destroys A, BC, HL
@@ -168,7 +168,7 @@ serial_io_send_command_and_buffer__A34_:
 
         ; Send the contents of RAM Buffer
         ; Number of bytes to send in: B
-        ld   hl, buffer__RAM_D028_
+        ld   hl, serial_buffer__RAM_D028_
         .serial_send_buffer_loop__A8B_:
             ; Prep next data to send, update checksum
             ; then wait for reply from previous send with timeout
@@ -246,7 +246,7 @@ serial_io_send_command_and_buffer__A34_:
 ; Sends a command and then receives a multi-byte buffer over Serial IO
 ;
 ; - Serial command to send before the buffer: serial_rx_cmd_to_send__RAM_D036_
-; - Receive buffer: buffer__RAM_D028_
+; - Receive buffer: serial_buffer__RAM_D028_
 ; - Length of serial transfer: Determined by sender
 ;
 ; Destroys A, BC, D, HL
@@ -293,7 +293,7 @@ serial_io_send_command_and_receive_buffer__AEF_:
         dec  a
         ld   [serial_transfer_length__RAM_D034_], a
         ld   b, a
-        ld   hl, buffer__RAM_D028_
+        ld   hl, serial_buffer__RAM_D028_
 
         ; Number of bytes to receive in B
         .serial_receive_buffer_loop__B28_:

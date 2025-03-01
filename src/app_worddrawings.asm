@@ -438,7 +438,7 @@ _LABEL_615A_:
     inc  hl
     call switch_bank_read_byte_at_hl_RAM__C980_
     ld   a, [_rombank_readbyte_result__D6E7_]
-    ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
+    ld   [print_serial_etc_something__RAM_D1A7_], a    ; print_serial_etc_something__RAM_D1A7_ = $D1A7
     call multiply_a_x_b__result_in_de__4853_
     push de
     pop  bc
@@ -453,7 +453,7 @@ _LABEL_615A_:
     sub  b
     srl  a
     ld   b, a
-    ld   a, [_RAM_D1A7_]    ; _RAM_D1A7_ = $D1A7
+    ld   a, [print_serial_etc_something__RAM_D1A7_]    ; print_serial_etc_something__RAM_D1A7_ = $D1A7
     ld   c, a
     ld   a, $0F
     sub  c
@@ -486,9 +486,9 @@ _LABEL_61B8_:
     ld   a, $20
     sub  b
     call add_a_to_hl__486E_
-    ld   a, [_RAM_D1A7_]    ; _RAM_D1A7_ = $D1A7
+    ld   a, [print_serial_etc_something__RAM_D1A7_]    ; print_serial_etc_something__RAM_D1A7_ = $D1A7
     dec  a
-    ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
+    ld   [print_serial_etc_something__RAM_D1A7_], a    ; print_serial_etc_something__RAM_D1A7_ = $D1A7
     jr   nz, _LABEL_61B4_
     ldh  a, [rLCDC]
     or   $80

@@ -432,9 +432,9 @@ ENDC
 ;
 ; - Dates after Y2K Are not supported by the default System ROM
 rtc_set_default_time_and_date__25E_:
-    ; Uses RAM starting at buffer__RAM_D028_ for a multi-send serial buffer
+    ; Uses RAM starting at serial_buffer__RAM_D028_ for a multi-send serial buffer
     ; Sends 8 Bytes: 0x94, 0x01, 0x01, 0x06, 0x00, 0x00, 0x00, 0x00
-    ld   hl, buffer__RAM_D028_
+    ld   hl, serial_buffer__RAM_D028_
     ld   a, $94
     ldi  [hl], a    ; 00: Year   : 94 (Year = 1900 + Date Byte in BCD 0x94) `Quique Sys Range: 0x92 - 0x11` (1992 - 2011)
     ld   a, $1
@@ -1157,7 +1157,7 @@ vram_init__752_:
     ENDC
     ldh  [rLCDC], a  ; clear all LCDC bits
 
-        ld   hl, _TILEDATA8000  ; $8000
+    ld   hl, _TILEDATA8000  ; $8000
     _loop_clear_vram_all_tile_patterns__75C_:
         xor  a
         ldi  [hl], a

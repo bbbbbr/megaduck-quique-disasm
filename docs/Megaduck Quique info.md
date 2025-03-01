@@ -163,6 +163,43 @@ Keyboard serial reply scan codes have different ordering than SYS_CHAR_* codes
   - 6. "Oooh, schade" (ohh, what a pity)
 
 ## Printing
+WIP:
+- print_start__maybe___ROM_32K_Bank2_0535_
+  - Wait `50 msec`
+  - Repeat **3 times**:
+    - Send single byte command: `0x09`
+      - Wait `200 msec` for a reply
+        - Check reply byte: **Fail if zero**
+        - Save reply byte to `serial_cmd_0x09_reply_data__RAM_D2E4_`
+  - Clear a `182` byte RAM buffer
+  - not_yet_known___ROM_32K_Bank2_0887_
+    - Copy 12 bytes from (previously zeroed) source buffer to transfer buffer
+      - memcopy_12_bytes_from_hl_to_serial_buffer_RAM_D028____ROM_32K_Bank2_08FD_
+    - Send command and buffer: `0x11` with `12` bytes
+      - print_send_command_and_buffer_until_valid_reply__ROM_32K_Bank2_0906_
+      - Check reply byte
+        - Repeat send until: **Success (0xFC)**
+    - Check `Bit 1` of `serial_cmd_0x09_reply_data__RAM_D2E4_`
+      - If **set/non-zero**
+        - Repeat 3 times:
+          - Copy 12 bytes from (previously zeroed) source buffer to transfer buffer
+            - memcopy_12_bytes_from_hl_to_serial_buffer_RAM_D028____ROM_32K_Bank2_08FD_
+          - Send command and buffer: `0x11` with `12` bytes
+            - print_send_command_and_buffer_until_valid_reply__ROM_32K_Bank2_0906_
+            - Check reply byte
+              - Repeat send until: **Success (0xFC)**
+        - Send `118` bytes from (mostly-previously zeroed) buffer:
+          - Wait to receive 1 byte with timeout
+            - serial_io_wait_receive_with_timeout__32K_Bank_2_0D53_
+          - Send buffer byte
+            - serial_io_send_byte__32K_Bank_2_0D28_
+          - increment buffer index
+        - Wait `1 msec`
+        - Repeat 2x
+          - Wait to receive byte with `200 msec` timeout
+        - exit subroutine
+      - If **zero**
+        - ... TODO ...
 
 ## Bank switching
 Laptop model System ROM MBC (CEFA Super Quique, Hartung Super Junior Computer)

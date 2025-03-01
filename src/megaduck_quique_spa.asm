@@ -89,6 +89,9 @@ DEF SYS_CMD_PRINT_OR_EXT_IO_MAYBE__0x09     EQU $09  ; May also be PrintScreen r
 DEF SYS_CMD_RTC_SET_DATE_AND_TIME EQU $0B  ; Sets Hardware RTC Date and Time using multi-byte buffer send/TX
 DEF SYS_CMD_RTC_GET_DATE_AND_TIME EQU $0C  ; Used in multi-byte buffer receive/RX
 
+; DEF SYS_CMD_UNKNOWN_0x0D__MAYBE_PRINT_RELATED  EQU $0D  ; May be PrintScreen related
+DEF SYS_CMD_UNKNOWN_0x11__MAYBE_PRINT_RELATED  EQU $11  ; May be PrintScreen related
+
 DEF SYS_REPLY_BUFFER_SEND_AND_CHECKSUM_OK             EQU $01
 DEF SYS_REPLY_BOOT_OK             EQU $01  ; Reply on startup that allows rest of code to proceed
 DEF SYS_REPLY_READ_FAIL_MAYBE     EQU $00
@@ -103,6 +106,9 @@ DEF SYS_REPLY_MAYBE_KBD_START     EQU $0E  ; Maybe 0x0E ... why 0x04 when logged
 DEF SYS_CMD_SERIAL_SEND_BUF_MAX_LEN_PLUS_1 EQU 13
 
 ; TODO: ^^^ This is definitely 0x04 coming over the line in the GBDK C implementation
+
+; DEF SYS_CMD_UNKNOWN_0x0D_LEN     EQU 05  ; 5 Bytes long
+DEF SYS_CMD_UNKNOWN_0x11_LEN     EQU 12  ; 12 Bytes long
 
 DEF SYS_RTC_UPDATE_DATE_TIME_OK   EQU  1
 DEF SYS_RTC_VALIDATE_DATE_TIME_OK EQU  1
@@ -273,7 +279,7 @@ input_key_pressed__RAM_D025_: db         ; Byte 3/4 in Keyboard reply seq. Gamep
 serial_io_checksum_calc__RAM_D026_: db      ; Byte 4/4 in Keyboard reply seq. Should == 2's Complement of (Byte 1 + Byte 2 + Byte 3_
 input_key_modifier_flags__RAM_D027_: db  ; Byte 2/4 in Keyboard reply seq. input_kbd_rx_2_modifiers__RAM_D027_ Stores Modifier flag keys
 
-buffer__RAM_D028_: db                   ; OFten (always?) used for Serial IO transfers. At least 8 bytes in size, but often direct access to values inside it's range
+serial_buffer__RAM_D028_: db                   ; Often (always?) used for Serial IO transfers. At least 8 bytes in size, but often direct access to values inside it's range
 _RAM_D029_: db
 _RAM_D02A_: ds $3
 _RAM_D02D_: ds $7
@@ -382,7 +388,7 @@ _RAM_D1A4_: db
 _RAM_D1A5_: db
 
 SECTION "wram_d1a7", WRAMX[$d1a7], BANK[$1]
-_RAM_D1A7_: db
+print_serial_etc_something__RAM_D1A7_: db
 
 ; EMPTY space from 51A8 to 520B (100 bytes) 
 _RAM_D1A8_: db  
@@ -403,16 +409,21 @@ _RAM_D20B_: db
 SECTION "wram_d20c", WRAMX[$d20c], BANK[$1] 
 _RAM_D20C_: db
 _RAM_D20D_: db
+buffer_RAM_D20E_base__used_to_D38F: db   ; Cleared near start of print function
 
-SECTION "wram_d221", WRAMX[$d221], BANK[$1]
-_RAM_D221_: db
-_RAM_D222_: db
+    ; Inside main print-related buffer
+    SECTION "wram_d216", WRAMX[$d216], BANK[$1] 
+    print_source_buffer_maybe_RAM_D216_: db ; Gets cleared during print function init
 
-SECTION "wram_d226", WRAMX[$d226], BANK[$1]
-_RAM_D226_: db
+    SECTION "wram_d221", WRAMX[$d221], BANK[$1]
+    _RAM_D221_: db ; Gets cleared during print function init
+    _RAM_D222_: db ; Gets cleared during print function init
 
-SECTION "wram_d2e4", WRAMX[$d2e4], BANK[$1]
-serial_cmd_0x09_reply_data__RAM_D2E4_: db  ; Set during init, not sure it gets read anywhere
+    SECTION "wram_d226", WRAMX[$d226], BANK[$1]
+    _RAM_D226_: db ; Gets cleared during print function init
+
+    SECTION "wram_d2e4", WRAMX[$d2e4], BANK[$1]
+    serial_cmd_0x09_reply_data__RAM_D2E4_: db  ; Set during init, print related, Gets cleared during print function init
 
 SECTION "wram_d400", WRAMX[$D400]
 _RAM_D400_: db

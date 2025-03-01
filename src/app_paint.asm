@@ -7,13 +7,13 @@ paint_app_init__6328_::
     ld   [ui_grid_menu_escape_key_runs_last_icon__RAM_D06C_], a
     ld   [ui_grid_menu_icon_count__RAM_D06D_], a
     ld   a, $01
-    ld   [_RAM_D1A7_], a
+    ld   [print_serial_etc_something__RAM_D1A7_], a
     ld   hl, $0018
     res  7, h
     ld   a, $02
     call switch_bank_in_a_jump_hl_RAM__C920_
     ei
-    ld   a, [_RAM_D1A7_]
+    ld   a, [print_serial_etc_something__RAM_D1A7_]
     cp   $03
     ret  z
     cp   $04
@@ -452,13 +452,13 @@ _LABEL_6627_:
 
 paint_app_key_pressed_esc__6673_:
     ld   a, $03
-    ld   [_RAM_D1A7_], a
+    ld   [print_serial_etc_something__RAM_D1A7_], a
     jr   _LABEL_667F_
 
 
 paint_app_save__667A_:
     ld   a, $02
-    ld   [_RAM_D1A7_], a
+    ld   [print_serial_etc_something__RAM_D1A7_], a
 _LABEL_667F_:
     ld   a, [_RAM_D196_]
     and  a
@@ -476,7 +476,7 @@ _LABEL_667F_:
     ld   a, $02
     call switch_bank_in_a_jump_hl_RAM__C920_    ; Possibly invalid
     ei
-    ld   a, [_RAM_D1A7_]
+    ld   a, [print_serial_etc_something__RAM_D1A7_]
     cp   $03
     jp   nz, paint_app_init__6328_
     ld   a, [_RAM_D073_]
@@ -991,7 +991,7 @@ _LABEL_69D0_:
 ; Used in drawing app, maybe for rendering pixels bitmapped style
 vbl_routine_1__maybe_paint_app__6A26_:
         ld   a, [_RAM_D19C_]
-        ld   [_RAM_D1A7_], a
+        ld   [print_serial_etc_something__RAM_D1A7_], a
         ld   a, [_tilemap_pos_x__RAM_C8CB_]
         and  $07
         ld   b, $80
@@ -1017,9 +1017,9 @@ vbl_routine_1__maybe_paint_app__6A26_:
         call add_a_to_hl__486E_
         call maybe_paint_app_util__6AAD_
         pop  hl
-        ld   a, [_RAM_D1A7_]    ; _RAM_D1A7_ = $D1A7
+        ld   a, [print_serial_etc_something__RAM_D1A7_]    ; print_serial_etc_something__RAM_D1A7_ = $D1A7
         dec  a
-        ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
+        ld   [print_serial_etc_something__RAM_D1A7_], a    ; print_serial_etc_something__RAM_D1A7_ = $D1A7
         ret  z
         ld   a, [_tilemap_pos_y__RAM_C8CA_]
         inc  a
@@ -1039,9 +1039,9 @@ vbl_routine_1__maybe_paint_app__6A26_:
         call add_a_to_hl__486E_
         call maybe_paint_app_util__6AAD_
         pop  hl
-        ld   a, [_RAM_D1A7_]    ; _RAM_D1A7_ = $D1A7
+        ld   a, [print_serial_etc_something__RAM_D1A7_]    ; print_serial_etc_something__RAM_D1A7_ = $D1A7
         dec  a
-        ld   [_RAM_D1A7_], a    ; _RAM_D1A7_ = $D1A7
+        ld   [print_serial_etc_something__RAM_D1A7_], a    ; print_serial_etc_something__RAM_D1A7_ = $D1A7
         ret  z
         ld   a, [_tilemap_pos_x__RAM_C8CB_]
         inc  a
@@ -1112,15 +1112,15 @@ paint_app_floodfill__6ACE_:
     call _LABEL_953_
 
     ld   a, [_tilemap_pos_x__RAM_C8CB_]
-    ld   [buffer__RAM_D028_], a
+    ld   [serial_buffer__RAM_D028_], a
     ld   a, [_tilemap_pos_y__RAM_C8CA_]
     ld   [_RAM_D029_], a
     call oam_free_slot_and_clear__89B_
 
     ld   a, [_tilemap_pos_x__RAM_C8CB_]
-    ld   [_RAM_D1A7_ + 1], a
+    ld   [print_serial_etc_something__RAM_D1A7_ + 1], a
     ld   a, [_tilemap_pos_y__RAM_C8CA_]
-    ld   [_RAM_D1A7_ + 2], a
+    ld   [print_serial_etc_something__RAM_D1A7_ + 2], a
     call _LABEL_6B5F_
 
     ld   hl, _RAM_D19D_ + 2
@@ -1128,17 +1128,17 @@ paint_app_floodfill__6ACE_:
     add  [hl]
     rr   a
     ld   b, a
-    ld   a, [_RAM_D1A7_ + 1]
+    ld   a, [print_serial_etc_something__RAM_D1A7_ + 1]
     inc  a
-    ld   [_RAM_D1A7_ + 1], a
+    ld   [print_serial_etc_something__RAM_D1A7_ + 1], a
     dec  a
     dec  a
     ld   [_RAM_D1AD_], a
     ld   a, b
-    ld   [_RAM_D1A7_ + 2], a
+    ld   [print_serial_etc_something__RAM_D1A7_ + 2], a
     ld   [_RAM_D1AE_], a
     xor  a
-    ld   [_RAM_D1A7_ + 3], a
+    ld   [print_serial_etc_something__RAM_D1A7_ + 3], a
     inc  a
     ld   [_RAM_D1AF_], a
     ld   a, [_RAM_D19D_ + 2]
@@ -1157,14 +1157,14 @@ paint_app_floodfill__6ACE_:
         jr   nz, ._LABEL_6B3A_
 
     ._LABEL_6B3E_:
-        ld   a, [_RAM_D1A7_ + 1]
+        ld   a, [print_serial_etc_something__RAM_D1A7_ + 1]
         and  a
         jr   z, ._LABEL_6B49_
         call _LABEL_6B92_
         jr   ._LABEL_6B3E_
 
     ._LABEL_6B49_:
-        ld   a, [buffer__RAM_D028_]    ; buffer__RAM_D028_ = $D028
+        ld   a, [serial_buffer__RAM_D028_]    ; serial_buffer__RAM_D028_ = $D028
         ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
         ld   a, [_RAM_D029_]    ; _RAM_D029_ = $D029
         ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
@@ -1174,23 +1174,23 @@ paint_app_floodfill__6ACE_:
         jp   paint_app_maybe_main_loop__63A7_
 
 _LABEL_6B5F_:
-    ld   a, [_RAM_D1A7_ + 1]
+    ld   a, [print_serial_etc_something__RAM_D1A7_ + 1]
     ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
-    ld   a, [_RAM_D1A7_ + 2]
+    ld   a, [print_serial_etc_something__RAM_D1A7_ + 2]
     ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
-    ld   [_RAM_D1A7_], a
+    ld   [print_serial_etc_something__RAM_D1A7_], a
     xor  a
     ld   [_RAM_D03B_], a
     call _LABEL_6CAF_
     ld   a, [_RAM_D19D_ + 2]
     ld   b, a
-    ld   a, [_RAM_D1A7_]
+    ld   a, [print_serial_etc_something__RAM_D1A7_]
     cp   b
     ld   [_RAM_D1A1_], a
     ret  z
-    ld   a, [_RAM_D1A7_ + 1]
+    ld   a, [print_serial_etc_something__RAM_D1A7_ + 1]
     ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
-    ld   a, [_RAM_D1A7_ + 2]
+    ld   a, [print_serial_etc_something__RAM_D1A7_ + 2]
     inc  a
     ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
     call _LABEL_6D8E_
@@ -1218,9 +1218,9 @@ _LABEL_6B92_:
         cp   b
         ret  z
         call _LABEL_6E52_
-        ld   a, [_RAM_D1A7_ + 3]
+        ld   a, [print_serial_etc_something__RAM_D1A7_ + 3]
         and  a
-        ld   a, [_RAM_D1A7_ + 1]
+        ld   a, [print_serial_etc_something__RAM_D1A7_ + 1]
         jr   nz, ._LABEL_6BCA_
         inc  a
         jr   ._LABEL_6BCB_
@@ -1229,11 +1229,11 @@ _LABEL_6B92_:
         dec  a
 
     ._LABEL_6BCB_:
-        ld   [_RAM_D1A7_ + 1], a
+        ld   [print_serial_etc_something__RAM_D1A7_ + 1], a
         jr   ._LABEL_6B9E_
 
     ._LABEL_6BD0_:
-        ld   a, [_RAM_D1A7_ + 1]
+        ld   a, [print_serial_etc_something__RAM_D1A7_ + 1]
         ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
         bit  7, a
         jr   nz, ._LABEL_6BE0_
@@ -1245,7 +1245,7 @@ _LABEL_6B92_:
         cp   $90
         jr   nc, ._LABEL_6C40_
     ._LABEL_6BE4_:
-        ld   a, [_RAM_D1A7_ + 2]
+        ld   a, [print_serial_etc_something__RAM_D1A7_ + 2]
         ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
         bit  7, a
         jr   nz, ._LABEL_6BF4_
@@ -1260,9 +1260,9 @@ _LABEL_6B92_:
         ld   a, $01
         ld   [_RAM_D03B_], a
         call _LABEL_6CAF_
-        ld   a, [_RAM_D1A7_ + 1]
+        ld   a, [print_serial_etc_something__RAM_D1A7_ + 1]
         ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
-        ld   a, [_RAM_D1A7_ + 2]
+        ld   a, [print_serial_etc_something__RAM_D1A7_ + 2]
         ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
         call _LABEL_6D8E_
         ld   hl, _RAM_D1A3_
@@ -1285,7 +1285,7 @@ _LABEL_6B92_:
         dec  a
         add  [hl]
         rr   a
-        ld   [_RAM_D1A7_ + 2], a
+        ld   [print_serial_etc_something__RAM_D1A7_ + 2], a
         ld   a, [_RAM_D1A5_]
         dec  a
         ld   [_RAM_D1AB_], a
@@ -1302,13 +1302,13 @@ _LABEL_6B92_:
         add  [hl]
         inc  a
         rr   a
-        ld   [_RAM_D1A7_ + 2], a
+        ld   [print_serial_etc_something__RAM_D1A7_ + 2], a
         ld   a, [_RAM_D1A3_]
         inc  a
         ld   [_RAM_D1AC_], a
         call _LABEL_6C87_
         ld   a, [_RAM_D1AD_]
-        ld   [_RAM_D1A7_ + 1], a
+        ld   [print_serial_etc_something__RAM_D1A7_ + 1], a
         ld   a, [_RAM_D1A5_]
         ld   hl, _RAM_D1A1_
         sub  [hl]
@@ -1317,7 +1317,7 @@ _LABEL_6B92_:
         dec  a
         add  [hl]
         rr   a
-        ld   [_RAM_D1A7_ + 2], a
+        ld   [print_serial_etc_something__RAM_D1A7_ + 2], a
         ld   a, [_RAM_D1A5_]
         dec  a
         ld   [_RAM_D1AB_], a
@@ -1346,13 +1346,13 @@ _LABEL_6C87_:
         jr   nz, ._LABEL_6C90_
 
         xor  a
-        ld   [_RAM_D1A7_ + 1], a
+        ld   [print_serial_etc_something__RAM_D1A7_ + 1], a
         pop  hl
         ret
 
 
 _LABEL_6C9C_:
-    ld   hl, _RAM_D1A7_ + 1 ; _RAM_D1A7_ + 1 = $D1A8
+    ld   hl, print_serial_etc_something__RAM_D1A7_ + 1 ; print_serial_etc_something__RAM_D1A7_ + 1 = $D1A8
     ld   de, _RAM_D1AD_
     ld   b, $5F
 
@@ -1684,7 +1684,7 @@ _LABEL_6DF2_:
         ret
 
 _LABEL_6E52_:
-    ld   a, [_RAM_D1A7_ + 3]
+    ld   a, [print_serial_etc_something__RAM_D1A7_ + 3]
     ld   d, a
     ld   hl, _RAM_D19D_ + 2
     ld   a, [_RAM_D1A3_]
@@ -1694,7 +1694,7 @@ _LABEL_6E52_:
     jr   c, ._LABEL_6EC3_
     call _LABEL_6C87_
     ld   a, [_RAM_D1AD_]
-    ld   [_RAM_D1A7_ + 1], a
+    ld   [print_serial_etc_something__RAM_D1A7_ + 1], a
     ld   a, [_RAM_D1A3_]
     cp   [hl]
     jr   nc, ._LABEL_6E8F_
@@ -1749,7 +1749,7 @@ _LABEL_6E52_:
         jr   c, ._LABEL_6F27_
         call _LABEL_6C87_
         ld   a, [_RAM_D1AD_]
-        ld   [_RAM_D1A7_ + 1], a
+        ld   [print_serial_etc_something__RAM_D1A7_ + 1], a
         ld   hl, _RAM_D1A1_
         ld   a, [_RAM_D1A5_]
         cp   [hl]
@@ -1795,7 +1795,7 @@ _LABEL_6E52_:
         ld   hl, _RAM_D1A1_
         add  [hl]
         rr   a
-        ld   [_RAM_D1A7_ + 2], a
+        ld   [print_serial_etc_something__RAM_D1A7_ + 2], a
 
     ._LABEL_6F33_:
         ld   a, [_RAM_D19D_ + 2]
@@ -1818,7 +1818,7 @@ vbl_routine_2__6F40_:
     ld   a, [_RAM_D1A5_]
     sub  b
     inc  a
-    ld   [_RAM_D1A7_], a
+    ld   [print_serial_etc_something__RAM_D1A7_], a
     ld   a, [_RAM_D1A3_]
     and  $07
     sla  a
@@ -1859,9 +1859,9 @@ vbl_routine_2__6F40_:
         ld   a, b
         and  [hl]
         ldi  [hl], a
-        ld   a, [_RAM_D1A7_]
+        ld   a, [print_serial_etc_something__RAM_D1A7_]
         dec  a
-        ld   [_RAM_D1A7_], a
+        ld   [print_serial_etc_something__RAM_D1A7_], a
         jr   nz, ._LABEL_6F87_
         ret
 

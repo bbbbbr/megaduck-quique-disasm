@@ -280,14 +280,14 @@ bank_2_32k__RST__58_:
             cp   $00
             jr   nz, @ + 12
             ld   a, $01
-            ld   [_RAM_D1A7_], a
+            ld   [print_serial_etc_something__RAM_D1A7_], a
             call $7804
             jr   @ - 49
 
             cp   $01
             jr   nz, @ + 12
             ld   a, $02
-            ld   [_RAM_D1A7_], a
+            ld   [print_serial_etc_something__RAM_D1A7_], a
             call $7804
             jr   @ - 63
 
@@ -892,7 +892,7 @@ print__start_loading_x_y_from_ram__maybe___ROM_32K_Bank2_052B_:
 ; 32K Bank addr: $02:0535 (16K Bank addr: $04:4535)
 print_start__maybe___ROM_32K_Bank2_0535_:
             xor  a
-            ld   [_RAM_CC00_], a  ; TODO: Possible a reply bugger for the print command?
+            ld   [_RAM_CC00_], a  ; TODO: Possible a reply buffer for the print command?
             BANK32K_ADDR  call, timer_wait_50msec_maybe_print_related__ROM_32K_Bank2_01A2_
 
             ; Send Print (or Ext IO) command maybe
@@ -933,37 +933,40 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             ret  z
 
             ; @ 32K_Bank_2_0585
-            BANK32K_ADDR  call, .clear_ram_buffer__not_yet_known___ROM_32K_Bank2_05Bf_  ; call $05BF
+            ; Clear a buffer and ...
+            BANK32K_ADDR  call, .clear_buffer_RAM_D20E_to_D38F__ROM_32K_Bank2_05Bf_  ; call $05BF
             ld   a, $01
-            ld   [_RAM_D1A7_], a
-            BANK32K_ADDR  call, not_yet_known___ROM_32K_Bank2_0887_  ; call $0887
+            ld   [print_serial_etc_something__RAM_D1A7_], a
+            BANK32K_ADDR  call, print_serial_send_cmd_11_and_5_to_6_bytes__ROM_32K_Bank2_0887_  ; call $0887
 
+; **** CURRENT LABELING PROGRESS LOCATION ****
             ld   a, $10
-            ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+            ld   [_tilemap_pos_y__RAM_C8CA_], a
             ld   a, $00
-            ld   [_RAM_D1A7_], a
+            ld   [print_serial_etc_something__RAM_D1A7_], a
             call $05CA
-            BANK32K_ADDR  call, not_yet_known___ROM_32K_Bank2_0887_  ; call $0887
+            BANK32K_ADDR  call, print_serial_send_cmd_11_and_5_to_6_bytes__ROM_32K_Bank2_0887_  ; call $0887
 
             ld   a, [serial_cmd_0x09_reply_data__RAM_D2E4_]
             bit  1, a
             jr   nz, @ + 13
             ld   a, $01
-            ld   [_RAM_D1A7_], a
+            ld   [print_serial_etc_something__RAM_D1A7_], a
             call $05CA
-            BANK32K_ADDR  call, not_yet_known___ROM_32K_Bank2_0887_  ; call $0887
+            BANK32K_ADDR  call, print_serial_send_cmd_11_and_5_to_6_bytes__ROM_32K_Bank2_0887_  ; call $0887
 
-            ld   a, [_tilemap_pos_y__RAM_C8CA_] ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+            ld   a, [_tilemap_pos_y__RAM_C8CA_]
             add  $08
-            ld   [_tilemap_pos_y__RAM_C8CA_], a ; _tilemap_pos_y__RAM_C8CA_ = $C8CA
+            ld   [_tilemap_pos_y__RAM_C8CA_], a
             cp   $A0
             jr   nz, @ - 39
             ret
 
         ; Clears a ram buffer of 182 bytes
-        .clear_ram_buffer__not_yet_known___ROM_32K_Bank2_05Bf_
-            ld   c, 182  ; $B6  
-            ld   hl, _RAM_D20D_ + 1
+        ; Overwrites this var used elsewhere: serial_cmd_0x09_reply_data__RAM_D2E4_
+        .clear_buffer_RAM_D20E_to_D38F__ROM_32K_Bank2_05Bf_
+            ld   c, 182  ; $B6
+            ld   hl, buffer_RAM_D20E_base__used_to_D38F
             xor  a
             .clear_buffer_loop
                 ldi  [hl], a
@@ -972,24 +975,24 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             ret
 
         .not_yet_known___ROM_32K_Bank2_05CA_
-            BANK32K_ADDR  call, .clear_ram_buffer__not_yet_known___ROM_32K_Bank2_05Bf_  ; call $05BF
+            BANK32K_ADDR  call, .clear_buffer_RAM_D20E_to_D38F__ROM_32K_Bank2_05Bf_  ; call $05BF
             ld   a, $08
-            ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+            ld   [_tilemap_pos_x__RAM_C8CB_], a
             call _oam_dma_copy_wait_loop_7EA_
             ld   a, h
             ld   [_RAM_D193_], a
             ld   a, l
             ld   [_RAM_D194_], a
             ld   a, $04
-            ld   [vbl_action_select__RAM_D195_], a  ; vbl_action_select__RAM_D195_ = $D195
+            ld   [vbl_action_select__RAM_D195_], a
             ei
-            ld   a, [vbl_action_select__RAM_D195_]  ; vbl_action_select__RAM_D195_ = $D195
+            ld   a, [vbl_action_select__RAM_D195_]
             and  a
             jr   nz, @ - 4
             call $082E
-            ld   a, [_tilemap_pos_x__RAM_C8CB_] ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+            ld   a, [_tilemap_pos_x__RAM_C8CB_]
             add  $08
-            ld   [_tilemap_pos_x__RAM_C8CB_], a ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
+            ld   [_tilemap_pos_x__RAM_C8CB_], a
             cp   $A8
             jr   c, @ - 36
             call $05FC
@@ -1353,27 +1356,29 @@ print_start__maybe___ROM_32K_Bank2_0535_:
 
         .not_yet_known___ROM_32K_Bank2_082E_
             ld   a, [_tilemap_pos_x__RAM_C8CB_] ; _tilemap_pos_x__RAM_C8CB_ = $C8CB
-            ld   hl, _RAM_D20D_ + 1 ; _RAM_D20D_ + 1 = $D20E
+            ld   hl, buffer_RAM_D20E_base__used_to_D38F ; buffer_RAM_D20E_base__used_to_D38F = $D20E
             call $2945  ; _LABEL_2945_
-            ld   a, [_RAM_D1A7_]    ; _RAM_D1A7_ = $D1A7
+            ld   a, [print_serial_etc_something__RAM_D1A7_]    ; print_serial_etc_something__RAM_D1A7_ = $D1A7
             bit  0, a
             jr   z, @ + 7
-            ld   de, copy_buffer__RAM_DCF0_ + 1 ; copy_buffer__RAM_DCF0_ + 1 = $DCF1
+            ld   de, copy_buffer__RAM_DCF0_ + 1
             jr   @ + 5
 
         .not_yet_known___ROM_32K_Bank2_0843_
-            ld   de, copy_buffer__RAM_DCF0_ ; copy_buffer__RAM_DCF0_ = $DCF0
+            ld   de, copy_buffer__RAM_DCF0_
             ld   b, $80
             ld   a, $08
-            ld   [_RAM_D03A_], a    ; _RAM_D03A_ = $D03A
-            ld   c, LOW(_oam_dma_routine_in_HRAM__FF80_)    ; _oam_dma_routine_in_HRAM__FF80_ = $FF80
+            ld   [_RAM_D03A_], a
+            ld   c, LOW(_oam_dma_routine_in_HRAM__FF80_)
             push de
             ld   a, [de]
             and  b
-            jr   nz, multiply_a_x_b__result_in_de__4853_._loop_multiply__4863_
-            ld   a, [serial_cmd_0x09_reply_data__RAM_D2E4_] ; serial_cmd_0x09_reply_data__RAM_D2E4_ = $D2E4
+            jr   nz, multiply_a_x_b__result_in_de__4853_._loop_multiply__4863_  ; label wrong due to 16K banks
+
+            ld   a, [serial_cmd_0x09_reply_data__RAM_D2E4_]
             bit  1, a
             jr   z, @ + 26
+
             inc  de
             ld   a, [de]
             dec  de
@@ -1382,14 +1387,16 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             jr   @ + 15
 
         .not_yet_known___ROM_32K_Bank2_0863_
-            ld   a, [serial_cmd_0x09_reply_data__RAM_D2E4_] ; serial_cmd_0x09_reply_data__RAM_D2E4_ = $D2E4
+            ld   a, [serial_cmd_0x09_reply_data__RAM_D2E4_]
             bit  1, a
             jr   z, @ + 8
+
             inc  de
             ld   a, [de]
             dec  de
             and  b
             jr   z, @ + 5
+
             ld   a, c
             or   [hl]
             ld   [hl], a
@@ -1406,163 +1413,244 @@ print_start__maybe___ROM_32K_Bank2_0535_:
             jr   nz, @ - 60
             ret
 
-        not_yet_known___ROM_32K_Bank2_0887_:
-            ld   hl, $D216
-            call $08FD
-            ld   a, $11
-            ld   [serial_cmd_to_send__RAM_D035_], a ; serial_cmd_to_send__RAM_D035_ = $D035
-            ld   a, $0C
-            ld   [serial_transfer_length__RAM_D034_], a ; serial_transfer_length__RAM_D034_ = $D034
-            call $0906
-            ld   a, [serial_cmd_0x09_reply_data__RAM_D2E4_] ; serial_cmd_0x09_reply_data__RAM_D2E4_ = $D2E4
-            bit  1, a
-            jr   z, @ + 44
-            ld   b, $03
-            push bc
-            call $08FD
-            call $0906
-            pop  bc
-            dec  b
-            jr   nz, @ - 9
-            ld   b, $76
-            ldi  a, [hl]
-            ld   [serial_tx_data__RAM_D023_], a ; serial_tx_data__RAM_D023_ = $D023
-            push bc
-            push hl
-            call $0D53
-            call $D28  ; _LABEL_D28_
-            pop  hl
-            pop  bc
-            dec  b
-            jr   nz, @ - 15
+    ; Probably initializing the IO port / printer
+    print_serial_send_cmd_11_and_5_to_6_bytes__ROM_32K_Bank2_0887_:
+        ; Copy 12 bytes (previously zeroed by caller) to send buffer
+        ld   hl, print_source_buffer_maybe_RAM_D216_
+        BANK32K_ADDR  call, .memcopy_12_bytes_from_hl_to_serial_buffer_RAM_D028____ROM_32K_Bank2_08FD_
+
+        ; Send a serial command and buffer: Command 0x11, buffer length 12
+        ld   a, SYS_CMD_UNKNOWN_0x11__MAYBE_PRINT_RELATED  ; $11
+        ld   [serial_cmd_to_send__RAM_D035_], a
+        ld   a, SYS_CMD_UNKNOWN_0x11_LEN  ; 12  ; $0C
+        ld   [serial_transfer_length__RAM_D034_], a
+        BANK32K_ADDR call, .print_send_command_and_buffer_until_valid_reply__ROM_32K_Bank2_0906_
+        ; Check serial command reply which was set by calling function
+        ; - At least set by: print_start__maybe___ROM_32K_Bank2_0535_
+        ld   a, [serial_cmd_0x09_reply_data__RAM_D2E4_]
+        bit  1, a
+        ; Maybe checking for SYS_REPLY_BUFFER_SEND_AND_CHECKSUM_OK ($01)
+        ; So could be, SKIP if transfer worked and successfully configured
+        jr   z, .skip_something__ROM_32K_Bank2_08CB_  ; @ + 44
+
+            ; Send 3 x more 12 byte packets (of, what is probably still zero)
+            ld   b, 3  ; $03
+            .send_loop_3_times
+                push bc
+                BANK32K_ADDR  call, .memcopy_12_bytes_from_hl_to_serial_buffer_RAM_D028____ROM_32K_Bank2_08FD_  ;  call $08FD
+                BANK32K_ADDR call, .print_send_command_and_buffer_until_valid_reply__ROM_32K_Bank2_0906_  ; call $0906
+                pop  bc
+                dec  b
+                jr   nz, .send_loop_3_times  ; @ - 9
+
+            ld   b, 118  ; $76
+            .buffer_D216_send_118_bytes_loop
+                ldi  a, [hl]
+                ld   [serial_tx_data__RAM_D023_], a ; serial_tx_data__RAM_D023_ = $D023
+                push bc
+                push hl
+                BANK32K_ADDR  call, serial_io_wait_receive_with_timeout__32K_Bank_2_0D53_  ; call $0D53
+                BANK32K_ADDR  call, serial_io_send_byte__32K_Bank_2_0D28_ ; call $0D28
+                pop  hl
+                pop  bc
+                dec  b
+                jr   nz, .buffer_D216_send_118_bytes_loop  ; @ - 15\
+
             BANK32K_ADDR  call, delay_1_msec__32K_Bank_2_0D9A_  ; call $D9A  ; _LABEL_D9A_
             BANK32K_ADDR  call, serial_io_wait_receive_timeout_200msec__32K_Bank_2_0D62_  ; call $0D62
             BANK32K_ADDR  call, serial_io_wait_receive_timeout_200msec__32K_Bank_2_0D62_  ; call $0D62
             ret
 
-        .not_yet_known___ROM_32K_Bank2_08CB_
-            ld   b, $0C
+        .skip_something__ROM_32K_Bank2_08CB_
+        ld   b, $0C
+        .loop_send_something_12_times
             push bc
-            call $08FD
-            call $0906
+            BANK32K_ADDR  call, .memcopy_12_bytes_from_hl_to_serial_buffer_RAM_D028____ROM_32K_Bank2_08FD_  ;  call $08FD
+            BANK32K_ADDR call, .print_send_command_and_buffer_until_valid_reply__ROM_32K_Bank2_0906_  ; call $0906
             pop  bc
             dec  b
-            jr   nz, copy_a_x_tile_patterns_from_de_add_bx16_to_hl_add_cx16__48CD_
-            call $08FD
-            ld   a, $0D
-            ld   [_RAM_D02A_ + 2], a    ; _RAM_D02A_ + 2 = $D02C
-            ld   a, $05
-            ld   [serial_transfer_length__RAM_D034_], a ; serial_transfer_length__RAM_D034_ = $D034
-            ld   a, [_RAM_D1A7_]    ; _RAM_D1A7_ = $D1A7
-            bit  0, a
-            jr   z, @ + 12
+            jr   nz, .loop_send_something_12_times
+
+        ; Send a serial command and buffer: buffer length 5 - 6 depending
+        ; Command to send and buffer contents presumably recycled from earlier
+        ; (in serial_cmd_to_send__RAM_D035_, preload of serial_buffer__RAM_D028_)
+        BANK32K_ADDR  call, .memcopy_12_bytes_from_hl_to_serial_buffer_RAM_D028____ROM_32K_Bank2_08FD_  ;  call $08FD
+        ld   a, $0D  ; $0D
+        ld   [serial_buffer__RAM_D028_ + 4], a; [_RAM_D02A_ + 2], a
+        ld   a, 5  ; $05
+        ld   [serial_transfer_length__RAM_D034_], a
+        ; Check bit 0 of this var, which gets toggled between 0 and 1 in
+        ; caller for this function (main printing one?)
+        ld   a, [print_serial_etc_something__RAM_D1A7_]
+        bit  0, a
+        jr   z, .do_not_add_byte_0A_to_transfer  ; @ + 12
+
+            ; Increase the serial transfer length from 5 to 6
+            ; and send an extra byte 0x0A at the end
             ld   a, $0A
-            ld   [_RAM_D02D_], a    ; _RAM_D02D_ = $D02D
-            ld   a, $06
-            ld   [serial_transfer_length__RAM_D034_], a ; serial_transfer_length__RAM_D034_ = $D034
-            call $0906
-            BANK32K_ADDR  call, serial_io_wait_receive_timeout_200msec__32K_Bank_2_0D62_  ; call $0D62
-            ret
+            ld   [serial_buffer__RAM_D028_ + 5], a ; [_RAM_D02D_], a
+            ld   a, 6  ; $06
+            ld   [serial_transfer_length__RAM_D034_], a
+        
+        .do_not_add_byte_0A_to_transfer
+        BANK32K_ADDR call, .print_send_command_and_buffer_until_valid_reply__ROM_32K_Bank2_0906_  ; call $0906
+        BANK32K_ADDR call, serial_io_wait_receive_timeout_200msec__32K_Bank_2_0D62_  ; call $0D62
+        ret
 
-        .not_yet_known___ROM_32K_Bank2_08FD_
-            ld   b, $0C
-            ld   de, buffer__RAM_D028_  ; buffer__RAM_D028_ = $D028
-            call $2902  ; _LABEL_2902_
-            ret
 
-        .not_yet_known___ROM_32K_Bank2_0906_
-            push hl
-            call $0BF8
-            BANK32K_ADDR  call, delay_1_msec__32K_Bank_2_0D9A_  ; call $D9A  ; _LABEL_D9A_
-            ld   a, [input_key_pressed__RAM_D025_]  ; input_key_pressed__RAM_D025_ = $D025
-            cp   $FC
-            jr   nz, display_textbox_draw_xy_in_bc_wh_in_de_st_id_in_a__48EB_.loop_textbox_middle_rows__4907_
-            pop  hl
-            ret
+    .memcopy_12_bytes_from_hl_to_serial_buffer_RAM_D028____ROM_32K_Bank2_08FD_
+        ld   b, SYS_CMD_UNKNOWN_0x11_LEN  ; 12 ; $0C
+        ld   de, serial_buffer__RAM_D028_
+        BANK32K_ADDR  call, memcopy_b_bytes_from_hl_to_de__ROM_32K_Bank2_2902_  ; call $2902
+        ret
 
-        .not_yet_known___ROM_32K_Bank2_090D_
-            ld   a, $00
-            ld   [_rombank_currrent__C8D7_], a  ; _rombank_currrent__C8D7_ = $C8D7
-            ldh  [rLCDC], a
-            ld   hl, $8000
-            xor  a
-            ldi  [hl], a
-            ld   a, h
-            cp   $98
-            jr   nz, @ - 5
-            ld   a, $BE
-            ldi  [hl], a
-            ld   a, h
-            cp   $9C
-            jr   nz, @ - 6
-            ld   hl, shadow_oam_base__RAM_C800_ ; shadow_oam_base__RAM_C800_ = $C800
-            ld   b, $A0
-            xor  a
-            ldi  [hl], a
-            dec  b
-            jr   nz, @ - 3
-            ldh  [rLCDC], a
-            nop
-            nop
-            nop
-            nop
-            ld   a, $C8
-            ldh  [rLCDC], a
-            call $09A7
-            ld   a, $E4
-            ldh  [rOBP0], a
-            ldh  [rBGP], a
-            ld   a, $1B
-            ldh  [rOBP1], a
-            ld   a, $07
-            ldh  [rWX], a
-            ld   a, $FF
-            ldh  [rSCX], a
-            ld   hl, memcopy_in_RAM__C900_  ; memcopy_in_RAM__C900_ = $C900
-            ld   de, $0997
-            call $098E
-            ld   de, $09F0
-            call $098E
-            ld   de, $0A05
-            call $098E
-            ld   de, $09B3
-            call $098E
-            ld   de, $09D0
-            call $098E
-            ld   hl, _oam_dma_routine_in_HRAM__FF80_    ; _oam_dma_routine_in_HRAM__FF80_ = $FF80
-            ld   de, $09A7
-            call $098E
-            ld   a, $00
-            ld   b, $2A
-            ld   hl, oam_slot_usage__RAM_C8A0_  ; oam_slot_usage__RAM_C8A0_ = $C8A0
-            ldi  [hl], a
-            dec  b
-            jr   nz, @ - 2
-            ret
 
-        .not_yet_known___ROM_32K_Bank2_098E_
-            ld   b, $20
-            ld   a, [de]
-            ldi  [hl], a
-            inc  de
-            dec  b
-            jr   nz, @ - 4
-            ret
+    ; Send a serial command and buffer
+    ;
+    ; Loops forever until expected reply received (SYS_CHAR_SERIAL_TX_SUCCESS ; $FC)
+    ;
+    ; Expected vars set before calling:
+    ; - serial_cmd_to_send__RAM_D035_
+    ; - serial_transfer_length__RAM_D034_
+    .print_send_command_and_buffer_until_valid_reply__ROM_32K_Bank2_0906_
+        push hl
+        .loop_send_wait_valid_reply
+            BANK32K_ADDR call, serial_io_send_command_and_buffer__32K_Bank_2_0BF8_;  call $0BF8
+            BANK32K_ADDR call, delay_1_msec__32K_Bank_2_0D9A_  ; call $D9A
+            ld   a, [input_key_pressed__RAM_D025_]
+            cp   SYS_CHAR_SERIAL_TX_SUCCESS ; $FC
+            ; Failure, do something
+            jr   nz, .loop_send_wait_valid_reply ; $4907
+        pop  hl
+        ret
 
-        .not_yet_known___ROM_32K_Bank2_0997_
-            ld   a, [de]
-            ldi  [hl], a
-            inc  de
-            dec  bc
-            ld   a, b
-            or   c
-            jr   nz, @ - 6
-            ret
+; (duplicate) See bank 0 vram_init__752_:
+vram_init__ROM_32K_Bank2_090D_:
+    ld   a, $00
+    ld   [_rombank_currrent__C8D7_], a  ; _rombank_currrent__C8D7_ = $C8D7
+    ldh  [rLCDC], a  ; clear all LCDC bits
+    ld   hl, _TILEDATA8000  ; $8000
+    .loop_clear_vram_all_tile_patterns
+        xor  a
+        ldi  [hl], a
+        ld   a, h
+        cp   HIGH(_TILEMAP0)  ; $98
+        jr   nz, .loop_clear_vram_all_tile_patterns  ; @ - 5
 
-            ldh  a, [rLCDC]
-            or   $80
-            ldh  [rLCDC], a
-            ret
+    ; hl now at $9800
+    ; Fill Tile Map 1 with tile id $BE
+    .loop_fill_tile_map0:
+        ld   a, $BE
+        ldi  [hl], a
+        ld   a, h
+        cp   $9C
+        jr   nz, .loop_fill_tile_map0  ; @ - 6
+
+    ; Fill RAM from shadow_oam_base__RAM_C800_ -> _RAM_C8BF_ ($A0 / 160 bytes)
+    ld   hl, shadow_oam_base__RAM_C800_
+    ld   b, SHADOW_OAM_SZ ; $A0
+    .loop_zero_oam
+    xor  a  ; This doesn't need to be re-zeroed each loop iteration...
+        ldi  [hl], a
+        dec  b
+        jr   nz, .loop_zero_oam  ; @ - 3
+
+    ; Turn screen/etc off        
+    ldh  [rLCDC], a
+    nop
+    nop
+    nop
+    nop
+
+    ; LCD on
+    ld   a, (LCDCF_ON | LCDCF_BGON | LCDCF_WIN9C00) ; $C8
+    ldh  [rLCDC], a
+
+    ; Clear OAM via cleared shadow OAM
+    ; TODO: Is there no bus conflict when oam DMA is run from ROM on the Quique with interrupts disabled?
+    IF (!(DEF(GB_DEBUG)))
+    call $09A7  ; call _oam_dma_routine_in_ROM__7E3_
+    ENDC
+
+    ; Set the BG & Sprite color palettes
+    ld   a, COLS_0WHT_1LGRY_2DGRY_3BLK  ; $E4
+    ldh  [rOBP0], a
+    ldh  [rBGP], a
+    ld   a, COLS_0BLK_1DGRY_2LGRY_3WHT ; $1B
+    ldh  [rOBP1], a
+
+    ; Init Window and BG Map Scroll X
+    ld   a, $07
+    ldh  [rWX], a
+    ld   a, $FF    ; Why not 0 for SCX?
+    ldh  [rSCX], a
+
+    ; Load several functions into RAM so they persist across 32K sized bank switches
+    ; Mainly memcopy and bank switching related
+    ld   hl, STARTOF("wram_functions_start_c900")
+    ; HL at 0xC900    
+    ld   de, $0997  ; memcopy_in_RAM__C900_
+    call $098E
+    ld   de, $09F0  ; switch_bank_in_a_jump_hl_RAM__C920_
+    call $098E
+    ld   de, $0A05  ; switch_bank_return_to_saved_bank_RAM__C940_
+    call $098E
+    ld   de, $09B3  ; switch_bank_memcopy_hl_to_de_len_bc_RAM__C960_
+    call $098E
+    ld   de, $09D0  ; switch_bank_read_byte_at_hl_RAM__C980_
+    call $098E
+
+    ; Load OAM DMA Copy routine into HRAM
+    ld   hl, _oam_dma_routine_in_HRAM__FF80_    ; _oam_dma_routine_in_HRAM__FF80_ = $FF80
+    ld   de, $09A7  ; oam_dma_routine_in_ROM_09a7
+    BANK32K_ADDR  call, memcpy_32_bytes__ROM_32K_Bank2_098E_  ; call $098E
+
+    ; Clear 42 bytes of RAM used for OAM slot management
+    ld   a, OAM_SLOT_EMPTY
+    ld   b, (OAM_USAGE_SZ + 2) ; $2A ; TODO: Why +2 here what is at _RAM_C8C8_ and C9?
+    ld   hl, oam_slot_usage__RAM_C8A0_
+    .loop_oam_clear:
+        ldi  [hl], a
+        dec  b
+        jr   nz, .loop_oam_clear
+    ret
+
+
+; (duplicate) See Bank 0 _memcpy_32_bytes__7CA_:
+; Always copies 32 bytes
+; Source in DE
+; Dest in HL
+memcpy_32_bytes__ROM_32K_Bank2_098E_:
+    ld   b, 32 ; $20
+    .memcpy_32bytes_loop:
+        ld   a, [de]
+        ldi  [hl], a
+        inc  de
+        dec  b
+        jr   nz, .memcpy_32bytes_loop ; @ - 4
+        ret
+
+; (duplicate) See Bank 0 _memcopy__7D3_:
+; Memcopy
+; - Source   : DE
+; - Dest     : HL
+; - Num Bytes: BC
+; Gets copied to and run from memcopy_in_RAM__C900_
+not_yet_known___ROM_32K_Bank2_0997_:
+    ld   a, [de]
+    ldi  [hl], a
+    inc  de
+    dec  bc
+    ld   a, b
+    or   c
+    jr   nz, not_yet_known___ROM_32K_Bank2_0997_  ; @ - 6
+    ret
+
+; TODO: does excecution ever reach here?
+    ldh  a, [rLCDC]
+    or   $80
+    ldh  [rLCDC], a
+    ret
 
             di
             ld   a, $C8
@@ -2032,8 +2120,8 @@ delay_1_msec__32K_Bank_2_0D9A_:
             ldh  [$FF], a
             ld   a, $00
             ld   [serial_tx_data__RAM_D023_], a ; serial_tx_data__RAM_D023_ = $D023
-            call $D28  ; _LABEL_D28_
-            call $0D53
+            BANK32K_ADDR  call, serial_io_send_byte__32K_Bank_2_0D28_ ; call $0D28
+            BANK32K_ADDR  call, serial_io_wait_receive_with_timeout__32K_Bank_2_0D53_  ; call $0D53
             and  a
             jr   z, @ + 24
             ld   a, [serial_rx_data__RAM_D021_] ; serial_rx_data__RAM_D021_ = $D021
@@ -2043,14 +2131,14 @@ delay_1_msec__32K_Bank_2_0D9A_:
             jr   z, @ + 4
             jr   nc, @ + 11
             ld   [serial_io_checksum_calc__RAM_D026_], a    ; serial_io_checksum_calc__RAM_D026_ = $D026
-            call $0D53
+            BANK32K_ADDR  call, serial_io_wait_receive_with_timeout__32K_Bank_2_0D53_  ; call $0D53
             and  a
             jr   nz, @ + 17
             ld   a, $FF
             ld   [input_key_pressed__RAM_D025_], a  ; input_key_pressed__RAM_D025_ = $D025
             ld   a, $04
             ld   [serial_tx_data__RAM_D023_], a ; serial_tx_data__RAM_D023_ = $D023
-            call $D28  ; _LABEL_D28_
+            BANK32K_ADDR  call, serial_io_send_byte__32K_Bank_2_0D28_ ; call $0D28
             jr   @ + 64
 
             ld   a, [serial_rx_data__RAM_D021_] ; serial_rx_data__RAM_D021_ = $D021
@@ -2058,7 +2146,7 @@ delay_1_msec__32K_Bank_2_0D9A_:
             ld   hl, serial_io_checksum_calc__RAM_D026_ ; serial_io_checksum_calc__RAM_D026_ = $D026
             add  [hl]
             ld   [hl], a
-            call $0D53
+            BANK32K_ADDR  call, serial_io_wait_receive_with_timeout__32K_Bank_2_0D53_  ; call $0D53
             and  a
             jr   z, @ - 30
             ld   a, [serial_rx_data__RAM_D021_] ; serial_rx_data__RAM_D021_ = $D021
@@ -2066,7 +2154,7 @@ delay_1_msec__32K_Bank_2_0D9A_:
             ld   hl, serial_io_checksum_calc__RAM_D026_ ; serial_io_checksum_calc__RAM_D026_ = $D026
             add  [hl]
             ld   [serial_io_checksum_calc__RAM_D026_], a    ; serial_io_checksum_calc__RAM_D026_ = $D026
-            call $0D53
+            BANK32K_ADDR  call, serial_io_wait_receive_with_timeout__32K_Bank_2_0D53_  ; call $0D53
             and  a
             jr   z, @ - 49
             ld   a, [serial_rx_data__RAM_D021_] ; serial_rx_data__RAM_D021_ = $D021
@@ -2075,7 +2163,7 @@ delay_1_msec__32K_Bank_2_0D9A_:
             jr   nz, @ - 58
             ld   a, $01
             ld   [serial_tx_data__RAM_D023_], a ; serial_tx_data__RAM_D023_ = $D023
-            call $D28  ; _LABEL_D28_
+            BANK32K_ADDR  call, serial_io_send_byte__32K_Bank_2_0D28_ ; call $0D28
             call $0ED3
             ld   a, [input_key_pressed__RAM_D025_]  ; input_key_pressed__RAM_D025_ = $D025
             ld   [input_prev_key_pressed__RAM_D181_], a ; input_prev_key_pressed__RAM_D181_ = $D181
@@ -2726,12 +2814,24 @@ ds 36, $00
 db $3C, $3C, $62, $62, $7C, $7C, $62, $62, $7C, $7C, $60, $60, $00, $00, $1C, $1C
 db $38, $38, $70, $70, $38, $38, $FE, $FE, $7C, $7C, $70, $70, $10, $10
 ds 16, $FF
-db $11, $F0, $DC, $06, $10, $1A, $22, $13, $05, $20, $FA, $C9, $11, $F0, $DC, $06
-db $10, $2A, $12, $13, $05, $20, $FA, $C9, $01, $00, $00, $2E, $00, $7C, $B7, $28
-db $17, $7B, $94, $5F, $7A, $DE, $00, $57, $38, $08, $0C, $20, $F4, $04, $0E, $00
-db $18, $EF, $7B, $B7, $28, $02, $84, $6F, $C9, $16, $00, $1E, $00, $B7, $28, $13
-db $C5, $4F, $78, $B7, $79, $C1, $28, $0B, $4F, $7B, $81, $5F, $7A, $CE, $00, $57
-db $05, $20, $F6, $C9, $85, $6F, $7C, $CE, $00, $67, $C9, $CD, $F0, $0A, $CD, $10
+
+; db $11, $F0, $DC, $06, $10, $1A, $22, $13, $05, $20, $FA, $C9,
+; db $11, $F0, $DC, $06
+; db $10
+; db $2A, $12, $13, $05, $20, $FA, $C9
+; db $01, $00, $00, $2E, $00, $7C, $B7, $28
+; db $17, $7B, $94, $5F, $7A, $DE, $00, $57, $38, $08, $0C, $20, $F4, $04, $0E, $00
+; db $18, $EF, $7B, $B7, $28, $02, $84, $6F, $C9
+; db $16, $00, $1E, $00, $B7, $28, $13
+; db $C5, $4F, $78, $B7, $79, $C1, $28, $0B, $4F, $7B, $81, $5F, $7A, $CE, $00, $57
+; db $05, $20, $F6, $C9, $85, $6F, $7C, $CE, $00, $67, $C9,
+
+; 32K Bank addr: $02:28F1 (16K Bank addr: $04:68F1)
+include "mem_and_math_util__32k_bank_2.asm"
+
+
+; 32K Bank addr: $02:294C (16K Bank addr: $04:294C)
+db $CD, $F0, $0A, $CD, $10
 db $0B, $21, $00, $98, $3E, $BE, $22, $7C, $FE, $9C, $20, $F8, $F0, $10, $E6, $CF
 db $F6, $C1, $E0, $10, $C9, $CD, $F0, $0A, $CD, $10, $0B, $21, $00, $9C, $3E, $BE
 db $22, $7C, $FE, $A0, $20, $F8, $F0, $10, $F6, $A1, $E0, $10, $C9, $FA, $CB, $C8

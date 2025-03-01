@@ -23,7 +23,7 @@ calendar_app_init__4D6F_::
         ld   a, SYS_CMD_RTC_GET_DATE_AND_TIME  ; $0C
         ld   [serial_rx_cmd_to_send__RAM_D036_], a
 
-        ; Received data will be in buffer__RAM_D028_
+        ; Received data will be in serial_buffer__RAM_D028_
         .receive_loop_wait_valid_reply_4D94_:
             call serial_io_send_command_and_receive_buffer__AEF_
             ld   a, [input_key_pressed__RAM_D025_]
@@ -51,7 +51,7 @@ calendar_app_init__4D6F_::
 
         ; Copy first 3 bytes (Year, Month, Day) of received RTC data
         ; from Serial IO RX buffer to _RAM_D075_ ...
-        ld   hl, buffer__RAM_D028_
+        ld   hl, serial_buffer__RAM_D028_
         ld   de, _RAM_D074_ + 1
         ld   b, $03
         call memcopy_b_bytes_from_hl_to_de__482B_
@@ -89,7 +89,7 @@ calendar_app_init__4D6F_::
         ; Load RX RTC Month
         ; Do a simple conversion from BCD -> Decimal
         ; If left digit is 1 then subtract 6 to convert. Ex. 0x10 - 6 = 0xA (10)
-        ld   a, [buffer__RAM_D028_ + 1]  ; Should be RTC Month from last Serial IO RX data buffer
+        ld   a, [serial_buffer__RAM_D028_ + 1]  ; Should be RTC Month from last Serial IO RX data buffer
         bit  4, a
         jr   z, .rtc_month_less_than_10__4DFF_
         sub  $06
@@ -127,7 +127,7 @@ calendar_app_init__4D6F_::
         ; Load RX RTC Year
         ; Do a simple conversion from BCD -> Decimal
         ; If left digit is 1 then subtract 6 to convert. Ex. 0x10 - 6 = 0xA (10)
-        ld   a, [buffer__RAM_D028_]  ; Should be RTC Year from last Serial IO RX data buffer
+        ld   a, [serial_buffer__RAM_D028_]  ; Should be RTC Year from last Serial IO RX data buffer
         ; Check if left digit is in "9" (i.e. 1990-1999) year range
         and  $F0
         cp   $90
@@ -156,7 +156,7 @@ calendar_app_init__4D6F_::
         ld   [_tilemap_pos_y__RAM_C8CA_], a
         ld   c, $01
 
-        ld   hl, buffer__RAM_D028_
+        ld   hl, serial_buffer__RAM_D028_
         call _LABEL_5401_
         ld   hl, $9880
         ld   b, $07
@@ -175,7 +175,7 @@ calendar_app_init__4D6F_::
         jr   nz, ._LABEL_4E69_
 
         ; Save RX Serial IO RTC data to shadow RTC data
-        ld   a, [buffer__RAM_D028_]
+        ld   a, [serial_buffer__RAM_D028_]
         ld   [shadow_rtc_buf_start_and_year__RAM_D051_], a
 
         ld   a, [_RAM_D029_]
@@ -330,7 +330,7 @@ calendar_app_init__4D6F_::
         call timer_wait_50msec_and_maybe_optional_audio_or_speech__289_
         call input_read_keys__C8D_
         ld   a, [_RAM_D074_ + 1]
-        ld   hl, buffer__RAM_D028_
+        ld   hl, serial_buffer__RAM_D028_
         cp   [hl]
         jr   nz, ._LABEL_4FAE_
         ld   a, [_RAM_D074_ + 2]
@@ -349,20 +349,20 @@ calendar_app_init__4D6F_::
         push af
         ld   a, [_RAM_D074_ + 3]
         push af
-        ld   a, [buffer__RAM_D028_]
+        ld   a, [serial_buffer__RAM_D028_]
         push af
         ld   a, [_RAM_D029_]    ; _RAM_D029_ = $D029
         push af
-        ld   a, [buffer__RAM_D028_ + 2]    ; buffer__RAM_D028_ + 2 = $D02A
+        ld   a, [serial_buffer__RAM_D028_ + 2]    ; serial_buffer__RAM_D028_ + 2 = $D02A
         push af
         call ._LABEL_52BF_
         call input_wait_for_keypress__4B84
         pop  af
-        ld   [buffer__RAM_D028_ + 2], a    ; buffer__RAM_D028_ + 2 = $D02A
+        ld   [serial_buffer__RAM_D028_ + 2], a    ; serial_buffer__RAM_D028_ + 2 = $D02A
         pop  af
         ld   [_RAM_D029_], a    ; _RAM_D029_ = $D029
         pop  af
-        ld   [buffer__RAM_D028_], a
+        ld   [serial_buffer__RAM_D028_], a
         pop  af
         ld   [_RAM_D074_ + 3], a
         pop  af
@@ -658,7 +658,7 @@ calendar_app_init__4D6F_::
         call convert_bcd2dec_at_hl_result_in_a__5B03_
         dec  a
         jr   nz, ._LABEL_525D_
-        ld   hl, buffer__RAM_D028_
+        ld   hl, serial_buffer__RAM_D028_
         call convert_bcd2dec_at_hl_result_in_a__5B03_
         cp   $0C
         jr   nc, ._LABEL_5240_
@@ -669,7 +669,7 @@ calendar_app_init__4D6F_::
         cp   $5C
         jp   c, .maybe_calendar_app_main_input_loop__4F95_
         call _LABEL_5379_
-        ld   [buffer__RAM_D028_], a
+        ld   [serial_buffer__RAM_D028_], a
         ld   a, $12
         ld   [_RAM_D029_], a    ; _RAM_D029_ = $D029
         ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
@@ -691,7 +691,7 @@ calendar_app_init__4D6F_::
         inc  a
         cp   $0D
         jr   c, ._LABEL_52A3_
-        ld   hl, buffer__RAM_D028_
+        ld   hl, serial_buffer__RAM_D028_
         call convert_bcd2dec_at_hl_result_in_a__5B03_
         cp   $0C
         jr   nc, ._LABEL_5286_
@@ -702,7 +702,7 @@ calendar_app_init__4D6F_::
         cp   $70
         jp   z, .maybe_calendar_app_main_input_loop__4F95_
         call _LABEL_5379_
-        ld   [buffer__RAM_D028_], a
+        ld   [serial_buffer__RAM_D028_], a
         ld   a, $01
         ld   [_RAM_D029_], a    ; _RAM_D029_ = $D029
         ld   a, [_RAM_D05F_]    ; _RAM_D05F_ = $D05F
@@ -726,7 +726,7 @@ calendar_app_init__4D6F_::
 
     ._LABEL_52BF_:
         ld   a, [_RAM_D074_ + 1]
-        ld   hl, buffer__RAM_D028_
+        ld   hl, serial_buffer__RAM_D028_
         cp   [hl]
         jr   nz, ._LABEL_52D7_
         ld   a, [_RAM_D074_ + 2]
@@ -738,17 +738,17 @@ calendar_app_init__4D6F_::
         call _LABEL_538C_
 
     ._LABEL_52D7_:
-        ld   a, [buffer__RAM_D028_ + 3]    ; buffer__RAM_D028_ + 3 = $D02B
+        ld   a, [serial_buffer__RAM_D028_ + 3]    ; serial_buffer__RAM_D028_ + 3 = $D02B
         push af
         call call_printscreen_in_32k_bank_2__522_
         pop  af
-        ld   [buffer__RAM_D028_ + 3], a    ; buffer__RAM_D028_ + 3 = $D02B
+        ld   [serial_buffer__RAM_D028_ + 3], a    ; serial_buffer__RAM_D028_ + 3 = $D02B
         ld   a, [_RAM_D074_ + 1]
-        ld   [buffer__RAM_D028_], a
+        ld   [serial_buffer__RAM_D028_], a
         ld   a, [_RAM_D074_ + 2]
         ld   [_RAM_D029_], a    ; _RAM_D029_ = $D029
         ld   a, [_RAM_D074_ + 3]
-        ld   [buffer__RAM_D028_ + 2], a    ; buffer__RAM_D028_ + 2 = $D02A
+        ld   [serial_buffer__RAM_D028_ + 2], a    ; serial_buffer__RAM_D028_ + 2 = $D02A
         ret
 
 
@@ -865,15 +865,15 @@ _LABEL_538C_:
     jr   z, ._LABEL_53CC_
     cp   $08
     jr   nz, ._LABEL_53CB_
-    ld   a, [buffer__RAM_D028_ + 2]    ; buffer__RAM_D028_ + 2 = $D02A
+    ld   a, [serial_buffer__RAM_D028_ + 2]    ; serial_buffer__RAM_D028_ + 2 = $D02A
     ld   [shadow_rtc_day__RAM_D053_], a    ; shadow_rtc_day__RAM_D053_ = $D053
-    ld   a, [buffer__RAM_D028_ + 3]    ; buffer__RAM_D028_ + 3 = $D02B
+    ld   a, [serial_buffer__RAM_D028_ + 3]    ; serial_buffer__RAM_D028_ + 3 = $D02B
     dec  a
     ld   [shadow_rtc_dayofweek__RAM_D054_], a    ; shadow_rtc_dayofweek__RAM_D054_ = $D054
     cp   $06
     jr   z, ._LABEL_53C1_
     call _LABEL_532F_
-    ld   hl, buffer__RAM_D028_ + 2 ; buffer__RAM_D028_ + 2 = $D02A
+    ld   hl, serial_buffer__RAM_D028_ + 2 ; serial_buffer__RAM_D028_ + 2 = $D02A
     and  a
     jr   z, ._LABEL_53C6_
 
