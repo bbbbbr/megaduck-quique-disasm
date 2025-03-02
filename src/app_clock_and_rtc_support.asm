@@ -87,16 +87,16 @@ clock_app_init__54AE_::
         xor  a
         ld   [_maybe_rtc_and_serial_reply_fail__RAM_D068_], a
         ld   [_RAM_D03B_], a
-        ld   [print_serial_etc_something__RAM_D1A7_], a    ; print_serial_etc_something__RAM_D1A7_ = $D1A7
+        ld   [print_tile_row_pass__maybe_more__RAM_D1A7_], a    ; print_tile_row_pass__maybe_more__RAM_D1A7_ = $D1A7
 
     ._LABEL_5549_:
-        ld   a, [print_serial_etc_something__RAM_D1A7_]    ; print_serial_etc_something__RAM_D1A7_ = $D1A7
+        ld   a, [print_tile_row_pass__maybe_more__RAM_D1A7_]    ; print_tile_row_pass__maybe_more__RAM_D1A7_ = $D1A7
         inc  a
-        ld   [print_serial_etc_something__RAM_D1A7_], a    ; print_serial_etc_something__RAM_D1A7_ = $D1A7
+        ld   [print_tile_row_pass__maybe_more__RAM_D1A7_], a    ; print_tile_row_pass__maybe_more__RAM_D1A7_ = $D1A7
         cp   $04
         jr   nz, ._LABEL_557B_
         xor  a
-        ld   [print_serial_etc_something__RAM_D1A7_], a    ; print_serial_etc_something__RAM_D1A7_ = $D1A7
+        ld   [print_tile_row_pass__maybe_more__RAM_D1A7_], a    ; print_tile_row_pass__maybe_more__RAM_D1A7_ = $D1A7
 
         ; TODO: Maybe Read Hardware RTC and then ...
         ld   a, SYS_CMD_RTC_GET_DATE_AND_TIME  ; $0C

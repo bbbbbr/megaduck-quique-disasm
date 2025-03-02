@@ -85,12 +85,20 @@ DEF SYS_CMD_DONE_OR_OK_AND_SOMETHING EQU $81  ; TODO: Seen this as a keyboard po
 DEF SYS_CMD_ABORT_OR_FAIL         EQU $04  ; TODO: What does this do and why?
 DEF SYS_CMD_PLAYSPEECH            EQU $05  ; Play pre-recorded speech phrases (range 1-6, no audio enable required). Playback of one phrase can be interrupted by request for playback of another phrase
 DEF SYS_CMD_RUN_CART_IN_SLOT      EQU $08
-DEF SYS_CMD_PRINT_OR_EXT_IO_MAYBE__0x09     EQU $09  ; May also be PrintScreen related
+DEF SYS_CMD_PRINT_INIT_MAYBE_EXT_IO EQU $09  ; Used to init printer before print cmd, Reply of 0: seems to indicate Pass/Fail, Bit.1: maybe indicates support for 2 pass printing (0 = supported, 1 = not supported)
 DEF SYS_CMD_RTC_SET_DATE_AND_TIME EQU $0B  ; Sets Hardware RTC Date and Time using multi-byte buffer send/TX
 DEF SYS_CMD_RTC_GET_DATE_AND_TIME EQU $0C  ; Used in multi-byte buffer receive/RX
+DEF SYS_CMD_PRINT_SEND_BYTES      EQU $11  ; Trigger with PrintScreen, Used for multi-byte buffer send of printer data (mainly 12 byte packets x 13 times, terminated with 5-6 byte packets with 4 bytes gfx data and trailing CarriageReturn and alternating LineFeed)
 
-; DEF SYS_CMD_UNKNOWN_0x0D__MAYBE_PRINT_RELATED  EQU $0D  ; May be PrintScreen related
-DEF SYS_CMD_UNKNOWN_0x11__MAYBE_PRINT_RELATED  EQU $11  ; May be PrintScreen related
+
+; Thermal Printer related 
+DEF SYS_PRINT_CARRIAGE_RETURN      EQU $0D  ; Return print head to start of 8 pixel high row
+DEF SYS_PRINT_LINE_FEED            EQU $0A  ; Feed printer paper to next 8 pixel high row (there are two print passes per-row [to print different greys], so LF only happens every other row of printing)
+DEF SYS_PRINT_END_ROW_LEN_5_NO_LF  EQU 5
+DEF SYS_PRINT_END_ROW_LEN_6_ADD_LF EQU 6
+DEF SYS_PRINT_ROW_DATA_LEN_12      EQU 12  ; 12 Bytes long
+DEF SYS_PRINT_ROW_PASS_1           EQU 0
+DEF SYS_PRINT_ROW_PASS_2           EQU 1
 
 DEF SYS_REPLY_BUFFER_SEND_AND_CHECKSUM_OK             EQU $01
 DEF SYS_REPLY_BOOT_OK             EQU $01  ; Reply on startup that allows rest of code to proceed
@@ -106,9 +114,6 @@ DEF SYS_REPLY_MAYBE_KBD_START     EQU $0E  ; Maybe 0x0E ... why 0x04 when logged
 DEF SYS_CMD_SERIAL_SEND_BUF_MAX_LEN_PLUS_1 EQU 13
 
 ; TODO: ^^^ This is definitely 0x04 coming over the line in the GBDK C implementation
-
-; DEF SYS_CMD_UNKNOWN_0x0D_LEN     EQU 05  ; 5 Bytes long
-DEF SYS_CMD_UNKNOWN_0x11_LEN     EQU 12  ; 12 Bytes long
 
 DEF SYS_RTC_UPDATE_DATE_TIME_OK   EQU  1
 DEF SYS_RTC_VALIDATE_DATE_TIME_OK EQU  1
@@ -388,7 +393,7 @@ _RAM_D1A4_: db
 _RAM_D1A5_: db
 
 SECTION "wram_d1a7", WRAMX[$d1a7], BANK[$1]
-print_serial_etc_something__RAM_D1A7_: db
+print_tile_row_pass__maybe_more__RAM_D1A7_: db
 
 ; EMPTY space from 51A8 to 520B (100 bytes) 
 _RAM_D1A8_: db  
@@ -423,7 +428,7 @@ buffer_RAM_D20E_base__used_to_D38F: db   ; Cleared near start of print function
     _RAM_D226_: db ; Gets cleared during print function init
 
     SECTION "wram_d2e4", WRAMX[$d2e4], BANK[$1]
-    serial_cmd_0x09_reply_data__RAM_D2E4_: db  ; Set during init, print related, Gets cleared during print function init
+    serial_print_init_result__RAM_D2E4_: db  ; Set during init, print related, Gets cleared during print function init
 
 SECTION "wram_d400", WRAMX[$D400]
 _RAM_D400_: db

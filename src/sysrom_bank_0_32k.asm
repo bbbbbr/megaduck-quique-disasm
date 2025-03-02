@@ -231,12 +231,12 @@ IF (!(DEF(GB_DEBUG)))
 
     ; TODO: Save response from some command
     ; (so far not seen being used in 32K Bank 0)
-    ld   a, SYS_CMD_PRINT_OR_EXT_IO_MAYBE__0x09  ; $09  // TODO
+    ld   a, SYS_CMD_PRINT_INIT_MAYBE_EXT_IO  ; $09  // TODO
     ld   [serial_tx_data__RAM_D023_], a
     call serial_io_send_byte__B64_
     call serial_io_read_byte_no_timeout__B7D_
     ld   a, [serial_rx_data__RAM_D021_]
-    ld   [serial_cmd_0x09_reply_data__RAM_D2E4_], a
+    ld   [serial_print_init_result__RAM_D2E4_], a
 
     ; Check a verification sequence in RAM
     ; If they don't match then it triggers an RTC reset via Serial IO

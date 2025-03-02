@@ -163,14 +163,41 @@ Keyboard serial reply scan codes have different ordering than SYS_CHAR_* codes
   - 6. "Oooh, schade" (ohh, what a pity)
 
 ## Printing
+- Printing init is sending 2 x CMD 0x09
+  - Response from init:
+    - 0 = failed
+    - Bit.1 is used for 1 or 2 pass printing
+- Data sent is in 1bpp 8x8 tile format
+- Each tile looks like it may be flipped horizontally and then rotated -90 degrees
+  - so: rotate 90 degrees, then flip horizontal
+- Optionally supports 2-pass printing (depending on bit .1 of CMD 9 response)
+  - bit.1: 0 = supported, 1 = not supported
+  - First pass prints : Black + Light Grey as Black
+  - Second pass prints: Black + Dark  Grey as Black
+  - Sends Tile Row of data (20 x 8x8 1bpp tiles)
+    - 160 bytes + 1 or 2 control chars at end
+    - System Rom printing
+      - Starts with 1 x blank row of tiles (single pass)
+      - Then does either double or single pass printing for 18 Tile Rows
+        - 13 x 12 gfx byte CMD 0x11 multi-byte packets
+        - 1 x Row printing terminator packet 5 or 6 bytes
+          - If Single pass printing, only ever 5 byte packets
+          - If Two pass printing, alternating 5/6 byte packets
+          - 0x0D = Carriage Return
+          - 0x0A = Line Feed
+          - 5 byte packets: <4 bytes 1bpp 8x8 tile data> <CR 0x0D>
+          - 6 byte packets: <4 bytes 1bpp 8x8 tile data> <CR 0x0D> <LF 0x0A>
+- Not yet sure if there is a printing teriminator ACK/handshake expected
+  - Emulated printing seems to go on for a very lonnngggg time...
+
 WIP:
-- print_start__maybe___ROM_32K_Bank2_0535_
+- print_start__maybe___ROM_32K_Bank2_053F_
   - Wait `50 msec`
   - Repeat **3 times**:
     - Send single byte command: `0x09`
       - Wait `200 msec` for a reply
         - Check reply byte: **Fail if zero**
-        - Save reply byte to `serial_cmd_0x09_reply_data__RAM_D2E4_`
+        - Save reply byte to `serial_print_init_result__RAM_D2E4_`
   - Clear a `182` byte RAM buffer
   - not_yet_known___ROM_32K_Bank2_0887_
     - Copy 12 bytes from (previously zeroed) source buffer to transfer buffer
@@ -179,7 +206,7 @@ WIP:
       - print_send_command_and_buffer_until_valid_reply__ROM_32K_Bank2_0906_
       - Check reply byte
         - Repeat send until: **Success (0xFC)**
-    - Check `Bit 1` of `serial_cmd_0x09_reply_data__RAM_D2E4_`
+    - Check `Bit 1` of `serial_print_init_result__RAM_D2E4_`
       - If **set/non-zero**
         - Repeat 3 times:
           - Copy 12 bytes from (previously zeroed) source buffer to transfer buffer
