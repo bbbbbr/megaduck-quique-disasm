@@ -163,15 +163,17 @@ Keyboard serial reply scan codes have different ordering than SYS_CHAR_* codes
   - 6. "Oooh, schade" (ohh, what a pity)
 
 ## Printing
+- TODO: document Large buffer single pass model printing
+  - have hunch that it's output may not be rotated and mirrored in same way
 - Printing init is sending 2 x CMD 0x09
   - Response from init:
     - 0 = failed
-    - Bit.1 is used for 1 or 2 pass printing
+    - Bit.1 indicates printer type (1 = single pass large buffer, 0 = two pass small buffer)
 - Data sent is in 1bpp 8x8 tile format
 - Each tile looks like it may be flipped horizontally and then rotated -90 degrees
   - so: rotate 90 degrees, then flip horizontal
 - Optionally supports 2-pass printing (depending on bit .1 of CMD 9 response)
-  - bit.1: 0 = supported, 1 = not supported
+  - Bit.1 indicates printer type (1 = single pass large buffer, 0 = two pass small buffer)
   - First pass prints : Black + Light Grey as Black
   - Second pass prints: Black + Dark  Grey as Black
   - Sends Tile Row of data (20 x 8x8 1bpp tiles)
@@ -191,9 +193,14 @@ Keyboard serial reply scan codes have different ordering than SYS_CHAR_* codes
   - Emulated printing seems to go on for a very lonnngggg time...
 
 WIP:
+- Once on device power-up and init:
+  - Send single byte command: `0x09`
 - print_start__maybe___ROM_32K_Bank2_053F_
   - Wait `50 msec`
-  - Repeat **3 times**:
+  - Repeat **1-3 times** (not including 1x on program startup)
+    - System ROM: 3 times
+    - Bilder Lexikon: 1 time
+    - Data Bank: 0 times
     - Send single byte command: `0x09`
       - Wait `200 msec` for a reply
         - Check reply byte: **Fail if zero**

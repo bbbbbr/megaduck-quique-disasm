@@ -94,9 +94,9 @@ DEF SYS_CMD_PRINT_SEND_BYTES      EQU $11  ; Trigger with PrintScreen, Used for 
 ; Thermal Printer related 
 DEF SYS_PRINT_CARRIAGE_RETURN      EQU $0D  ; Return print head to start of 8 pixel high row
 DEF SYS_PRINT_LINE_FEED            EQU $0A  ; Feed printer paper to next 8 pixel high row (there are two print passes per-row [to print different greys], so LF only happens every other row of printing)
-DEF SYS_PRINT_END_ROW_LEN_5_NO_LF  EQU 5
-DEF SYS_PRINT_END_ROW_LEN_6_ADD_LF EQU 6
-DEF SYS_PRINT_ROW_DATA_LEN_12      EQU 12  ; 12 Bytes long
+DEF SYS_PRINT_LEN_5_END_ROW_NO_LF  EQU 5
+DEF SYS_PRINT_LEN_6_END_ROW_HAS_LF EQU 6
+DEF SYS_PRINT_LEN_12_ROW_DATA    EQU 12  ; 12 Bytes long
 DEF SYS_PRINT_ROW_PASS_1           EQU 0
 DEF SYS_PRINT_ROW_PASS_2           EQU 1
 

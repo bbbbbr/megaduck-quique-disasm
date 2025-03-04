@@ -878,7 +878,7 @@ print__start_loading_x_y_from_ram__maybe___ROM_32K_Bank2_052B_:
     push af
     ld   a, [_tilemap_pos_y__RAM_C8CA_]
     push af
-    BANK32K_ADDR  call, print_start__maybe___ROM_32K_Bank2_053F_  ; call $053F
+    BANK32K_ADDR  call, print_start__ROM_32K_Bank2_053F_  ; call $053F
     pop  af
     ld   [_tilemap_pos_y__RAM_C8CA_], a
     pop  af
@@ -890,7 +890,7 @@ print__start_loading_x_y_from_ram__maybe___ROM_32K_Bank2_052B_:
 ; - Y (stack+2..3)
 ; - X (stack+4..5)
 ; 32K Bank addr: $02:0535 (16K Bank addr: $04:4535)
-print_start__maybe___ROM_32K_Bank2_053F_:
+print_start__ROM_32K_Bank2_053F_:
     xor  a
     ld   [_RAM_CC00_], a  ; TODO: Possible a reply buffer for the print command?
 
@@ -916,7 +916,7 @@ print_start__maybe___ROM_32K_Bank2_053F_:
     ; @ 32K_Bank_2_0585
     ; Maybe this is printing a "Blank Line" for space between prints
     ; Clear a buffer and Send one initial tile row?
-    BANK32K_ADDR  call, clear_buffer_RAM_D20E_to_D38F__ROM_32K_Bank2_05Bf_  ; call $05BF
+    BANK32K_ADDR  call, print_clear_buffer_RAM_D20E_to_D38F__ROM_32K_Bank2_05Bf_  ; call $05BF
     ld   a, SYS_PRINT_ROW_PASS_2  ; $01
     ld   [print_tile_row_pass__maybe_more__RAM_D1A7_], a
     BANK32K_ADDR  call, print_send_tile_row_1_pass__ROM_32K_Bank2_0887_  ; call $0887
@@ -936,8 +936,8 @@ print_start__maybe___ROM_32K_Bank2_053F_:
         BANK32K_ADDR  call, print_prepare_tile_row_1bpp_data_probably__ROM_32K_Bank2_05CA_  ;  call $05CA  ; TODO: This Might be what prepares the tile data
         BANK32K_ADDR  call, print_send_tile_row_1_pass__ROM_32K_Bank2_0887_  ; call $0887
 
-        ; Seems like bit .1 encodes whether the printer supports
-        ; 2-pass printing or not (0 = supported, 1 = not supported)
+        ; Check serial command reply which was set by main print function (result of 0x09 cmd)
+        ; - Bit.1 indicates printer type (1 = single pass large buffer, 0 = two pass small buffer)
         ld   a, [serial_print_init_result__RAM_D2E4_]
         bit  1, a
         jr   nz, .skip_second_tile_row_print_pass_no_printer_support
@@ -962,17 +962,18 @@ print_start__maybe___ROM_32K_Bank2_053F_:
     ; Done printing screen (probably)
     ret
 
-    ; Clears a ram buffer of 182 bytes
-    ; Overwrites this var used elsewhere: serial_print_init_result__RAM_D2E4_
-    clear_buffer_RAM_D20E_to_D38F__ROM_32K_Bank2_05Bf_:
-        ld   c, 182  ; $B6
-        ld   hl, buffer_RAM_D20E_base__used_to_D38F
-        xor  a
-        .clear_buffer_loop
-            ldi  [hl], a
-            dec  c
-            jr   nz, .clear_buffer_loop  ; @ - 2
-        ret
+
+; Clears a ram buffer of 182 bytes
+; Overwrites this var used elsewhere: serial_print_init_result__RAM_D2E4_
+print_clear_buffer_RAM_D20E_to_D38F__ROM_32K_Bank2_05Bf_:
+    ld   c, 182  ; $B6
+    ld   hl, buffer_RAM_D20E_base__used_to_D38F
+    xor  a
+    .clear_buffer_loop
+        ldi  [hl], a
+        dec  c
+        jr   nz, .clear_buffer_loop  ; @ - 2
+    ret
 
 
         ; Probably prepares 1 tile row of 1bpp data for printing (20 tiles wide)
@@ -980,7 +981,7 @@ print_start__maybe___ROM_32K_Bank2_053F_:
         ; - Seems to merge sprites into the tile data
         ; - Based on output seems to flip tiles horizontally and rotate them -90 degrees
         print_prepare_tile_row_1bpp_data_probably__ROM_32K_Bank2_05CA_:
-            BANK32K_ADDR  call, clear_buffer_RAM_D20E_to_D38F__ROM_32K_Bank2_05Bf_  ; call $05BF
+            BANK32K_ADDR  call, print_clear_buffer_RAM_D20E_to_D38F__ROM_32K_Bank2_05Bf_  ; call $05BF
             ; Probably starting X position (maybe +8 for the OAM/sprite X offset)
             ld   a, $08
             ld   [_tilemap_pos_x__RAM_C8CB_], a
@@ -1421,141 +1422,140 @@ print_start__maybe___ROM_32K_Bank2_053F_:
             jr   nz, @ - 60
             ret
 
-    ; Sends one row of 20 8x8 1bpp tiles to the printer the IO port / printer
-    ; There are two passes per tile row (for differing greys), so this should be called twice per row
-    print_send_tile_row_1_pass__ROM_32K_Bank2_0887_:
-        ; Copy 12 bytes (previously zeroed by caller) to send buffer
-        ld   hl, print_source_buffer_maybe_RAM_D216_
-        BANK32K_ADDR  call, .memcopy_12_bytes_from_hl_to_serial_buffer_RAM_D028____ROM_32K_Bank2_08FD_
+; Sends one row of 20 8x8 1bpp tiles to the printer the IO port / printer
+; There are two passes per tile row (for differing greys), so this should be called twice per row
+print_send_tile_row_1_pass__ROM_32K_Bank2_0887_:
+    ; Copy 12 bytes (previously zeroed by caller) to send buffer
+    ld   hl, print_source_buffer_maybe_RAM_D216_
+    BANK32K_ADDR  call, memcopy_12_bytes_from_hl_to_serial_buffer_RAM_D028____ROM_32K_Bank2_08FD_
 
-        ; Set up serial command and buffer (Print CMD + 12 bytes length)
-        ld   a, SYS_CMD_PRINT_SEND_BYTES  ; $11
-        ld   [serial_cmd_to_send__RAM_D035_], a
-        ld   a, SYS_PRINT_ROW_DATA_LEN_12  ; $0C
-        ld   [serial_transfer_length__RAM_D034_], a
+    ; Set up serial command and buffer (Print CMD + 12 bytes length)
+    ld   a, SYS_CMD_PRINT_SEND_BYTES  ; $11
+    ld   [serial_cmd_to_send__RAM_D035_], a
+    ld   a, SYS_PRINT_LEN_12_ROW_DATA  ; $0C
+    ld   [serial_transfer_length__RAM_D034_], a
 
-        ; Send First packet of tile data (12 bytes, 1bpp)
-        BANK32K_ADDR call, .print_send_command_and_buffer_until_valid_reply__ROM_32K_Bank2_0906_
+    ; Send First packet of tile data (12 bytes, 1bpp)
+    BANK32K_ADDR call, print_send_command_and_buffer_until_valid_reply__ROM_32K_Bank2_0906_
 
-        ; Check serial command reply which was set by main print function
-        ; Maybe checking for SYS_REPLY_BUFFER_SEND_AND_CHECKSUM_OK ($01)
-        ; So could be, SKIP if transfer worked and successfully configured
-        ld   a, [serial_print_init_result__RAM_D2E4_]
-        bit  1, a
-        jr   z, .skip_something__ROM_32K_Bank2_08CB_  ; @ + 44
+    ; Check serial command reply which was set by main print function (result of 0x09 cmd)
+    ; - Bit.1 indicates printer type (1 = single pass large buffer, 0 = two pass small buffer)
+    ld   a, [serial_print_init_result__RAM_D2E4_]
+    bit  1, a
+    jr   z, .skip_alternate_printing_mode__ROM_32K_Bank2_08CB_  ; @ + 44
 
-            ; TODO:
-            ; Is this Support for an ALTERNATE type of printer?
-            ; (MegaDuck supports both their custom printer 
-            ; and generic printers via an adapter)
+        ; TODO:
+        ; Is this Support for an ALTERNATE type of printer?
+        ; (MegaDuck supports both their custom printer 
+        ; and generic printers via an adapter)
 
-            ; (12 x 3) + 118 = 154 bytes ... 
+        ; (12 x 3) + 118 = 154 bytes ... 
 
-            ; Send 3 x 12 byte packets (of, what is probably still zero)
-            ld   b, 3  ; $03
-            .send_loop_3_times
-                push bc
-                BANK32K_ADDR  call, .memcopy_12_bytes_from_hl_to_serial_buffer_RAM_D028____ROM_32K_Bank2_08FD_  ;  call $08FD
-                BANK32K_ADDR call, .print_send_command_and_buffer_until_valid_reply__ROM_32K_Bank2_0906_  ; call $0906
-                pop  bc
-                dec  b
-                jr   nz, .send_loop_3_times  ; @ - 9
-
-            ld   b, 118  ; $76
-            .buffer_D216_send_118_bytes_loop
-                ldi  a, [hl]
-                ld   [serial_tx_data__RAM_D023_], a ; serial_tx_data__RAM_D023_ = $D023
-                push bc
-                push hl
-                BANK32K_ADDR  call, serial_io_wait_receive_with_timeout__32K_Bank_2_0D53_  ; call $0D53
-                BANK32K_ADDR  call, serial_io_send_byte__32K_Bank_2_0D28_ ; call $0D28
-                pop  hl
-                pop  bc
-                dec  b
-                jr   nz, .buffer_D216_send_118_bytes_loop  ; @ - 15\
-
-            ; Seems to wait briefly for an ACK.. unsure if it does anything with it
-            BANK32K_ADDR  call, delay_1_msec__32K_Bank_2_0D9A_  ; call $D9A  ; _LABEL_D9A_
-            BANK32K_ADDR  call, serial_io_wait_receive_timeout_200msec__32K_Bank_2_0D62_  ; call $0D62
-            BANK32K_ADDR  call, serial_io_wait_receive_timeout_200msec__32K_Bank_2_0D62_  ; call $0D62
-            ret
-
-        .skip_something__ROM_32K_Bank2_08CB_    
-        ; Send 12 more packets of tile data (12 bytes)
-        ; Once completed 156 bytes will have been sent
-        ; - ((12 packets + 1 packet) x 12 bytes per packet = 156 bytes, 4 bytes short
-        ; of the entire row (20 8x8 tiles wide x 8 bytes per 1bpp tile) = 160 bytes needed
-        ld   b, $0C
-        .loop_send_something_12_times
+        ; Send 3 x 12 byte packets (of, what is probably still zero)
+        ld   b, 3  ; $03
+        .send_loop_3_times
             push bc
-            BANK32K_ADDR  call, .memcopy_12_bytes_from_hl_to_serial_buffer_RAM_D028____ROM_32K_Bank2_08FD_  ;  call $08FD
-            BANK32K_ADDR call, .print_send_command_and_buffer_until_valid_reply__ROM_32K_Bank2_0906_  ; call $0906
+            BANK32K_ADDR  call, memcopy_12_bytes_from_hl_to_serial_buffer_RAM_D028____ROM_32K_Bank2_08FD_  ;  call $08FD
+            BANK32K_ADDR call, print_send_command_and_buffer_until_valid_reply__ROM_32K_Bank2_0906_  ; call $0906
             pop  bc
             dec  b
-            jr   nz, .loop_send_something_12_times
+            jr   nz, .send_loop_3_times  ; @ - 9
 
-        ; Finish printing the Tile Row (8 pixels high)
-        ; - Sends the remaining 4 pixel bytes
-        ; - Always sends a Carriage Return command to move
-        ;   the print head back to the start of the Row.
-        ; - On the Second pass of the Tile Row a Line Feed
-        ;   command is added to advance the paper
-        ;   (2 pass printing is used for the different greys)
-        ;   
-        ; Send a serial command and buffer: buffer length 5 - 6 depending
-        ; Command to send and buffer contents presumably recycled from earlier
-        ; (in serial_cmd_to_send__RAM_D035_, preload of serial_buffer__RAM_D028_)
-        BANK32K_ADDR  call, .memcopy_12_bytes_from_hl_to_serial_buffer_RAM_D028____ROM_32K_Bank2_08FD_  ;  call $08FD
-        ld   a, SYS_PRINT_CARRIAGE_RETURN  ; $0D
-        ld   [serial_buffer__RAM_D028_ + 4], a
-        ld   a, SYS_PRINT_END_ROW_LEN_5_NO_LF  ; $05
+        ld   b, 118  ; $76
+        .buffer_D216_send_118_bytes_loop
+            ldi  a, [hl]
+            ld   [serial_tx_data__RAM_D023_], a ; serial_tx_data__RAM_D023_ = $D023
+            push bc
+            push hl
+            BANK32K_ADDR  call, serial_io_wait_receive_with_timeout__32K_Bank_2_0D53_  ; call $0D53
+            BANK32K_ADDR  call, serial_io_send_byte__32K_Bank_2_0D28_ ; call $0D28
+            pop  hl
+            pop  bc
+            dec  b
+            jr   nz, .buffer_D216_send_118_bytes_loop  ; @ - 15\
+
+        ; Seems to wait briefly for an ACK.. unsure if it does anything with it
+        BANK32K_ADDR  call, delay_1_msec__32K_Bank_2_0D9A_  ; call $D9A  ; _LABEL_D9A_
+        BANK32K_ADDR  call, serial_io_wait_receive_timeout_200msec__32K_Bank_2_0D62_  ; call $0D62
+        BANK32K_ADDR  call, serial_io_wait_receive_timeout_200msec__32K_Bank_2_0D62_  ; call $0D62
+        ret
+
+    .skip_alternate_printing_mode__ROM_32K_Bank2_08CB_    
+    ; Send 12 more packets of tile data (12 bytes)
+    ; Once completed 156 bytes will have been sent
+    ; - ((12 packets + 1 packet) x 12 bytes per packet = 156 bytes, 4 bytes short
+    ; of the entire row (20 8x8 tiles wide x 8 bytes per 1bpp tile) = 160 bytes needed
+    ld   b, 12; $0C
+    .loop_send_tile_data_bytes_12_times
+        push bc
+        BANK32K_ADDR  call, memcopy_12_bytes_from_hl_to_serial_buffer_RAM_D028____ROM_32K_Bank2_08FD_  ;  call $08FD
+        BANK32K_ADDR call, print_send_command_and_buffer_until_valid_reply__ROM_32K_Bank2_0906_  ; call $0906
+        pop  bc
+        dec  b
+        jr   nz, .loop_send_tile_data_bytes_12_times
+
+    ; Finish printing the Tile Row (8 pixels high)
+    ; - Sends the remaining 4 pixel bytes
+    ; - Always sends a Carriage Return command to move
+    ;   the print head back to the start of the Row.
+    ; - On the Second pass of the Tile Row a Line Feed
+    ;   command is added to advance the paper
+    ;   (2 pass printing is used for the different greys)
+    ;   
+    ; Send a serial command and buffer: buffer length 5 - 6 depending
+    ; Command to send and buffer contents presumably recycled from earlier
+    ; (in serial_cmd_to_send__RAM_D035_, preload of serial_buffer__RAM_D028_)
+    BANK32K_ADDR  call, memcopy_12_bytes_from_hl_to_serial_buffer_RAM_D028____ROM_32K_Bank2_08FD_  ;  call $08FD
+    ld   a, SYS_PRINT_CARRIAGE_RETURN  ; $0D
+    ld   [serial_buffer__RAM_D028_ + 4], a
+    ld   a, SYS_PRINT_LEN_5_END_ROW_NO_LF  ; $05
+    ld   [serial_transfer_length__RAM_D034_], a
+    ; Whether this is the First (== 0) or Second (== 1) Tile Row printing pass
+    ld   a, [print_tile_row_pass__maybe_more__RAM_D1A7_]
+    bit  0, a
+    jr   z, .first_row_pass_no_add_LineFeed
+
+        ; Increase the serial transfer length from 5 to 6
+        ; and append the Line Feed command
+        ld   a, SYS_PRINT_LINE_FEED ; $0A
+        ld   [serial_buffer__RAM_D028_ + 5], a ; [_RAM_D02D_], a
+        ld   a, SYS_PRINT_LEN_6_END_ROW_HAS_LF  ; $06
         ld   [serial_transfer_length__RAM_D034_], a
-        ; Whether this is the First (== 0) or Second (== 1)
-        ; Tile Row printing pass        
-        ld   a, [print_tile_row_pass__maybe_more__RAM_D1A7_]
-        bit  0, a
-        jr   z, .first_row_pass_no_add_LineFeed
-
-            ; Increase the serial transfer length from 5 to 6
-            ; and append the Line Feed command
-            ld   a, SYS_PRINT_LINE_FEED ; $0A
-            ld   [serial_buffer__RAM_D028_ + 5], a ; [_RAM_D02D_], a
-            ld   a, SYS_PRINT_END_ROW_LEN_6_ADD_LF  ; $06
-            ld   [serial_transfer_length__RAM_D034_], a
-        
-        .first_row_pass_no_add_LineFeed
-        ; Now send the Tile Row terminating command
-        BANK32K_ADDR call, .print_send_command_and_buffer_until_valid_reply__ROM_32K_Bank2_0906_  ; call $0906
-        BANK32K_ADDR call, serial_io_wait_receive_timeout_200msec__32K_Bank_2_0D62_  ; call $0D62
-        ; Done sending one pass of a Tile Row, return
-        ret
+    
+    .first_row_pass_no_add_LineFeed
+    ; Now send the Tile Row terminating command
+    BANK32K_ADDR call, print_send_command_and_buffer_until_valid_reply__ROM_32K_Bank2_0906_  ; call $0906
+    BANK32K_ADDR call, serial_io_wait_receive_timeout_200msec__32K_Bank_2_0D62_  ; call $0D62
+    ; Done sending one pass of a Tile Row, return
+    ret
 
 
-    .memcopy_12_bytes_from_hl_to_serial_buffer_RAM_D028____ROM_32K_Bank2_08FD_
-        ld   b, SYS_PRINT_ROW_DATA_LEN_12  ; 12 ; $0C
-        ld   de, serial_buffer__RAM_D028_
-        BANK32K_ADDR  call, memcopy_b_bytes_from_hl_to_de__ROM_32K_Bank2_2902_  ; call $2902
-        ret
+memcopy_12_bytes_from_hl_to_serial_buffer_RAM_D028____ROM_32K_Bank2_08FD_:
+    ld   b, SYS_PRINT_LEN_12_ROW_DATA  ; 12 ; $0C
+    ld   de, serial_buffer__RAM_D028_
+    BANK32K_ADDR  call, memcopy_b_bytes_from_hl_to_de__ROM_32K_Bank2_2902_  ; call $2902
+    ret
 
 
-    ; Send a serial command and buffer
-    ;
-    ; Loops forever until expected reply received (SYS_CHAR_SERIAL_TX_SUCCESS ; $FC)
-    ;
-    ; Expected vars set before calling:
-    ; - serial_cmd_to_send__RAM_D035_
-    ; - serial_transfer_length__RAM_D034_
-    .print_send_command_and_buffer_until_valid_reply__ROM_32K_Bank2_0906_
-        push hl
-        .loop_send_wait_valid_reply
-            BANK32K_ADDR call, serial_io_send_command_and_buffer__32K_Bank_2_0BF8_;  call $0BF8
-            BANK32K_ADDR call, delay_1_msec__32K_Bank_2_0D9A_  ; call $D9A
-            ld   a, [input_key_pressed__RAM_D025_]
-            cp   SYS_CHAR_SERIAL_TX_SUCCESS ; $FC
-            ; Failure, do something
-            jr   nz, .loop_send_wait_valid_reply ; $4907
-        pop  hl
-        ret
+; Send a serial command and buffer
+;
+; Loops forever until expected reply received (SYS_CHAR_SERIAL_TX_SUCCESS ; $FC)
+;
+; Expected vars set before calling:
+; - serial_cmd_to_send__RAM_D035_
+; - serial_transfer_length__RAM_D034_
+print_send_command_and_buffer_until_valid_reply__ROM_32K_Bank2_0906_:
+    push hl
+    .loop_send_wait_valid_reply
+        BANK32K_ADDR call, serial_io_send_command_and_buffer__32K_Bank_2_0BF8_;  call $0BF8
+        BANK32K_ADDR call, delay_1_msec__32K_Bank_2_0D9A_  ; call $D9A
+        ld   a, [input_key_pressed__RAM_D025_]
+        cp   SYS_CHAR_SERIAL_TX_SUCCESS ; $FC
+        ; Failure, do something
+        jr   nz, .loop_send_wait_valid_reply ; $4907
+    pop  hl
+    ret
+
 
 ; (duplicate) See bank 0 vram_init__752_:
 vram_init__ROM_32K_Bank2_090D_:

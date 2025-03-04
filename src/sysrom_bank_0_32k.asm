@@ -872,8 +872,10 @@ joypad_and_buttons_read__4F9_:
     ld   [buttons_current__RAM_D007_], a
     ret
 
-; TODO: Most Printscreen key presses ultimately call this
-;  ? ... Why the res 7, h ?
+; Calls PrintScreen function in 32K Bank 3
+; Most "Print" key presses ultimately call this
+;
+; - ... Why the res 7, h ?
 ;
 ; - Switches to Bank 2
 ; - Jumps to an RST 30
